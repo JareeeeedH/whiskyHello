@@ -1,0 +1,29 @@
+{
+  "name": "whiskyhello-backend",
+  "private": true,
+  "version": "0.0.0",
+  "description": "WhiskyHello backend API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "joi": "^18.2.8",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.20.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}

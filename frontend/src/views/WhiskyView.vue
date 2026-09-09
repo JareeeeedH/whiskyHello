@@ -4,18 +4,19 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import WhiskyCard from '../components/WhiskyCard.vue'
 import type { Whisky } from '../types/whisky'
 import {
   getRandomWhiskies,
   searchWhiskies,
 } from '../services/whiskyService'
 
-/** Legacy SearchArea defaults */
+/** Legacy SearchArea defaults — search behavior unchanged */
 const searchQuery = ref('macallan')
 const searchPoints = ref<number | null>(80)
 const pointGreaterThan = ref(true)
 
-const displayList = ref<Whisky[]>(getRandomWhiskies(10))
+const displayList = ref<Whisky[]>(getRandomWhiskies(5))
 const isSearch = ref(false)
 const warningMessage = ref('')
 
@@ -42,131 +43,194 @@ function onSearch() {
 
 <template>
   <main class="whisky-view">
-    <h1>WhiskyHello</h1>
-    <p class="hint">Whisky search (Data Layer via whiskyService)</p>
+    <header class="page-header">
+      <h1>搜尋威士忌</h1>
+      <p class="lead">搜尋酒款，查看知名評論家評分與評論</p>
+    </header>
 
-    <section class="search-area">
-      <InputText v-model="searchQuery" placeholder="title subtitle" class="search-input" />
-      <InputNumber v-model="searchPoints" placeholder="points" class="points-input" />
-      <label class="gte">
-        <Checkbox v-model="pointGreaterThan" binary />
-        ≥
+    <section class="search-area" aria-label="搜尋條件">
+      <label class="field name-field">
+        <span class="label">酒款名稱</span>
+        <InputText
+          v-model="searchQuery"
+          placeholder="輸入酒款名稱，例如 Macallan、Ardbeg..."
+          class="search-input"
+        />
       </label>
-      <Button label="Search" icon="pi pi-search" @click="onSearch" />
-      <span v-if="isSearch" class="matched">matched: {{ matchedNumber }}</span>
+
+      <div class="score-row">
+        <label class="field points-field">
+          <span class="label">最低分數</span>
+          <InputNumber
+            v-model="searchPoints"
+            placeholder="80"
+            class="points-input"
+            :min="0"
+            :max="100"
+          />
+        </label>
+
+        <label class="compare">
+          <Checkbox v-model="pointGreaterThan" binary input-id="point-gte" />
+          <span>{{ pointGreaterThan ? '≥' : '=' }}</span>
+        </label>
+
+        <Button label="搜尋" icon="pi pi-search" @click="onSearch" />
+      </div>
     </section>
 
     <p v-if="warningMessage" class="warning">
       {{ warningMessage }} / 請搜尋至少三個字
     </p>
 
-    <section v-if="!isSearch" class="browse">
-      <h2>Random picks</h2>
-      <ul>
-        <li v-for="item in displayList" :key="item.id">
-          <strong>{{ item.name }}</strong>
-          <span v-if="item.subtitle"> {{ item.subtitle }}</span>
-        </li>
-      </ul>
+    <section v-if="!isSearch" class="results-section">
+      <div class="section-heading">
+        <h2>探索酒款</h2>
+        <p class="section-desc">發現一些值得認識的威士忌</p>
+      </div>
+      <div class="card-grid">
+        <WhiskyCard
+          v-for="item in displayList"
+          :key="item.id"
+          :whisky="item"
+        />
+      </div>
     </section>
 
-    <section v-else class="results">
-      <template v-if="displayList.length !== 0">
-        <article v-for="item in displayList" :key="item.id" class="card">
-          <img
-            v-if="item.imageUrl"
-            :src="item.imageUrl"
-            :alt="item.name"
-            class="thumb"
-            loading="lazy"
-          />
-          <div>
-            <h3>{{ item.name }}</h3>
-            <p v-if="item.subtitle">{{ item.subtitle }}</p>
-            <p v-if="item.sgp || item.points !== undefined">
-              <span v-if="item.sgp">{{ item.sgp }}</span>
-              <span v-if="item.points !== undefined"> — {{ item.points }} points</span>
-            </p>
-            <p v-if="item.note" class="note">{{ item.note }}</p>
-          </div>
-        </article>
-      </template>
-      <h5 v-else>no data / 沒有符合的評論</h5>
+    <section v-else class="results-section">
+      <div class="section-heading">
+        <h2>搜尋結果</h2>
+        <p v-if="!warningMessage" class="section-desc">共 {{ matchedNumber }} 款</p>
+      </div>
+
+      <div v-if="displayList.length !== 0" class="card-grid">
+        <WhiskyCard
+          v-for="item in displayList"
+          :key="item.id"
+          :whisky="item"
+        />
+      </div>
+      <p v-else class="empty">沒有符合的酒款，請試試其他名稱或分數條件。</p>
     </section>
   </main>
 </template>
 
 <style scoped>
 .whisky-view {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 2rem;
 }
 
-.hint {
+.page-header {
+  margin-bottom: 1.25rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+}
+
+.lead {
+  margin: 0;
   color: #64748b;
-  margin-bottom: 1rem;
 }
 
 .search-area {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
 }
 
-.search-input {
-  min-width: 16rem;
-}
-
-.points-input {
-  width: 7rem;
-}
-
-.gte {
-  display: inline-flex;
-  align-items: center;
+.field {
+  display: flex;
+  flex-direction: column;
   gap: 0.35rem;
 }
 
-.matched {
+.name-field {
+  width: 100%;
+}
+
+.label {
+  font-size: 0.875rem;
   color: #475569;
 }
 
-.warning {
-  color: red;
-}
-
-.browse ul {
-  padding-left: 1.25rem;
-}
-
-.card {
+.score-row {
   display: flex;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
-.thumb {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  flex-shrink: 0;
+.points-field {
+  width: 7.5rem;
 }
 
-.note {
-  font-size: 0.9rem;
+.search-input,
+.points-input,
+:deep(.p-inputnumber) {
+  width: 100%;
+}
+
+.compare {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
   color: #334155;
-  white-space: pre-wrap;
+  font-weight: 600;
 }
 
-h1,
-h2,
-h3,
-h5,
-p {
-  margin: 0 0 0.5rem;
+.warning {
+  margin: 0 0 0.75rem;
+  color: #dc2626;
+}
+
+.section-heading {
+  margin-bottom: 0.85rem;
+}
+
+.section-heading h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+}
+
+.section-desc {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9375rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 1.25rem 0;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .whisky-view {
+    padding: 1rem;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .points-field {
+    width: 6.5rem;
+  }
 }
 </style>

@@ -1,37 +1,21 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
-import { useAppStore } from '../stores/app'
-import { apiClient } from '../api/client'
+import { useRouter } from 'vue-router'
 
-const appStore = useAppStore()
+const router = useRouter()
 
-function handleCheck() {
-  appStore.markReady()
-}
-
-function handleApiSmoke() {
-  // Confirms Axios client is wired; backend may not exist yet.
-  void apiClient.get('/health').catch(() => {
-    // Expected until backend is available.
-  })
+function goSearch() {
+  void router.push('/whiskies')
 }
 </script>
 
 <template>
   <main class="home">
     <h1>WhiskyHello</h1>
-    <p>Frontend skeleton is running.</p>
-    <p class="status">Status: {{ appStore.status }}</p>
-    <div class="actions">
-      <Button label="Check Pinia" icon="pi pi-check" @click="handleCheck" />
-      <Button
-        label="Smoke Axios"
-        icon="pi pi-send"
-        severity="secondary"
-        outlined
-        @click="handleApiSmoke"
-      />
-    </div>
+    <p>
+      威士忌探索、評論與未來 AI 個人化體驗平台。先從搜尋威士忌與知名評論開始。
+    </p>
+    <Button label="搜尋威士忌" icon="pi pi-search" @click="goSearch" />
   </main>
 </template>
 
@@ -41,22 +25,20 @@ function handleApiSmoke() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  min-height: 100vh;
+  gap: 1rem;
+  min-height: 60vh;
   padding: 2rem;
   text-align: center;
 }
 
-.status {
-  color: var(--p-primary-color, #0f766e);
-  font-weight: 600;
+h1,
+p {
+  margin: 0;
+  max-width: 36rem;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-  margin-top: 0.5rem;
+p {
+  color: #475569;
+  line-height: 1.6;
 }
 </style>

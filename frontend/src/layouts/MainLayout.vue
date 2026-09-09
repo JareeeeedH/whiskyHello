@@ -1,0 +1,73 @@
+<script setup lang="ts">
+import { RouterLink, RouterView } from 'vue-router'
+</script>
+
+<template>
+  <div class="main-layout">
+    <header class="site-header">
+      <RouterLink class="brand" to="/">WhiskyHello</RouterLink>
+      <nav class="nav">
+        <RouterLink
+          v-slot="{ href, navigate, isExactActive }"
+          to="/"
+          custom
+        >
+          <a
+            :href="href"
+            :class="{ 'is-active': isExactActive }"
+            @click="navigate"
+          >Home</a>
+        </RouterLink>
+        <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
+        <RouterLink to="/login" active-class="is-active">Login</RouterLink>
+      </nav>
+    </header>
+    <div class="page">
+      <RouterView />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.main-layout {
+  min-height: 100vh;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.nav a {
+  color: #334155;
+  text-decoration: none;
+}
+
+.nav a.is-active {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.page {
+  min-height: calc(100vh - 3.5rem);
+}
+</style>

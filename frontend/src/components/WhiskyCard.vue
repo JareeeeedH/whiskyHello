@@ -22,9 +22,12 @@ defineProps<{
       <h3 class="name">{{ whisky.name }}</h3>
       <p v-if="whisky.subtitle" class="subtitle">{{ whisky.subtitle }}</p>
       <p class="score-line">
-        <span v-if="whisky.points !== undefined">{{ whisky.points }} points</span>
-        <span v-else-if="whisky.score">{{ whisky.score }}</span>
-        <span v-else>—</span>
+        <span v-if="whisky.points !== undefined" class="points">
+          {{ whisky.points }}
+          <span class="points-unit">points</span>
+        </span>
+        <span v-else-if="whisky.score" class="score-text">{{ whisky.score }}</span>
+        <span v-else class="score-empty">—</span>
       </p>
     </div>
   </RouterLink>
@@ -50,14 +53,15 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1 / 1;
+  height: 160px;
+  flex-shrink: 0;
   padding: 0.75rem;
   background: #f8fafc;
 }
 
 .image-wrap img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -76,23 +80,51 @@ defineProps<{
 
 .name {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.35;
   color: #0f172a;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   color: #64748b;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 .score-line {
   margin: auto 0 0;
-  padding-top: 0.35rem;
-  font-size: 0.875rem;
+  padding-top: 0.5rem;
+}
+
+.points {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f766e;
+}
+
+.points-unit {
+  font-size: 0.75rem;
   font-weight: 600;
   color: #0f766e;
+}
+
+.score-text {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.score-empty {
+  color: #94a3b8;
 }
 </style>

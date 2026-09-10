@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
-import Checkbox from 'primevue/checkbox'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import WhiskyCard from '../components/WhiskyCard.vue'
@@ -21,6 +20,11 @@ const isSearch = ref(false)
 const warningMessage = ref('')
 
 const matchedNumber = computed(() => displayList.value.length)
+const compareOperator = computed(() => (pointGreaterThan.value ? '≥' : '='))
+
+function toggleCompareOperator() {
+  pointGreaterThan.value = !pointGreaterThan.value
+}
 
 function onSearch() {
   const result = searchWhiskies({
@@ -49,32 +53,33 @@ function onSearch() {
     </header>
 
     <section class="search-area" aria-label="搜尋條件">
-      <label class="field name-field">
+      <div class="search-row">
         <span class="label">酒款名稱</span>
         <InputText
           v-model="searchQuery"
           placeholder="輸入酒款名稱，例如 Macallan、Ardbeg..."
           class="search-input"
         />
-      </label>
+      </div>
 
-      <div class="score-row">
-        <label class="field points-field">
-          <span class="label">最低分數</span>
-          <InputNumber
-            v-model="searchPoints"
-            placeholder="80"
-            class="points-input"
-            :min="0"
-            :max="100"
-          />
-        </label>
-
-        <label class="compare">
-          <Checkbox v-model="pointGreaterThan" binary input-id="point-gte" />
-          <span>{{ pointGreaterThan ? '≥' : '=' }}</span>
-        </label>
-
+      <div class="search-row">
+        <span class="label">最低分數</span>
+        <Button
+          type="button"
+          class="compare-btn"
+          :label="compareOperator"
+          severity="secondary"
+          outlined
+          :aria-label="pointGreaterThan ? '大於等於，點擊改為剛好等於' : '剛好等於，點擊改為大於等於'"
+          @click="toggleCompareOperator"
+        />
+        <InputNumber
+          v-model="searchPoints"
+          placeholder="80"
+          class="points-input"
+          :min="0"
+          :max="100"
+        />
         <Button label="搜尋" icon="pi pi-search" @click="onSearch" />
       </div>
     </section>
@@ -146,45 +151,34 @@ function onSearch() {
   background: #fff;
 }
 
-.field {
+.search-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.name-field {
-  width: 100%;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .label {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
   font-size: 0.875rem;
   color: #475569;
 }
 
-.score-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
+.search-input {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
-.points-field {
-  width: 7.5rem;
-}
-
-.search-input,
 .points-input,
 :deep(.p-inputnumber) {
-  width: 100%;
+  width: 7.5rem;
+  flex: 0 0 auto;
 }
 
-.compare {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 2.5rem;
-  color: #334155;
-  font-weight: 600;
+.compare-btn {
+  min-width: 3rem;
+  flex-shrink: 0;
 }
 
 .warning {
@@ -209,8 +203,8 @@ function onSearch() {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .empty {
@@ -219,17 +213,32 @@ function onSearch() {
   color: #64748b;
 }
 
+@media (min-width: 641px) {
+  .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .card-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
   .whisky-view {
     padding: 1rem;
   }
 
-  .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.75rem;
-  }
-
-  .points-field {
+  .points-input,
+  :deep(.p-inputnumber) {
     width: 6.5rem;
   }
 }

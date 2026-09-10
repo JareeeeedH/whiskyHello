@@ -14,6 +14,18 @@ const latestFriendReviews = mockFriendReviews.filter((review) =>
   Boolean(getWhiskyById(review.whiskyId)),
 )
 
+/** Duplicate list for seamless CSS marquee loop. */
+const reviewFeedLoops = [0, 1] as const
+const reviewMarqueePaused = ref(false)
+
+function pauseReviewMarquee() {
+  reviewMarqueePaused.value = true
+}
+
+function resumeReviewMarquee() {
+  reviewMarqueePaused.value = false
+}
+
 const capabilities = [
   {
     title: '探索酒款',
@@ -92,40 +104,64 @@ function goSearchEntry() {
           </div>
         </div>
 
-        <div class="reviews-panel">
+        <div
+          class="reviews-panel"
+          @mouseenter="pauseReviewMarquee"
+          @mouseleave="resumeReviewMarquee"
+          @focusin="pauseReviewMarquee"
+          @focusout="resumeReviewMarquee"
+        >
           <p class="eyebrow">Friend Reviews</p>
           <h2>酒友最新評論</h2>
           <p class="section-desc">看看酒友最近喝了什麼。</p>
 
-          <div class="review-feed">
-            <article
-              v-for="review in latestFriendReviews"
-              :key="review.id"
-              class="review-item"
-            >
-              <div class="review-row">
-                <RouterLink
-                  class="whisky-name"
-                  :to="`/whiskies/${review.whiskyId}`"
-                >
-                  {{ review.whiskyName }}
-                </RouterLink>
-                <span class="rating">{{ review.rating }} / 100</span>
-              </div>
-              <p class="review-summary">
-                <span class="user">{{ review.userName }}</span>
-                <span class="dot">·</span>
-                <span class="time">{{ review.createdAt }}</span>
-                <span class="dot">·</span>
-                <span class="excerpt">{{ review.title }} — {{ review.content }}</span>
-              </p>
-              <RouterLink
-                class="review-link"
-                :to="`/whiskies/${review.whiskyId}`"
+          <div class="review-marquee" aria-label="酒友最新評論流動列表">
+            <div class="review-marquee-viewport">
+              <div
+                class="review-marquee-track"
+                :class="{ paused: reviewMarqueePaused }"
               >
-                查看評論 →
-              </RouterLink>
-            </article>
+                <div
+                  v-for="loopIndex in reviewFeedLoops"
+                  :key="loopIndex"
+                  class="review-feed"
+                  :aria-hidden="loopIndex === 1"
+                >
+                  <article
+                    v-for="review in latestFriendReviews"
+                    :key="`${loopIndex}-${review.id}`"
+                    class="review-item"
+                  >
+                    <div class="review-row">
+                      <RouterLink
+                        class="whisky-name"
+                        :to="`/whiskies/${review.whiskyId}`"
+                        :tabindex="loopIndex === 0 ? undefined : -1"
+                      >
+                        {{ review.whiskyName }}
+                      </RouterLink>
+                      <span class="rating">{{ review.rating }} / 100</span>
+                    </div>
+                    <p class="review-summary">
+                      <span class="user">{{ review.userName }}</span>
+                      <span class="dot">·</span>
+                      <span class="time">{{ review.createdAt }}</span>
+                      <span class="dot">·</span>
+                      <span class="excerpt"
+                        >{{ review.title }} — {{ review.content }}</span
+                      >
+                    </p>
+                    <RouterLink
+                      class="review-link"
+                      :to="`/whiskies/${review.whiskyId}`"
+                      :tabindex="loopIndex === 0 ? undefined : -1"
+                    >
+                      查看評論 →
+                    </RouterLink>
+                  </article>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -373,10 +409,46 @@ function goSearchEntry() {
   font-size: 0.9rem;
 }
 
+.review-marquee {
+  position: relative;
+}
+
+.review-marquee-viewport {
+  height: 26rem;
+  overflow: hidden;
+  border-top: 1px solid #e7e5e4;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 8%,
+    #000 92%,
+    transparent 100%
+  );
+}
+
+.review-marquee-track {
+  display: flex;
+  flex-direction: column;
+  animation: review-marquee-up 100s linear infinite;
+  will-change: transform;
+}
+
+.review-marquee-track.paused {
+  animation-play-state: paused;
+}
+
+@keyframes review-marquee-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
 .review-feed {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid #e7e5e4;
 }
 
 .review-item {
@@ -445,6 +517,23 @@ function goSearchEntry() {
   text-decoration: underline;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .review-marquee-track {
+    animation: none;
+  }
+
+  .review-marquee-viewport {
+    height: auto;
+    max-height: 26rem;
+    overflow-y: auto;
+    mask-image: none;
+  }
+
+  .review-marquee-track .review-feed[aria-hidden='true'] {
+    display: none;
+  }
+}
+
 .sommelier {
   background:
     radial-gradient(ellipse at bottom left, rgba(180, 83, 9, 0.22), transparent 50%),
@@ -502,6 +591,10 @@ function goSearchEntry() {
     padding-top: 1.75rem;
     border-left: none;
     border-top: 1px solid #e7e5e4;
+  }
+
+  .review-marquee-viewport {
+    height: 24.5rem;
   }
 
   .features .capability-list {

@@ -56,8 +56,8 @@ const whisky = computed(() => {
       </section>
 
       <section class="block">
-        <h2>使用者評論</h2>
-        <p class="empty">尚無使用者評論。之後可在此查看與撰寫評論。</p>
+        <h2>酒友評論</h2>
+        <p class="empty">尚無品飲評論，歡迎留下你的感受。</p>
       </section>
     </template>
 

@@ -10,8 +10,8 @@ import {
   searchWhiskies,
 } from '../services/whiskyService'
 
-/** Legacy SearchArea defaults — search behavior unchanged */
-const searchQuery = ref('macallan')
+/** Score defaults preserve legacy search behavior; query starts empty like homepage. */
+const searchQuery = ref('')
 const searchPoints = ref<number | null>(80)
 const pointGreaterThan = ref(true)
 
@@ -57,7 +57,7 @@ function onSearch() {
         <span class="label">酒款名稱</span>
         <InputText
           v-model="searchQuery"
-          placeholder="輸入酒款名稱，例如 Macallan、Ardbeg..."
+          placeholder="例如 Macallan、Ardbeg、Lagavulin..."
           class="search-input"
         />
       </div>

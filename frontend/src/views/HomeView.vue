@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import { getWhiskyById } from '../services/whiskyService'
+import { mockFriendReviews } from '../data/mock/friendReviews'
 
 const router = useRouter()
+const searchHint = ref('')
 
-function goExplore() {
-  void router.push('/whiskies')
-}
+/** Keep only mock reviews whose whiskyId exists in Static Dataset. */
+const latestFriendReviews = mockFriendReviews.filter((review) =>
+  Boolean(getWhiskyById(review.whiskyId)),
+)
 
 const capabilities = [
   {
@@ -21,7 +28,21 @@ const capabilities = [
     description:
       '未來會有專屬侍酒師，依你的口味與當下心情，輕輕推薦適合的那一杯。',
   },
+  {
+    title: '買賣媒合',
+    description:
+      '之後也會讓酒友出售收藏、找到想要的酒款，輕輕撮合買賣雙方。',
+  },
 ]
+
+function goWhiskies() {
+  void router.push('/whiskies')
+}
+
+function goSearchEntry() {
+  // Entry only — full search stays on /whiskies
+  void router.push('/whiskies')
+}
 </script>
 
 <template>
@@ -29,44 +50,128 @@ const capabilities = [
     <section class="hero">
       <div class="hero-glow" aria-hidden="true" />
       <div class="hero-inner">
-        <p class="greeting">威你好</p>
-        <h1>找到屬於你的那一杯。</h1>
+        <h1>威你好，從一杯酒開始，慢慢懂你。</h1>
         <p class="lead">
-          在酒香與評論之間，慢慢認識威士忌，也認識自己喜歡的味道。
+          搜尋酒款、閱讀知名評論，也分享你的品飲感受。
         </p>
-        <button type="button" class="cta" @click="goExplore">
-          進入酒款搜尋
-        </button>
+        <Button
+          label="開始探索威士忌"
+          icon="pi pi-search"
+          class="hero-cta"
+          @click="goWhiskies"
+        />
       </div>
     </section>
 
-    <section class="story section">
-      <div class="section-inner narrow">
-        <p class="eyebrow">Our story</p>
-        <h2>為什麼有 WhiskyHello？</h2>
-        <p>
-          你可以搜尋酒款、閱讀評論，並留下自己的品飲感受。WhiskyHello
-          希望陪你一步步認識威士忌，也在未來越來越了解你的品味與當下心情。
-        </p>
-      </div>
-    </section>
+    <section class="explore section">
+      <div class="section-inner explore-grid">
+        <div class="left-panel">
+          <div class="search-panel">
+            <p class="eyebrow">Whisky Search</p>
+            <h2>找到你的威士忌</h2>
+            <p class="section-desc">
+              輸入酒款名稱，進入搜尋頁開始探索。
+            </p>
+            <form class="search-box" @submit.prevent="goSearchEntry">
+              <InputText
+                v-model="searchHint"
+                placeholder="例如 Macallan、Ardbeg、Lagavulin..."
+                class="search-input"
+              />
+              <Button type="submit" label="去搜尋" icon="pi pi-arrow-right" />
+            </form>
+          </div>
 
-    <section class="capabilities section">
-      <div class="section-inner">
-        <p class="eyebrow">Features</p>
-        <h2>你可以做什麼</h2>
-        <div class="capability-grid">
-          <article
-            v-for="item in capabilities"
-            :key="item.title"
-            class="capability"
-          >
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.description }}</p>
-          </article>
+          <div class="story-panel">
+            <p class="eyebrow">Our Story</p>
+            <h2>為什麼有 WhiskyHello？</h2>
+            <p>
+              WhiskyHello 希望讓找酒更簡單、也更有溫度。你可以搜尋酒款、閱讀知名評論，
+              再慢慢分享自己的品飲感受——從一杯酒開始，認識威士忌，也認識自己喜歡的味道。
+            </p>
+          </div>
+        </div>
+
+        <div class="reviews-panel">
+          <p class="eyebrow">Friend Reviews</p>
+          <h2>酒友最新評論</h2>
+          <p class="section-desc">看看酒友最近喝了什麼。</p>
+
+          <div class="review-feed">
+            <article
+              v-for="review in latestFriendReviews"
+              :key="review.id"
+              class="review-item"
+            >
+              <div class="review-row">
+                <RouterLink
+                  class="whisky-name"
+                  :to="`/whiskies/${review.whiskyId}`"
+                >
+                  {{ review.whiskyName }}
+                </RouterLink>
+                <span class="rating">{{ review.rating }} / 100</span>
+              </div>
+              <p class="review-summary">
+                <span class="user">{{ review.userName }}</span>
+                <span class="dot">·</span>
+                <span class="time">{{ review.createdAt }}</span>
+                <span class="dot">·</span>
+                <span class="excerpt">{{ review.title }} — {{ review.content }}</span>
+              </p>
+              <RouterLink
+                class="review-link"
+                :to="`/whiskies/${review.whiskyId}`"
+              >
+                查看評論 →
+              </RouterLink>
+            </article>
+          </div>
         </div>
       </div>
     </section>
+
+    <section class="features section">
+      <div class="section-inner">
+        <p class="eyebrow">Features</p>
+        <h2>你可以做什麼</h2>
+        <ul class="capability-list">
+          <li
+            v-for="(item, index) in capabilities"
+            :key="item.title"
+            class="capability-item"
+          >
+            <span class="capability-index" aria-hidden="true">
+              {{ String(index + 1).padStart(2, '0') }}
+            </span>
+            <div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sommelier section">
+      <div class="section-inner sommelier-inner">
+        <p class="eyebrow sommelier-eyebrow">Coming soon</p>
+        <h2>威你好，今天想喝什麼？</h2>
+        <p class="sommelier-lead">
+          未來 AI 將了解你的口味、品飲經驗、預算與當下情境，幫你找到適合的那一杯。
+        </p>
+        <Button
+          label="AI Whisky Sommelier｜即將推出"
+          severity="secondary"
+          outlined
+          disabled
+        />
+      </div>
+    </section>
+
+    <footer class="home-footer">
+      <p>WhiskyHello · 從一杯酒開始</p>
+    </footer>
   </main>
 </template>
 
@@ -79,19 +184,19 @@ const capabilities = [
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(28, 25, 23, 0.2), rgba(28, 25, 23, 0.55)),
-    radial-gradient(ellipse 80% 70% at 20% 0%, rgba(217, 119, 6, 0.28), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 90% 30%, rgba(146, 64, 14, 0.22), transparent 50%),
-    linear-gradient(160deg, #1c1917 0%, #292524 42%, #1c1917 100%);
+    linear-gradient(180deg, rgba(28, 25, 23, 0.15), rgba(28, 25, 23, 0.55)),
+    radial-gradient(ellipse 80% 70% at 15% 0%, rgba(217, 119, 6, 0.3), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 40%, rgba(146, 64, 14, 0.2), transparent 50%),
+    linear-gradient(160deg, #1c1917 0%, #292524 45%, #1c1917 100%);
   color: #fafaf9;
-  padding: 3.25rem 1.5rem 3rem;
+  padding: 3.5rem 1.5rem 3.25rem;
 }
 
 .hero-glow {
   position: absolute;
-  inset: auto -10% -30% auto;
-  width: 55%;
-  height: 70%;
+  inset: auto -10% -35% auto;
+  width: 50%;
+  height: 65%;
   background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%);
   pointer-events: none;
 }
@@ -99,61 +204,44 @@ const capabilities = [
 .hero-inner {
   position: relative;
   z-index: 1;
-  max-width: 36rem;
+  max-width: 40rem;
   margin: 0 auto;
   text-align: center;
 }
 
-.greeting {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
+.brand {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: #fbbf24;
 }
 
 .hero h1 {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.65rem, 4vw, 2.25rem);
-  line-height: 1.25;
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  line-height: 1.3;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .lead {
-  margin: 0 auto 1.35rem;
-  max-width: 26rem;
-  font-size: 0.975rem;
+  margin: 0 auto 1.5rem;
+  max-width: 28rem;
+  font-size: 1rem;
   line-height: 1.7;
   color: #d6d3d1;
 }
 
-.cta {
-  appearance: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0.7rem 1.35rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 55%, #b45309 100%);
-  color: #1c1917;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 20px rgba(180, 83, 9, 0.3);
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.cta:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-}
-
-.cta:active {
-  transform: translateY(0);
+.hero-cta {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 55%, #b45309 100%) !important;
+  border: none !important;
+  color: #1c1917 !important;
+  font-weight: 700 !important;
 }
 
 .section {
-  padding: 4.75rem 1.5rem;
+  padding: 3.75rem 1.5rem;
 }
 
 .section-inner {
@@ -166,7 +254,7 @@ const capabilities = [
 }
 
 .eyebrow {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.65rem;
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -174,52 +262,225 @@ const capabilities = [
   color: #a8a29e;
 }
 
-.story {
-  background: #fafaf9;
-}
-
-.story h2,
-.capabilities h2 {
-  margin: 0 0 1.25rem;
-  font-size: clamp(1.5rem, 3vw, 1.875rem);
+.section h2 {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.4rem, 3vw, 1.75rem);
   letter-spacing: -0.01em;
 }
 
-.story p {
-  margin: 0;
-  font-size: 1.0625rem;
-  line-height: 1.85;
-  color: #57534e;
-}
-
-.capabilities {
-  background: #f5f5f4;
-}
-
-.capability-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
-  margin-top: 0.5rem;
-}
-
-.capability {
-  padding: 1.75rem 1.35rem;
-  background: #fff;
-  border: 1px solid #e7e5e4;
-}
-
-.capability h3 {
-  margin: 0 0 0.65rem;
-  font-size: 1.125rem;
-  color: #1c1917;
-}
-
-.capability p {
-  margin: 0;
+.section-desc {
+  margin: 0 0 1.35rem;
   color: #57534e;
   line-height: 1.65;
-  font-size: 0.975rem;
+}
+
+.explore {
+  background: #fafaf9;
+}
+
+.explore-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 2.5rem 3rem;
+  align-items: start;
+}
+
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.search-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.search-panel .section-desc {
+  margin-bottom: 1.1rem;
+}
+
+.story-panel {
+  padding-top: 1.75rem;
+  border-top: 1px solid #e7e5e4;
+}
+
+.story-panel p:not(.eyebrow) {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #57534e;
+}
+
+.reviews-panel {
+  padding-left: 2rem;
+  border-left: 1px solid #e7e5e4;
+}
+
+.reviews-panel .section-desc {
+  margin-bottom: 0.85rem;
+}
+
+.features {
+  background: #fff;
+}
+
+.features .capability-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2rem;
+  margin-top: 0.35rem;
+}
+
+.capability-list {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+}
+
+.capability-item {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.35rem 0 0;
+}
+
+.capability-index {
+  color: #b45309;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+
+.capability-item h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.capability-item p {
+  margin: 0;
+  color: #57534e;
+  line-height: 1.55;
+  font-size: 0.9rem;
+}
+
+.review-feed {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #e7e5e4;
+}
+
+.review-item {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.review-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.whisky-name {
+  color: #1c1917;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whisky-name:hover {
+  color: #b45309;
+  text-decoration: underline;
+}
+
+.rating {
+  flex-shrink: 0;
+  color: #b45309;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.review-summary {
+  margin: 0.25rem 0 0.2rem;
+  color: #78716c;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-summary .dot {
+  margin: 0 0.28rem;
+}
+
+.review-summary .excerpt {
+  color: #57534e;
+}
+
+.review-link {
+  color: #b45309;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.review-link:hover {
+  text-decoration: underline;
+}
+
+.sommelier {
+  background:
+    radial-gradient(ellipse at bottom left, rgba(180, 83, 9, 0.22), transparent 50%),
+    #1c1917;
+  color: #fafaf9;
+}
+
+.sommelier-inner {
+  max-width: 36rem;
+  text-align: center;
+}
+
+.sommelier-eyebrow {
+  color: #fbbf24;
+}
+
+.sommelier h2 {
+  color: #fafaf9;
+}
+
+.sommelier-lead {
+  margin: 0 0 1.5rem;
+  color: #d6d3d1;
+  line-height: 1.75;
+}
+
+.home-footer {
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  background: #292524;
+  color: #a8a29e;
+}
+
+.home-footer p {
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 800px) {
@@ -228,11 +489,24 @@ const capabilities = [
   }
 
   .section {
-    padding: 3.5rem 1.25rem;
+    padding: 2.75rem 1.25rem;
   }
 
-  .capability-grid {
+  .explore-grid {
     grid-template-columns: 1fr;
+    gap: 2.25rem;
+  }
+
+  .reviews-panel {
+    padding-left: 0;
+    padding-top: 1.75rem;
+    border-left: none;
+    border-top: 1px solid #e7e5e4;
+  }
+
+  .features .capability-list {
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
   }
 }
 </style>

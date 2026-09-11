@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import { AppError } from '../utils/AppError'
 
 export function notFoundHandler(_req: Request, res: Response): void {
   res.status(404).json({ message: 'Not found' })
@@ -10,6 +11,14 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      message: err.message,
+      ...(err.details ? { details: err.details } : {}),
+    })
+    return
+  }
+
   console.error(err)
 
   const message =

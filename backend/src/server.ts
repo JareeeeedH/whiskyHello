@@ -6,12 +6,20 @@ async function start(): Promise<void> {
   try {
     await connectDatabase()
   } catch (error) {
-    console.warn('MongoDB connection failed; continuing without database.')
-    console.warn(error instanceof Error ? error.message : error)
+    console.error('MongoDB connection failed.')
+    console.error(error instanceof Error ? error.message : error)
+
+    if (env.isProduction) {
+      console.error('Refusing to start in production without a database.')
+      process.exit(1)
+    }
+
+    console.warn('Development mode: continuing without database.')
   }
 
   const server = app.listen(env.port, () => {
     console.log(`Backend listening on http://localhost:${env.port}`)
+    console.log(`Environment: ${env.nodeEnv}`)
   })
 
   server.on('error', (error: NodeJS.ErrnoException) => {

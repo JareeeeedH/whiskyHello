@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import { env } from '../config/env'
 import { AppError } from '../utils/AppError'
 
 export function notFoundHandler(_req: Request, res: Response): void {
@@ -22,7 +23,9 @@ export function errorHandler(
   console.error(err)
 
   const message =
-    err instanceof Error ? err.message : 'Internal server error'
+    !env.isProduction && err instanceof Error
+      ? err.message
+      : 'Internal server error'
 
   res.status(500).json({ message })
 }

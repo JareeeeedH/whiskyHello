@@ -18,8 +18,25 @@ export const registerSchema = Joi.object({
   }),
 })
 
+export const loginSchema = Joi.object({
+  email: Joi.string().trim().lowercase().email().max(254).required().messages({
+    'string.email': 'Email must be a valid email address',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().min(1).max(128).required().messages({
+    'string.empty': 'Password is required',
+    'any.required': 'Password is required',
+  }),
+})
+
 export type RegisterBody = {
   name: string
+  email: string
+  password: string
+}
+
+export type LoginBody = {
   email: string
   password: string
 }

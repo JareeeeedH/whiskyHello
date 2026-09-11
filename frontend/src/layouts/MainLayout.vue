@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+function onLogout() {
+  authStore.logout()
+  void router.push('/')
+}
 </script>
 
 <template>
@@ -19,7 +28,20 @@ import { RouterLink, RouterView } from 'vue-router'
           >Home</a>
         </RouterLink>
         <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
-        <RouterLink to="/login" active-class="is-active">Login</RouterLink>
+
+        <template v-if="authStore.isAuthenticated">
+          <RouterLink to="/profile" active-class="is-active">Profile</RouterLink>
+          <button type="button" class="nav-logout" @click="onLogout">
+            Logout
+          </button>
+        </template>
+        <RouterLink
+          v-else
+          to="/login"
+          active-class="is-active"
+        >
+          Login
+        </RouterLink>
       </nav>
     </header>
     <div class="page">
@@ -56,18 +78,34 @@ import { RouterLink, RouterView } from 'vue-router'
 .nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.35rem 1rem;
 }
 
-.nav a {
+.nav a,
+.nav-logout {
   color: #334155;
   text-decoration: none;
   padding: 0.35rem 0.15rem;
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .nav a.is-active {
   color: #0f766e;
   font-weight: 600;
+}
+
+.nav-logout:hover {
+  color: #b45309;
+}
+
+.nav-logout:focus-visible {
+  outline: 2px solid #b45309;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .page {
@@ -89,7 +127,8 @@ import { RouterLink, RouterView } from 'vue-router'
     gap: 0.25rem 0.9rem;
   }
 
-  .nav a {
+  .nav a,
+  .nav-logout {
     font-size: 0.9375rem;
   }
 }

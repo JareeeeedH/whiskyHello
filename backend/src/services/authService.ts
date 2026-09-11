@@ -1,9 +1,12 @@
 import { User } from '../models/User'
 import type { PublicUser } from '../types/user'
 import { AppError } from '../utils/AppError'
-import { hashPassword } from '../utils/password'
+import { signAccessToken } from '../utils/jwt'
+import { hashPassword, verifyPassword } from '../utils/password'
 import { toPublicUser } from '../utils/toPublicUser'
-import type { RegisterBody } from '../validations/authValidation'
+import type { LoginBody, RegisterBody } from '../validations/authValidation'
+
+const INVALID_CREDENTIALS = 'Invalid email or password'
 
 function isDuplicateEmailError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -32,4 +35,36 @@ export async function registerUser(input: RegisterBody): Promise<PublicUser> {
 
     throw error
   }
+}
+
+export async function loginUser(
+  input: LoginBody,
+): Promise<{ token: string; user: PublicUser }> {
+  const user = await User.findOne({ email: input.email }).select('+passwordHash')
+
+  if (!user?.passwordHash) {
+    throw new AppError(401, INVALID_CREDENTIALS)
+  }
+
+  const matches = await verifyPassword(input.password, user.passwordHash)
+  if (!matches) {
+    throw new AppError(401, INVALID_CREDENTIALS)
+  }
+
+  const token = signAccessToken({ userId: user._id.toString() })
+
+  return {
+    token,
+    user: toPublicUser(user),
+  }
+}
+
+export async function getCurrentUser(userId: string): Promise<PublicUser> {
+  const user = await User.findById(userId)
+
+  if (!user) {
+    throw new AppError(401, 'Unauthorized')
+  }
+
+  return toPublicUser(user)
 }

@@ -5,21 +5,28 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import SocialAuthButtons from '../components/SocialAuthButtons.vue'
-import { AuthApiError } from '../services/authService'
-import { useAuthStore } from '../stores/auth'
+import { AuthApiError, registerUser } from '../services/authService'
 
 const router = useRouter()
-const authStore = useAuthStore()
 
+const name = ref('')
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 
-const canSubmit = computed(() => !loading.value)
+const canSubmit = computed(
+  () => !loading.value && successMessage.value === '',
+)
 
 function validateClient(): string | null {
+  const trimmedName = name.value.trim()
   const trimmedEmail = email.value.trim()
+
+  if (!trimmedName) {
+    return '請輸入名稱'
+  }
 
   if (!trimmedEmail) {
     return '請輸入 Email'
@@ -33,15 +40,20 @@ function validateClient(): string | null {
     return '請輸入密碼'
   }
 
+  if (password.value.length < 8) {
+    return '密碼至少需要 8 個字元'
+  }
+
   return null
 }
 
-async function onLogin() {
-  if (loading.value) {
+async function onRegister() {
+  if (loading.value || successMessage.value) {
     return
   }
 
   errorMessage.value = ''
+  successMessage.value = ''
 
   const clientError = validateClient()
   if (clientError) {
@@ -52,24 +64,27 @@ async function onLogin() {
   loading.value = true
 
   try {
-    await authStore.login({
+    await registerUser({
+      name: name.value.trim(),
       email: email.value.trim().toLowerCase(),
       password: password.value,
     })
-    void router.push('/')
+
+    successMessage.value = '註冊成功，即將前往登入頁…'
+    window.setTimeout(() => {
+      void router.push('/login')
+    }, 900)
   } catch (error) {
     if (error instanceof AuthApiError) {
-      if (error.status === 401) {
-        errorMessage.value = 'Email 或密碼錯誤，請再試一次'
+      if (error.status === 409) {
+        errorMessage.value = '此 Email 已被註冊，請改用其他 Email 或前往登入'
       } else if (error.status === 400 && error.details.length > 0) {
         errorMessage.value = error.details.join('；')
-      } else if (error.status === 400) {
-        errorMessage.value = error.message || '資料驗證失敗'
       } else {
         errorMessage.value = error.message
       }
     } else {
-      errorMessage.value = '登入失敗，請稍後再試'
+      errorMessage.value = '註冊失敗，請稍後再試'
     }
   } finally {
     loading.value = false
@@ -78,16 +93,27 @@ async function onLogin() {
 </script>
 
 <template>
-  <main class="login-page">
+  <main class="register-page">
     <div class="glow glow-a" aria-hidden="true" />
     <div class="glow glow-b" aria-hidden="true" />
 
-    <div class="login-shell">
-      <div class="login-card">
-        <h1>登入</h1>
-        <p class="subtitle">歡迎回到威你好</p>
+    <div class="register-shell">
+      <div class="register-card">
+        <h1>註冊</h1>
+        <p class="subtitle">建立你的威你好帳號</p>
 
-        <form class="form" @submit.prevent="onLogin">
+        <form class="form" @submit.prevent="onRegister">
+          <label>
+            Name
+            <InputText
+              v-model="name"
+              type="text"
+              autocomplete="name"
+              placeholder="你的顯示名稱"
+              class="field"
+              :disabled="loading || Boolean(successMessage)"
+            />
+          </label>
           <label>
             Email
             <InputText
@@ -96,7 +122,7 @@ async function onLogin() {
               autocomplete="email"
               placeholder="your@email.com"
               class="field"
-              :disabled="loading"
+              :disabled="loading || Boolean(successMessage)"
             />
           </label>
           <label>
@@ -105,35 +131,33 @@ async function onLogin() {
               v-model="password"
               :feedback="false"
               toggle-mask
-              placeholder="請輸入密碼"
+              placeholder="至少 8 個字元"
               input-class="field"
-              :disabled="loading"
+              :disabled="loading || Boolean(successMessage)"
             />
           </label>
 
           <p v-if="errorMessage" class="form-message is-error" role="alert">
             {{ errorMessage }}
           </p>
+          <p v-else-if="successMessage" class="form-message is-success" role="status">
+            {{ successMessage }}
+          </p>
 
-          <div class="form-actions">
-            <Button
-              type="submit"
-              label="登入"
-              class="submit-btn"
-              :loading="loading"
-              :disabled="!canSubmit"
-            />
-            <button type="button" class="forgot-link">
-              忘記密碼？
-            </button>
-          </div>
+          <Button
+            type="submit"
+            label="註冊"
+            class="submit-btn"
+            :loading="loading"
+            :disabled="!canSubmit"
+          />
         </form>
 
-        <SocialAuthButtons mode="login" />
+        <SocialAuthButtons mode="register" />
 
-        <p class="register-hint">
-          還沒有帳號？
-          <RouterLink to="/register">註冊</RouterLink>
+        <p class="login-hint">
+          已經有帳號？
+          <RouterLink to="/login">登入</RouterLink>
         </p>
       </div>
     </div>
@@ -141,7 +165,7 @@ async function onLogin() {
 </template>
 
 <style scoped>
-.login-page {
+.register-page {
   position: relative;
   overflow: hidden;
   display: flex;
@@ -177,14 +201,14 @@ async function onLogin() {
   background: rgba(251, 191, 36, 0.14);
 }
 
-.login-shell {
+.register-shell {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 420px;
 }
 
-.login-card {
+.register-card {
   padding: 2.25rem 1.85rem 1.85rem;
   border-radius: 1.1rem;
   background: linear-gradient(
@@ -198,16 +222,6 @@ async function onLogin() {
     0 20px 50px rgba(0, 0, 0, 0.45),
     0 0 40px rgba(217, 119, 6, 0.12);
   backdrop-filter: blur(10px);
-}
-
-.brand {
-  margin: 0 0 1.15rem;
-  text-align: center;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #fbbf24;
-  text-shadow: 0 0 24px rgba(251, 191, 36, 0.35);
 }
 
 h1 {
@@ -279,23 +293,18 @@ label {
   color: #fca5a5;
 }
 
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem 1rem;
-  margin-top: 0.25rem;
+.form-message.is-success {
+  color: #86efac;
 }
 
 .submit-btn {
-  width: auto;
-  min-width: 7.5rem;
+  margin-top: 0.4rem;
+  width: 100%;
   border: none !important;
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 45%, #d97706 100%) !important;
   color: #1c1917 !important;
   font-weight: 700 !important;
-  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3) !important;
+  box-shadow: 0 10px 28px rgba(217, 119, 6, 0.35) !important;
   transition: filter 0.15s ease, transform 0.15s ease !important;
 }
 
@@ -304,41 +313,21 @@ label {
   transform: translateY(-1px);
 }
 
-.forgot-link {
-  padding: 0;
-  border: none;
-  background: none;
-  color: #a8a29e;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.forgot-link:hover {
-  color: #fbbf24;
-  text-decoration: underline;
-}
-
-.forgot-link:focus-visible {
-  outline: 2px solid #fbbf24;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.register-hint {
+.login-hint {
   margin: 1.35rem 0 0;
   text-align: center;
   color: #a8a29e;
   font-size: 0.9375rem;
 }
 
-.register-hint a {
+.login-hint a {
   color: #fbbf24;
   font-weight: 600;
   text-decoration: none;
   text-shadow: 0 0 16px rgba(251, 191, 36, 0.25);
 }
 
-.register-hint a:hover {
+.login-hint a:hover {
   text-decoration: underline;
 }
 
@@ -351,11 +340,11 @@ label {
 }
 
 @media (max-width: 480px) {
-  .login-page {
+  .register-page {
     padding: 1.5rem 1rem;
   }
 
-  .login-card {
+  .register-card {
     padding: 1.75rem 1.25rem 1.5rem;
     border-radius: 0.95rem;
   }

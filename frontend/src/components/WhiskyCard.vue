@@ -40,91 +40,130 @@ defineProps<{
   height: 100%;
   color: inherit;
   text-decoration: none;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e7e5e4;
   background: #fff;
   overflow: hidden;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .whisky-card:hover {
-  border-color: #94a3b8;
+  border-color: #d6d3d1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(28, 25, 23, 0.06);
+}
+
+.whisky-card:focus-visible {
+  outline: 2px solid #b45309;
+  outline-offset: 2px;
 }
 
 .image-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 160px;
+  height: 180px;
   flex-shrink: 0;
-  padding: 0.75rem;
-  background: #f8fafc;
+  padding: 0.85rem;
+  background:
+    radial-gradient(ellipse at center, #fff 0%, #f5f5f4 72%);
 }
 
 .image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform 0.25s ease;
+}
+
+.whisky-card:hover .image-wrap img {
+  transform: scale(1.03);
 }
 
 .image-fallback {
-  color: #94a3b8;
-  font-size: 0.875rem;
+  color: #a8a29e;
+  font-size: 0.8125rem;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.75rem;
+  gap: 0.3rem;
+  padding: 0.85rem 0.85rem 0.95rem;
   flex: 1;
 }
 
 .name {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 700;
   line-height: 1.35;
-  color: #0f172a;
+  color: #1c1917;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   line-height: 1.4;
-  color: #64748b;
+  color: #78716c;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
 .score-line {
   margin: auto 0 0;
-  padding-top: 0.5rem;
+  padding-top: 0.55rem;
 }
 
 .points {
   display: inline-flex;
   align-items: baseline;
   gap: 0.25rem;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
-  color: #0f766e;
+  color: #b45309;
 }
 
 .points-unit {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #0f766e;
+  letter-spacing: 0.02em;
+  color: #a16207;
 }
 
 .score-text {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #0f766e;
+  color: #b45309;
 }
 
 .score-empty {
-  color: #94a3b8;
+  color: #a8a29e;
+}
+
+@media (max-width: 640px) {
+  .image-wrap {
+    height: 150px;
+    padding: 0.65rem;
+  }
+
+  .body {
+    padding: 0.7rem;
+  }
+
+  .name {
+    font-size: 0.85rem;
+  }
 }
 </style>

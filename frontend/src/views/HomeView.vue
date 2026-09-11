@@ -214,6 +214,8 @@ function goSearchEntry() {
 <style scoped>
 .home {
   color: #1c1917;
+  width: 100%;
+  overflow-x: clip;
 }
 
 .hero {
@@ -283,6 +285,7 @@ function goSearchEntry() {
 .section-inner {
   max-width: 960px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .section-inner.narrow {
@@ -316,15 +319,17 @@ function goSearchEntry() {
 
 .explore-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: 2.5rem 3rem;
+  grid-template-columns: 1fr;
+  gap: 2.25rem;
   align-items: start;
+  width: 100%;
 }
 
 .left-panel {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  min-width: 0;
 }
 
 .search-box {
@@ -337,6 +342,7 @@ function goSearchEntry() {
 .search-input {
   flex: 1 1 10rem;
   min-width: 0;
+  width: 100%;
 }
 
 .search-panel .section-desc {
@@ -356,8 +362,9 @@ function goSearchEntry() {
 }
 
 .reviews-panel {
-  padding-left: 2rem;
-  border-left: 1px solid #e7e5e4;
+  min-width: 0;
+  padding-top: 1.75rem;
+  border-top: 1px solid #e7e5e4;
 }
 
 .reviews-panel .section-desc {
@@ -370,9 +377,10 @@ function goSearchEntry() {
 
 .features .capability-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem 2rem;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
   margin-top: 0.35rem;
+  width: 100%;
 }
 
 .capability-list {
@@ -386,6 +394,7 @@ function goSearchEntry() {
   grid-template-columns: 2rem minmax(0, 1fr);
   gap: 0.85rem;
   padding: 0.35rem 0 0;
+  min-width: 0;
 }
 
 .capability-index {
@@ -411,10 +420,12 @@ function goSearchEntry() {
 
 .review-marquee {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .review-marquee-viewport {
-  height: 26rem;
+  height: 22rem;
   overflow: hidden;
   border-top: 1px solid #e7e5e4;
   mask-image: linear-gradient(
@@ -454,6 +465,7 @@ function goSearchEntry() {
 .review-item {
   padding: 0.7rem 0;
   border-bottom: 1px solid #e7e5e4;
+  min-width: 0;
 }
 
 .review-row {
@@ -461,9 +473,11 @@ function goSearchEntry() {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .whisky-name {
+  min-width: 0;
   color: #1c1917;
   font-size: 0.9rem;
   font-weight: 700;
@@ -543,6 +557,7 @@ function goSearchEntry() {
 
 .sommelier-inner {
   max-width: 36rem;
+  width: 100%;
   text-align: center;
 }
 
@@ -572,34 +587,76 @@ function goSearchEntry() {
   font-size: 0.875rem;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 640px) {
   .hero {
-    padding: 2.75rem 1.25rem 2.5rem;
+    padding: 2.5rem 1rem 2.25rem;
   }
 
   .section {
-    padding: 2.75rem 1.25rem;
+    padding: 2.5rem 1rem;
   }
 
-  .explore-grid {
-    grid-template-columns: 1fr;
-    gap: 2.25rem;
+  .search-box {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .reviews-panel {
-    padding-left: 0;
-    padding-top: 1.75rem;
-    border-left: none;
-    border-top: 1px solid #e7e5e4;
+  .search-input {
+    flex: 0 0 auto;
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .search-input :deep(.p-inputtext) {
+    width: 100%;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    line-height: 1.25;
+  }
+
+  .search-box :deep(.p-button) {
+    width: 100%;
   }
 
   .review-marquee-viewport {
-    height: 24.5rem;
+    height: 20.5rem;
+  }
+
+  .review-summary {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .sommelier :deep(.p-button) {
+    width: 100%;
+    white-space: normal;
+    line-height: 1.35;
+  }
+}
+
+@media (min-width: 801px) {
+  .explore-grid {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 2.5rem 3rem;
+  }
+
+  .reviews-panel {
+    padding-top: 0;
+    padding-left: 2rem;
+    border-top: none;
+    border-left: 1px solid #e7e5e4;
   }
 
   .features .capability-list {
-    grid-template-columns: 1fr;
-    gap: 1.15rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 2rem;
+  }
+
+  .review-marquee-viewport {
+    height: 26rem;
   }
 }
 </style>

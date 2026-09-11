@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
-const router = useRouter()
 
 const profile = computed(() => authStore.user)
 
@@ -75,11 +74,6 @@ function saveEdit() {
   // UI only — profile update API will be wired later.
   editNotice.value = '個人資料編輯介面已就緒，儲存功能即將開放。'
   isEditing.value = false
-}
-
-function onLogout() {
-  authStore.logout()
-  void router.push('/')
 }
 </script>
 

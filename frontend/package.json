@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build && node scripts/copy-gh-pages-404.mjs",
+    "build:gh-pages": "vue-tsc -b && vite build --mode gh-pages && node scripts/copy-gh-pages-404.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

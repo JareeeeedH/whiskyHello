@@ -68,4 +68,6 @@ export const env = {
   trustProxy:
     process.env.TRUST_PROXY === '1' ||
     process.env.TRUST_PROXY?.toLowerCase() === 'true',
+  /** Google Identity Services / OAuth client ID (ID token audience). */
+  googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() ?? '',
 }

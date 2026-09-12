@@ -19,8 +19,17 @@ const userSchema = new Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+      required: false,
       select: false,
+    },
+    googleId: {
+      type: String,
+      required: false,
+      trim: true,
+      index: {
+        unique: true,
+        sparse: true,
+      },
     },
     avatar: {
       type: String,
@@ -49,8 +58,5 @@ export type UserModel = Model<UserSchemaFields>
 export const User = model<UserSchemaFields, UserModel>('User', userSchema)
 
 /** Helper alias aligning schema create input with domain attrs. */
-export type CreateUserInput = Pick<
-  UserAttrs,
-  'name' | 'email' | 'passwordHash'
-> &
-  Partial<Pick<UserAttrs, 'avatar' | 'bio'>>
+export type CreateUserInput = Pick<UserAttrs, 'name' | 'email'> &
+  Partial<Pick<UserAttrs, 'passwordHash' | 'googleId' | 'avatar' | 'bio'>>

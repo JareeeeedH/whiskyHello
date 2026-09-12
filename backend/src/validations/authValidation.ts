@@ -30,6 +30,13 @@ export const loginSchema = Joi.object({
   }),
 })
 
+export const googleLoginSchema = Joi.object({
+  credential: Joi.string().trim().min(1).required().messages({
+    'string.empty': 'Google credential is required',
+    'any.required': 'Google credential is required',
+  }),
+})
+
 export type RegisterBody = {
   name: string
   email: string
@@ -39,4 +46,8 @@ export type RegisterBody = {
 export type LoginBody = {
   email: string
   password: string
+}
+
+export type GoogleLoginBody = {
+  credential: string
 }

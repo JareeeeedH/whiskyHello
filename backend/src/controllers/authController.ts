@@ -1,6 +1,10 @@
 import { NextFunction, Request, Response } from 'express'
 import * as authService from '../services/authService'
-import type { LoginBody, RegisterBody } from '../validations/authValidation'
+import type {
+  GoogleLoginBody,
+  LoginBody,
+  RegisterBody,
+} from '../validations/authValidation'
 
 export async function register(
   req: Request,
@@ -24,6 +28,20 @@ export async function login(
   try {
     const body = req.body as LoginBody
     const result = await authService.loginUser(body)
+    res.status(200).json(result)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function googleLogin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const body = req.body as GoogleLoginBody
+    const result = await authService.loginWithGoogle(body)
     res.status(200).json(result)
   } catch (error) {
     next(error)

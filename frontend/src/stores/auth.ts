@@ -1,7 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../constants/authStorage'
-import { fetchCurrentUser, loginUser } from '../services/authService'
+import {
+  fetchCurrentUser,
+  loginUser,
+  loginWithGoogle as loginWithGoogleApi,
+} from '../services/authService'
 import type { LoginPayload, PublicUser } from '../types/auth'
 
 function readStoredUser(): PublicUser | null {
@@ -43,6 +47,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(payload: LoginPayload) {
     const result = await loginUser(payload)
+    setSession(result.token, result.user)
+    return result
+  }
+
+  async function loginWithGoogle(credential: string) {
+    const result = await loginWithGoogleApi(credential)
     setSession(result.token, result.user)
     return result
   }
@@ -89,6 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     setSession,
     clearSession,
     login,
+    loginWithGoogle,
     logout,
     restoreSession,
   }

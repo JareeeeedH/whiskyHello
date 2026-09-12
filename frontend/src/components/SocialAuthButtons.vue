@@ -1,51 +1,186 @@
 <script setup lang="ts">
-defineProps<{
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+const props = defineProps<{
   mode: 'login' | 'register'
+  disabled?: boolean
 }>()
+
+const emit = defineEmits<{
+  credential: [credential: string]
+  error: [message: string]
+}>()
+
+const googleButtonHost = ref<HTMLElement | null>(null)
+const googleReady = ref(false)
+const googleUnavailable = ref(false)
+
+const GIS_SCRIPT_ID = 'whiskyhello-google-gsi'
+const GIS_SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string
+            callback: (response: { credential?: string }) => void
+            auto_select?: boolean
+            cancel_on_tap_outside?: boolean
+          }) => void
+          renderButton: (
+            parent: HTMLElement,
+            options: Record<string, string | number | boolean>,
+          ) => void
+          cancel: () => void
+        }
+      }
+    }
+  }
+}
+
+function getClientId(): string {
+  return (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
+}
+
+function loadGisScript(): Promise<void> {
+  if (window.google?.accounts?.id) {
+    return Promise.resolve()
+  }
+
+  const existing = document.getElementById(GIS_SCRIPT_ID)
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Failed to load Google Sign-In')),
+        { once: true },
+      )
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.id = GIS_SCRIPT_ID
+    script.src = GIS_SCRIPT_SRC
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Google Sign-In'))
+    document.head.appendChild(script)
+  })
+}
+
+function handleCredentialResponse(response: { credential?: string }) {
+  const credential = response.credential?.trim()
+  if (!credential) {
+    emit('error', '無法取得 Google 登入憑證，請再試一次')
+    return
+  }
+  emit('credential', credential)
+}
+
+function renderGoogleButton() {
+  const clientId = getClientId()
+  const host = googleButtonHost.value
+
+  if (!clientId || !host || !window.google?.accounts?.id) {
+    googleUnavailable.value = !clientId
+    return
+  }
+
+  host.innerHTML = ''
+
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  })
+
+  window.google.accounts.id.renderButton(host, {
+    type: 'icon',
+    shape: 'circle',
+    theme: 'outline',
+    size: 'large',
+    text: props.mode === 'login' ? 'signin_with' : 'signup_with',
+  })
+
+  googleReady.value = true
+  googleUnavailable.value = false
+}
+
+async function setupGoogle() {
+  const clientId = getClientId()
+  if (!clientId) {
+    googleUnavailable.value = true
+    return
+  }
+
+  try {
+    await loadGisScript()
+    renderGoogleButton()
+  } catch {
+    googleUnavailable.value = true
+    emit('error', '無法載入 Google 登入，請稍後再試')
+  }
+}
+
+onMounted(() => {
+  void setupGoogle()
+})
+
+watch(
+  () => props.disabled,
+  () => {
+    if (!props.disabled && googleButtonHost.value) {
+      renderGoogleButton()
+    }
+  },
+)
+
+onBeforeUnmount(() => {
+  try {
+    window.google?.accounts?.id?.cancel()
+  } catch {
+    // ignore
+  }
+})
 </script>
 
 <template>
   <div class="social-auth">
     <div class="divider" role="separator">
       <span class="divider-line" aria-hidden="true" />
-      <span class="divider-text">
-        {{ mode === 'login' ? 'or' : 'or' }}
-      </span>
+      <span class="divider-text">or</span>
       <span class="divider-line" aria-hidden="true" />
     </div>
 
     <div class="social-actions">
-      <button
-        type="button"
-        class="social-btn social-btn-google"
-        :aria-label="mode === 'login' ? '使用 Google 登入' : '使用 Google 註冊'"
-        :title="mode === 'login' ? '使用 Google 登入' : '使用 Google 註冊'"
+      <div
+        class="google-btn-wrap"
+        :class="{ 'is-disabled': disabled || googleUnavailable }"
+        :aria-busy="!googleReady && !googleUnavailable"
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <path
-            fill="#EA4335"
-            d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.9 3.3 14.7 2.3 12 2.3 6.8 2.3 2.5 6.6 2.5 11.8S6.8 21.3 12 21.3c5.5 0 9.1-3.8 9.1-9.2 0-.6-.1-1.1-.2-1.6H12z"
-          />
-          <path
-            fill="#34A853"
-            d="M3.9 7.4 7.1 9.8C8 7.7 9.8 6.2 12 6.2c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.9 3.3 14.7 2.3 12 2.3 8.4 2.3 5.3 4.3 3.9 7.4z"
-          />
-          <path
-            fill="#4A90E2"
-            d="M12 21.3c2.6 0 4.8-.9 6.4-2.3l-3-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.7-5.6-4.1l-3.2 2.5c1.5 3 4.5 5.4 8.8 5.4z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M6.4 13.4c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8L3.2 7.3C2.7 8.5 2.5 9.8 2.5 11.6c0 1.8.2 3.1.7 4.3l3.2-2.5z"
-          />
-        </svg>
-      </button>
+        <div
+          ref="googleButtonHost"
+          class="google-btn-host"
+          :aria-label="mode === 'login' ? '使用 Google 登入' : '使用 Google 註冊'"
+        />
+        <p v-if="googleUnavailable" class="google-fallback">
+          Google 登入尚未設定
+        </p>
+      </div>
 
       <button
         type="button"
         class="social-btn social-btn-apple"
-        :aria-label="mode === 'login' ? '使用 Apple 登入' : '使用 Apple 註冊'"
-        :title="mode === 'login' ? '使用 Apple 登入' : '使用 Apple 註冊'"
+        disabled
+        aria-disabled="true"
+        :aria-label="mode === 'login' ? '使用 Apple 登入（即將推出）' : '使用 Apple 註冊（即將推出）'"
+        title="Apple 登入即將推出"
       >
         <svg
           viewBox="0 0 24 24"
@@ -91,7 +226,38 @@ defineProps<{
 .social-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.google-btn-wrap {
+  position: relative;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.google-btn-wrap.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.google-btn-host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.google-fallback {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #a8a29e;
+  max-width: 5.5rem;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .social-btn {
@@ -109,38 +275,20 @@ defineProps<{
     transform 0.15s ease;
 }
 
-.social-btn:hover {
-  transform: translateY(-1px);
-}
-
-.social-btn-google {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: #fff;
-  color: #1c1917;
-}
-
-.social-btn-google:hover {
-  background: #f5f5f4;
-}
-
-.social-btn-google:focus-visible {
-  outline: 2px solid #fbbf24;
-  outline-offset: 2px;
-}
-
 .social-btn-apple {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: #000;
   color: #fff;
 }
 
-.social-btn-apple:hover {
-  background: #111;
+.social-btn-apple:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
-.social-btn-apple:focus-visible {
-  outline: 2px solid #fbbf24;
-  outline-offset: 2px;
+.social-btn-apple:disabled:hover {
+  background: #000;
+  transform: none;
 }
 
 @media (max-width: 480px) {

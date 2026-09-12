@@ -30,13 +30,23 @@ function toAuthApiError(error: unknown, fallbackMessage: string): AuthApiError {
     }
 
     if (status === 409) {
-      return new AuthApiError(409, body.message ?? '此 Email 已被註冊')
+      return new AuthApiError(
+        409,
+        body.message ?? '此 Email 已被註冊',
+      )
     }
 
     if (status === 401) {
       return new AuthApiError(
         401,
         body.message ?? 'Email 或密碼錯誤',
+      )
+    }
+
+    if (status === 503) {
+      return new AuthApiError(
+        503,
+        body.message ?? 'Google 登入暫時無法使用',
       )
     }
 
@@ -79,6 +89,19 @@ export async function loginUser(
     return data
   } catch (error) {
     throw toAuthApiError(error, '登入失敗，請稍後再試')
+  }
+}
+
+export async function loginWithGoogle(
+  credential: string,
+): Promise<LoginResponse> {
+  try {
+    const { data } = await apiClient.post<LoginResponse>('/auth/google', {
+      credential,
+    })
+    return data
+  } catch (error) {
+    throw toAuthApiError(error, 'Google 登入失敗，請稍後再試')
   }
 }
 

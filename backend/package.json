@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts"
+    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts"
   },
   "engines": {
     "node": ">=20"
@@ -16,6 +16,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-auth-library": "^11.0.2",
     "joi": "^18.2.8",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.5"

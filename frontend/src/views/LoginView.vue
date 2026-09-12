@@ -62,7 +62,10 @@ async function onLogin() {
   } catch (error) {
     if (error instanceof AuthApiError) {
       if (error.status === 401) {
-        errorMessage.value = 'Email 或密碼錯誤，請再試一次'
+        errorMessage.value =
+          error.message.includes('Google')
+            ? '此帳號請使用 Google 登入'
+            : 'Email 或密碼錯誤，請再試一次'
       } else if (error.status === 400 && error.details.length > 0) {
         errorMessage.value = error.details.join('；')
       } else if (error.status === 400) {
@@ -76,6 +79,39 @@ async function onLogin() {
   } finally {
     loading.value = false
   }
+}
+
+async function onGoogleCredential(credential: string) {
+  if (loading.value) {
+    return
+  }
+
+  errorMessage.value = ''
+  loading.value = true
+
+  try {
+    await authStore.loginWithGoogle(credential)
+    void router.push(resolvePostLoginPath(route.query.redirect))
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      if (error.status === 409) {
+        errorMessage.value =
+          '此 Email 已有帳號，請改用 Email / 密碼登入（暫不支援自動綁定 Google）'
+      } else if (error.status === 401 || error.status === 400) {
+        errorMessage.value = 'Google 登入失敗，請再試一次'
+      } else {
+        errorMessage.value = error.message
+      }
+    } else {
+      errorMessage.value = 'Google 登入失敗，請稍後再試'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function onGoogleError(message: string) {
+  errorMessage.value = message
 }
 </script>
 
@@ -131,7 +167,12 @@ async function onLogin() {
           </div>
         </form>
 
-        <SocialAuthButtons mode="login" />
+        <SocialAuthButtons
+          mode="login"
+          :disabled="loading"
+          @credential="onGoogleCredential"
+          @error="onGoogleError"
+        />
 
         <p class="register-hint">
           還沒有帳號？

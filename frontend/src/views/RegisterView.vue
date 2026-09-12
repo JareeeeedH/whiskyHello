@@ -6,8 +6,10 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import SocialAuthButtons from '../components/SocialAuthButtons.vue'
 import { AuthApiError, registerUser } from '../services/authService'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const name = ref('')
 const email = ref('')
@@ -90,6 +92,40 @@ async function onRegister() {
     loading.value = false
   }
 }
+
+async function onGoogleCredential(credential: string) {
+  if (loading.value || successMessage.value) {
+    return
+  }
+
+  errorMessage.value = ''
+  successMessage.value = ''
+  loading.value = true
+
+  try {
+    await authStore.loginWithGoogle(credential)
+    void router.push('/')
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      if (error.status === 409) {
+        errorMessage.value =
+          '此 Email 已有帳號，請改用 Email / 密碼登入（暫不支援自動綁定 Google）'
+      } else if (error.status === 401 || error.status === 400) {
+        errorMessage.value = 'Google 登入失敗，請再試一次'
+      } else {
+        errorMessage.value = error.message
+      }
+    } else {
+      errorMessage.value = 'Google 登入失敗，請稍後再試'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function onGoogleError(message: string) {
+  errorMessage.value = message
+}
 </script>
 
 <template>
@@ -153,7 +189,12 @@ async function onRegister() {
           />
         </form>
 
-        <SocialAuthButtons mode="register" />
+        <SocialAuthButtons
+          mode="register"
+          :disabled="loading || Boolean(successMessage)"
+          @credential="onGoogleCredential"
+          @error="onGoogleError"
+        />
 
         <p class="login-hint">
           已經有帳號？

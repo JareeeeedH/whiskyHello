@@ -1,25 +1,8 @@
 import app from './app'
 import { connectDatabase } from './config/db'
-import { env, getGoogleClientIdDebugInfo } from './config/env'
+import { env } from './config/env'
 
 async function start(): Promise<void> {
-  const googleDebug = getGoogleClientIdDebugInfo()
-  // Temporary safe diagnostics — never log the client id value itself.
-  console.info('GOOGLE_CLIENT_ID configured:', googleDebug.configured)
-  console.info('GOOGLE_CLIENT_ID length:', googleDebug.length)
-  console.info(
-    'GOOGLE related env keys:',
-    googleDebug.relatedEnvKeys.length > 0
-      ? googleDebug.relatedEnvKeys.join(', ')
-      : '(none)',
-  )
-  console.info(
-    'env.googleClientId snapshot configured:',
-    Boolean(env.googleClientId),
-    'length:',
-    env.googleClientId.length,
-  )
-
   try {
     await connectDatabase()
   } catch (error) {

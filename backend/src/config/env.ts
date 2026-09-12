@@ -1,7 +1,6 @@
 import dotenv from 'dotenv'
 
-// Local/dev only. Railway injects process.env before Node starts;
-// skipping dotenv in production avoids any file/vault side effects.
+// Local/dev only. Railway injects process.env before Node starts.
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ override: false })
 }
@@ -58,33 +57,13 @@ function parseCorsOrigins(value: string | undefined): string[] {
     .filter(Boolean)
 }
 
-/** Live read — do not trust a stale module snapshot alone. Never log the value. */
+/** Live read of Google OAuth client ID from process.env. */
 export function resolveGoogleClientId(): string {
   return process.env.GOOGLE_CLIENT_ID?.trim() ?? ''
 }
 
-/** Safe diagnostics only (boolean + length + related key names). */
-export function getGoogleClientIdDebugInfo(): {
-  configured: boolean
-  length: number
-  relatedEnvKeys: string[]
-} {
-  const value = resolveGoogleClientId()
-  return {
-    configured: Boolean(value),
-    length: value.length,
-    relatedEnvKeys: Object.keys(process.env)
-      .filter((key) => /google/i.test(key))
-      .sort(),
-  }
-}
-
 const nodeEnv = readNodeEnv()
 
-/**
- * Snapshot at module load for most config.
- * Prefer resolveGoogleClientId() for Google OAuth (live process.env).
- */
 export const env = {
   port: Number(process.env.PORT ?? 3000),
   mongodbUri: required('MONGODB_URI', 'mongodb://127.0.0.1:27017/whiskyhello'),
@@ -97,9 +76,6 @@ export const env = {
   trustProxy:
     process.env.TRUST_PROXY === '1' ||
     process.env.TRUST_PROXY?.toLowerCase() === 'true',
-  /**
-   * Startup snapshot of Google client id (may be empty if env was missing at boot).
-   * Runtime Google auth should use resolveGoogleClientId().
-   */
+  /** Google Identity Services / OAuth client ID (ID token audience). */
   googleClientId: resolveGoogleClientId(),
 }

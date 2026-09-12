@@ -1,8 +1,23 @@
 import axios from 'axios'
 import { AUTH_TOKEN_KEY } from '../constants/authStorage'
 
+function resolveApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) {
+    return configured
+  }
+
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3000/api/v1'
+  }
+
+  throw new Error(
+    'Missing VITE_API_BASE_URL. Set it for production builds (do not fall back to localhost).',
+  )
+}
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1',
+  baseURL: resolveApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,7 +41,11 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
 }
 
 function isAuthCredentialRequest(url: string): boolean {
-  return url.includes('/auth/login') || url.includes('/auth/register')
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/register') ||
+    url.includes('/auth/google')
+  )
 }
 
 apiClient.interceptors.response.use(
@@ -34,7 +53,7 @@ apiClient.interceptors.response.use(
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const url = String(error.config?.url ?? '')
-      // Failed login/register must not clear an existing session or redirect.
+      // Failed credential exchange must not clear an existing session or redirect.
       if (!isAuthCredentialRequest(url) && unauthorizedHandler) {
         unauthorizedHandler({ url })
       }

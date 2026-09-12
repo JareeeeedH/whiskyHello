@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   mode: 'login' | 'register'
@@ -13,10 +13,15 @@ const emit = defineEmits<{
 
 const googleButtonHost = ref<HTMLElement | null>(null)
 const googleReady = ref(false)
-const googleUnavailable = ref(false)
+/** Only true when VITE_GOOGLE_CLIENT_ID is missing — never for script timing. */
+const configMissing = ref(false)
+const loadFailed = ref(false)
 
 const GIS_SCRIPT_ID = 'whiskyhello-google-gsi'
 const GIS_SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
+const GIS_READY_TIMEOUT_MS = 12_000
+
+let cancelled = false
 
 declare global {
   interface Window {
@@ -44,33 +49,59 @@ function getClientId(): string {
   return (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim()
 }
 
+function isGisReady(): boolean {
+  return Boolean(window.google?.accounts?.id?.initialize && window.google?.accounts?.id?.renderButton)
+}
+
+function waitForGisReady(timeoutMs = GIS_READY_TIMEOUT_MS): Promise<void> {
+  if (isGisReady()) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve, reject) => {
+    const started = Date.now()
+
+    const tick = () => {
+      if (cancelled) {
+        reject(new Error('cancelled'))
+        return
+      }
+      if (isGisReady()) {
+        resolve()
+        return
+      }
+      if (Date.now() - started >= timeoutMs) {
+        reject(new Error('Google Sign-In timed out'))
+        return
+      }
+      window.setTimeout(tick, 50)
+    }
+
+    tick()
+  })
+}
+
 function loadGisScript(): Promise<void> {
-  if (window.google?.accounts?.id) {
+  if (isGisReady()) {
     return Promise.resolve()
   }
 
   const existing = document.getElementById(GIS_SCRIPT_ID)
-  if (existing) {
-    return new Promise((resolve, reject) => {
-      existing.addEventListener('load', () => resolve(), { once: true })
-      existing.addEventListener(
-        'error',
-        () => reject(new Error('Failed to load Google Sign-In')),
-        { once: true },
-      )
-    })
-  }
-
-  return new Promise((resolve, reject) => {
+  if (!existing) {
     const script = document.createElement('script')
     script.id = GIS_SCRIPT_ID
     script.src = GIS_SCRIPT_SRC
     script.async = true
     script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google Sign-In'))
+    script.onerror = () => {
+      // waitForGisReady will time out / fail if API never appears
+    }
     document.head.appendChild(script)
-  })
+  }
+
+  // Do not rely only on script.onload — GIS may attach after load,
+  // and a reused <script> that already loaded will never fire load again.
+  return waitForGisReady()
 }
 
 function handleCredentialResponse(response: { credential?: string }) {
@@ -82,25 +113,32 @@ function handleCredentialResponse(response: { credential?: string }) {
   emit('credential', credential)
 }
 
-function renderGoogleButton() {
+async function renderGoogleButton(): Promise<boolean> {
   const clientId = getClientId()
-  const host = googleButtonHost.value
+  if (!clientId) {
+    configMissing.value = true
+    googleReady.value = false
+    return false
+  }
 
-  if (!clientId || !host || !window.google?.accounts?.id) {
-    googleUnavailable.value = !clientId
-    return
+  configMissing.value = false
+
+  await nextTick()
+  const host = googleButtonHost.value
+  if (!host || !isGisReady() || cancelled) {
+    return false
   }
 
   host.innerHTML = ''
 
-  window.google.accounts.id.initialize({
+  window.google!.accounts.id.initialize({
     client_id: clientId,
     callback: handleCredentialResponse,
     auto_select: false,
     cancel_on_tap_outside: true,
   })
 
-  window.google.accounts.id.renderButton(host, {
+  window.google!.accounts.id.renderButton(host, {
     type: 'icon',
     shape: 'circle',
     theme: 'outline',
@@ -109,39 +147,64 @@ function renderGoogleButton() {
   })
 
   googleReady.value = true
-  googleUnavailable.value = false
+  loadFailed.value = false
+  return true
 }
 
 async function setupGoogle() {
   const clientId = getClientId()
   if (!clientId) {
-    googleUnavailable.value = true
+    configMissing.value = true
+    googleReady.value = false
     return
   }
 
+  configMissing.value = false
+  loadFailed.value = false
+  googleReady.value = false
+
   try {
     await loadGisScript()
-    renderGoogleButton()
-  } catch {
-    googleUnavailable.value = true
+    if (cancelled) {
+      return
+    }
+
+    const rendered = await renderGoogleButton()
+    if (!rendered && !cancelled) {
+      // One more attempt after layout settles (ref / host timing).
+      await nextTick()
+      const retry = await renderGoogleButton()
+      if (!retry && !cancelled) {
+        loadFailed.value = true
+        emit('error', '無法載入 Google 登入，請稍後再試')
+      }
+    }
+  } catch (error) {
+    if (cancelled || (error instanceof Error && error.message === 'cancelled')) {
+      return
+    }
+    loadFailed.value = true
+    googleReady.value = false
     emit('error', '無法載入 Google 登入，請稍後再試')
   }
 }
 
 onMounted(() => {
+  cancelled = false
   void setupGoogle()
 })
 
 watch(
   () => props.disabled,
-  () => {
-    if (!props.disabled && googleButtonHost.value) {
-      renderGoogleButton()
+  async (disabled) => {
+    if (!disabled && getClientId() && isGisReady()) {
+      await renderGoogleButton()
     }
   },
 )
 
 onBeforeUnmount(() => {
+  cancelled = true
   try {
     window.google?.accounts?.id?.cancel()
   } catch {
@@ -161,15 +224,19 @@ onBeforeUnmount(() => {
     <div class="social-actions">
       <div
         class="google-btn-wrap"
-        :class="{ 'is-disabled': disabled || googleUnavailable }"
-        :aria-busy="!googleReady && !googleUnavailable"
+        :class="{
+          'is-disabled': disabled,
+          'is-loading': !googleReady && !configMissing && !loadFailed,
+        }"
+        :aria-busy="!googleReady && !configMissing && !loadFailed"
       >
         <div
+          v-show="!configMissing"
           ref="googleButtonHost"
           class="google-btn-host"
           :aria-label="mode === 'login' ? '使用 Google 登入' : '使用 Google 註冊'"
         />
-        <p v-if="googleUnavailable" class="google-fallback">
+        <p v-if="configMissing" class="google-fallback">
           Google 登入尚未設定
         </p>
       </div>
@@ -232,8 +299,8 @@ onBeforeUnmount(() => {
 
 .google-btn-wrap {
   position: relative;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  min-width: 40px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -244,11 +311,23 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
+.google-btn-wrap.is-loading .google-btn-host {
+  opacity: 0.35;
+}
+
 .google-btn-host {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+}
+
+/* GIS injects iframe/div — keep them visible and clickable */
+.google-btn-host :deep(div),
+.google-btn-host :deep(iframe) {
+  max-width: none !important;
 }
 
 .google-fallback {

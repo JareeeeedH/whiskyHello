@@ -110,6 +110,8 @@ async function onGoogleCredential(credential: string) {
       if (error.status === 409) {
         errorMessage.value =
           '此 Email 已有帳號，請改用 Email / 密碼登入（暫不支援自動綁定 Google）'
+      } else if (error.status === 503) {
+        errorMessage.value = '伺服器尚未啟用 Google 登入，請稍後再試'
       } else if (error.status === 401 || error.status === 400) {
         errorMessage.value = 'Google 登入失敗，請再試一次'
       } else {

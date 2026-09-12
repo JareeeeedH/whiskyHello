@@ -110,7 +110,6 @@ function applyHotSearch(term: string) {
           <InputNumber
             v-model="searchPoints"
             input-id="whisky-search-points"
-            placeholder="80"
             class="points-input"
             :min="0"
             :max="100"

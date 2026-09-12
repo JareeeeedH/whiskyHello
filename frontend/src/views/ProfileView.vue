@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import { useAuthStore } from '../stores/auth'
+import {
+  fetchMyReviews,
+  ReviewApiError,
+} from '../services/reviewService'
+import { getWhiskyById } from '../services/whiskyService'
+import type { PublicReview } from '../types/review'
 
 const authStore = useAuthStore()
 
@@ -15,6 +21,10 @@ const draftName = ref('')
 const draftAvatar = ref('')
 const draftBio = ref('')
 const editNotice = ref('')
+
+const myReviews = ref<PublicReview[]>([])
+const reviewsLoading = ref(false)
+const reviewsError = ref('')
 
 const displayName = computed(() => {
   if (isEditing.value) return draftName.value.trim() || profile.value?.name || ''
@@ -41,6 +51,60 @@ const initials = computed(() => {
   return name.slice(0, 1).toUpperCase()
 })
 
+const reviewCountLabel = computed(() => {
+  if (reviewsLoading.value || reviewsError.value) return '我的評論'
+  return `我的評論 · ${myReviews.value.length}`
+})
+
+function whiskyNameFor(review: PublicReview): string {
+  return getWhiskyById(review.whiskyId)?.name?.trim() || `酒款 #${review.whiskyId}`
+}
+
+function formatRelativeTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diffMs < minute) return '剛剛'
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} 分鐘前`
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} 小時前`
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} 天前`
+
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+}
+
+async function loadMyReviews() {
+  if (!authStore.isAuthenticated) {
+    myReviews.value = []
+    return
+  }
+
+  reviewsLoading.value = true
+  reviewsError.value = ''
+
+  try {
+    myReviews.value = await fetchMyReviews()
+  } catch (error) {
+    myReviews.value = []
+    reviewsError.value =
+      error instanceof ReviewApiError
+        ? error.message
+        : '無法載入我的評論'
+  } finally {
+    reviewsLoading.value = false
+  }
+}
+
 watch(
   profile,
   (user) => {
@@ -51,6 +115,10 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  void loadMyReviews()
+})
 
 function startEdit() {
   if (!profile.value) return
@@ -81,6 +149,7 @@ function saveEdit() {
   <main class="profile">
     <header class="page-intro">
       <h1>我的 WhiskyHello</h1>
+      <p class="page-sub">管理資料，留下你的品飲足跡。</p>
     </header>
 
     <template v-if="profile">
@@ -97,39 +166,30 @@ function saveEdit() {
           </div>
 
           <div class="identity">
-            <h2 id="profile-heading" class="display-name">
-              {{ displayName || '尚未設定名稱' }}
-            </h2>
+            <div class="identity-top">
+              <h2 id="profile-heading" class="display-name">
+                {{ displayName || '尚未設定名稱' }}
+              </h2>
+              <Button
+                v-if="!isEditing"
+                type="button"
+                label="編輯"
+                icon="pi pi-pencil"
+                severity="secondary"
+                outlined
+                size="small"
+                class="edit-btn"
+                @click="startEdit"
+              />
+            </div>
             <p class="display-email">{{ displayEmail || '—' }}</p>
-            <Button
-              v-if="!isEditing"
-              type="button"
-              label="編輯個人資料"
-              icon="pi pi-pencil"
-              class="edit-btn"
-              @click="startEdit"
-            />
-          </div>
-        </div>
-
-        <div v-if="!isEditing" class="profile-body">
-          <div class="field-block">
-            <p class="label">名稱</p>
-            <p class="value">{{ displayName || '—' }}</p>
-          </div>
-          <div class="field-block">
-            <p class="label">Email</p>
-            <p class="value">{{ displayEmail || '—' }}</p>
-          </div>
-          <div class="field-block">
-            <p class="label">個人簡介</p>
-            <p class="value bio">
-              {{ displayBio || '還沒有寫簡介，之後可以分享你與威士忌的故事。' }}
+            <p v-if="!isEditing" class="header-bio">
+              {{ displayBio || '尚未填寫簡介' }}
             </p>
           </div>
         </div>
 
-        <form v-else class="edit-form" @submit.prevent="saveEdit">
+        <form v-if="isEditing" class="edit-form" @submit.prevent="saveEdit">
           <label class="edit-field">
             <span class="label">名稱</span>
             <InputText
@@ -185,12 +245,41 @@ function saveEdit() {
       </section>
 
       <section class="reviews-panel" aria-labelledby="reviews-heading">
-        <h2 id="reviews-heading" class="section-title">我的評論</h2>
+        <h2 id="reviews-heading" class="section-title">{{ reviewCountLabel }}</h2>
         <p class="section-desc">你留下的品飲筆記，會慢慢累積成專屬的威士忌足跡。</p>
-        <RouterLink class="reviews-link" to="/profile">
-          查看我留下的威士忌評論 →
-        </RouterLink>
-        <p class="coming-soon">評論列表即將開放。</p>
+
+        <p v-if="reviewsLoading" class="reviews-state">載入中…</p>
+        <p v-else-if="reviewsError" class="reviews-state is-error" role="alert">
+          {{ reviewsError }}
+        </p>
+        <div v-else-if="myReviews.length === 0" class="reviews-empty-wrap">
+          <p class="reviews-empty">還沒有評論。</p>
+          <RouterLink class="empty-cta" to="/whiskies">去探索酒款 →</RouterLink>
+        </div>
+
+        <ul v-else class="my-review-list">
+          <li v-for="review in myReviews" :key="review.id" class="my-review-item">
+            <div class="my-review-score" aria-hidden="true">
+              <span class="score-value">{{ review.rating }}</span>
+              <span class="score-max">/100</span>
+            </div>
+            <div class="my-review-body">
+              <RouterLink
+                class="whisky-name"
+                :to="`/whiskies/${review.whiskyId}`"
+              >
+                {{ whiskyNameFor(review) }}
+              </RouterLink>
+              <p class="review-title">{{ review.title }}</p>
+              <p class="review-excerpt">{{ review.content }}</p>
+              <p class="review-meta">
+                <time :datetime="review.createdAt">
+                  {{ formatRelativeTime(review.createdAt) }}
+                </time>
+              </p>
+            </div>
+          </li>
+        </ul>
       </section>
     </template>
   </main>
@@ -205,36 +294,34 @@ function saveEdit() {
 }
 
 .page-intro {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 h1 {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.35rem;
   font-size: clamp(1.65rem, 3.5vw, 2rem);
   letter-spacing: -0.03em;
   color: #1c1917;
 }
 
-.subtitle {
+.page-sub {
   margin: 0;
-  max-width: 28rem;
-  color: #78716c;
-  line-height: 1.6;
-  font-size: 1rem;
+  color: #a8a29e;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .profile-panel,
 .reviews-panel,
 .account-panel {
-  padding: 1.5rem 1.4rem;
-  border: 1px solid #e7e5e4;
-  background:
-    linear-gradient(165deg, #fffefb 0%, #fff 55%, #fafaf9 100%);
-  box-shadow: 0 10px 28px rgba(28, 25, 23, 0.04);
+  padding: 1.35rem 1.25rem;
+  border: 1px solid #f0eeeb;
+  background: #fff;
+  box-shadow: none;
 }
 
 .profile-panel {
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .reviews-panel,
@@ -244,22 +331,19 @@ h1 {
 
 .profile-header {
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding-bottom: 1.35rem;
-  margin-bottom: 1.25rem;
-  border-bottom: 1px solid #f0eeeb;
+  align-items: flex-start;
+  gap: 1.15rem;
 }
 
 .avatar-wrap {
   flex-shrink: 0;
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 5.75rem;
+  height: 5.75rem;
   overflow: hidden;
   border-radius: 999px;
   border: 2px solid rgba(217, 119, 6, 0.28);
   background: linear-gradient(145deg, #fff7ed 0%, #f5f5f4 100%);
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.12);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
 }
 
 .avatar-image {
@@ -275,49 +359,65 @@ h1 {
   width: 100%;
   height: 100%;
   color: #b45309;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
 }
 
 .identity {
   min-width: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  align-items: stretch;
+}
+
+.identity-top {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .display-name {
   margin: 0;
-  font-size: clamp(1.25rem, 2.5vw, 1.45rem);
-  letter-spacing: -0.02em;
+  font-size: clamp(1.35rem, 2.8vw, 1.65rem);
+  letter-spacing: -0.025em;
   color: #1c1917;
   word-break: break-word;
 }
 
 .display-email {
   margin: 0;
-  color: #78716c;
+  color: #a8a29e;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.header-bio {
+  margin: 0.35rem 0 0;
+  color: #57534e;
   font-size: 0.95rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
 .edit-btn {
-  margin-top: 0.45rem;
-  border: none !important;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
-  color: #1c1917 !important;
-  font-weight: 700 !important;
-  box-shadow: 0 8px 18px rgba(217, 119, 6, 0.22) !important;
+  flex-shrink: 0;
+  color: #78716c !important;
+  border-color: #e7e5e4 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
 }
 
-.profile-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
+.edit-btn:hover {
+  color: #b45309 !important;
+  border-color: rgba(217, 119, 6, 0.35) !important;
+  background: #fffbeb !important;
 }
 
-.field-block .label,
 .edit-field .label,
 .section-title {
   margin: 0;
@@ -328,28 +428,20 @@ h1 {
 }
 
 .section-title {
-  margin-bottom: 0.4rem;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
-  color: #57534e;
-}
-
-.field-block .value {
-  margin: 0.3rem 0 0;
-  color: #292524;
-  line-height: 1.55;
-  word-break: break-word;
-}
-
-.field-block .bio {
-  white-space: pre-wrap;
+  margin-bottom: 0.35rem;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
   color: #44403c;
+  font-weight: 700;
 }
 
 .edit-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid #f0eeeb;
 }
 
 .edit-field {
@@ -423,24 +515,119 @@ h1 {
   font-size: 0.9375rem;
 }
 
-.reviews-link {
-  display: inline-flex;
-  align-items: center;
-  color: #b45309;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s ease;
+.reviews-state,
+.reviews-empty {
+  margin: 0.35rem 0 0;
+  color: #a8a29e;
+  font-size: 0.9375rem;
+  line-height: 1.55;
 }
 
-.reviews-link:hover {
-  color: #d97706;
+.reviews-empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.empty-cta {
+  color: #b45309;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.empty-cta:hover {
   text-decoration: underline;
 }
 
-.coming-soon {
-  margin: 0.65rem 0 0;
-  font-size: 0.8125rem;
+.reviews-state.is-error {
+  color: #b91c1c;
+}
+
+.my-review-list {
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-review-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 0.95rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid #f0eeeb;
+}
+
+.my-review-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0.15rem;
+}
+
+.my-review-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  min-width: 3.2rem;
+  padding-top: 0.15rem;
+}
+
+.score-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #b45309;
+}
+
+.score-max {
+  font-size: 0.72rem;
+  font-weight: 600;
   color: #a8a29e;
+}
+
+.my-review-body {
+  min-width: 0;
+}
+
+.whisky-name {
+  display: inline-block;
+  margin: 0 0 0.15rem;
+  color: #1c1917;
+  font-weight: 700;
+  font-size: 1.02rem;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.whisky-name:hover {
+  color: #b45309;
+}
+
+.review-title {
+  margin: 0;
+  color: #78716c;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.review-excerpt {
+  margin: 0.35rem 0 0;
+  color: #57534e;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-meta {
+  margin: 0.4rem 0 0;
+  color: #a8a29e;
+  font-size: 0.8125rem;
 }
 
 .logout-btn {
@@ -485,7 +672,11 @@ h1 {
   }
 
   .edit-btn {
-    width: 100%;
+    width: auto;
+  }
+
+  .identity-top {
+    flex-wrap: wrap;
   }
 
   .edit-actions {
@@ -494,6 +685,11 @@ h1 {
 
   .edit-actions :deep(.p-button) {
     width: 100%;
+  }
+
+  .my-review-item {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 }
 </style>

@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import { getWhiskyById } from '../services/whiskyService'
+import NewsCard from '../components/NewsCard.vue'
+import { getRandomNews } from '../data/news'
 import { mockFriendReviews } from '../data/mock/friendReviews'
+import { getWhiskyById } from '../services/whiskyService'
 
 const router = useRouter()
 const searchHint = ref('')
+
+/** Homepage news feed — swap getRandomNews for API later. */
+const newsItems = getRandomNews(3)
+const featuredNews = computed(() => newsItems[0])
+const sideNews = computed(() => newsItems.slice(1))
 
 /** Keep only mock reviews whose whiskyId exists in Static Dataset. */
 const latestFriendReviews = mockFriendReviews.filter((review) =>
@@ -186,6 +193,26 @@ function goSearchEntry() {
             </div>
           </li>
         </ul>
+      </div>
+    </section>
+
+    <section class="news section" aria-labelledby="home-news-heading">
+      <div class="section-inner">
+        <div class="news-header">
+          <p class="eyebrow">Whisky News</p>
+          <h2 id="home-news-heading">威士忌新鮮事</h2>
+        </div>
+
+        <div v-if="featuredNews" class="news-layout">
+          <NewsCard :item="featuredNews" featured class="news-featured" />
+          <div class="news-side">
+            <NewsCard
+              v-for="item in sideNews"
+              :key="item.id"
+              :item="item"
+            />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -373,6 +400,26 @@ function goSearchEntry() {
 
 .features {
   background: #fff;
+}
+
+.news {
+  background: #fafaf9;
+}
+
+.news-header {
+  margin-bottom: 1.5rem;
+}
+
+.news-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+}
+
+.news-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
 }
 
 .features .capability-list {
@@ -657,6 +704,16 @@ function goSearchEntry() {
 
   .review-marquee-viewport {
     height: 26rem;
+  }
+
+  .news-layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .news-side {
+    gap: 1rem;
   }
 }
 </style>

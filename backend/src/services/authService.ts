@@ -71,9 +71,11 @@ export async function registerUser(input: RegisterBody): Promise<PublicUser> {
 export async function loginUser(
   input: LoginBody,
 ): Promise<{ token: string; user: PublicUser }> {
-  const user = await User.findOne({ email: input.email }).select(
-    '+passwordHash googleId',
-  )
+  // Only force-include select:false passwordHash.
+  // Do NOT add other field names here — Mongoose inclusive select would
+  // drop name/email/avatar/bio from the login response (Profile looks empty
+  // until refresh via /auth/me).
+  const user = await User.findOne({ email: input.email }).select('+passwordHash')
 
   if (!user) {
     throw new AppError(401, INVALID_CREDENTIALS)

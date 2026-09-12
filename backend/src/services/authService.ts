@@ -52,10 +52,12 @@ export async function registerUser(input: RegisterBody): Promise<PublicUser> {
   const passwordHash = await hashPassword(input.password)
 
   try {
+    // role is never taken from the client; new accounts are always 'user'.
     const user = await User.create({
       name: input.name,
       email: input.email,
       passwordHash,
+      role: 'user',
     })
 
     return toPublicUser(user)
@@ -134,11 +136,13 @@ export async function loginWithGoogle(
   }
 
   try {
+    // Google sign-up always creates a normal user; admin is set only in DB.
     const user = await User.create({
       name: identity.name.slice(0, 100) || 'WhiskyHello User',
       email: identity.email,
       googleId: identity.sub,
       avatar: identity.picture || '',
+      role: 'user',
     })
 
     const token = signAccessToken({ userId: user._id.toString() })

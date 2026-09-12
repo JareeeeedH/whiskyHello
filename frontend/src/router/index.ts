@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { resolveUserRole } from '../types/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,6 +36,18 @@ const router = createRouter({
       component: () => import('../views/ProfileView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/AdminView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('../views/AdminUsersView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 })
 
@@ -49,6 +62,19 @@ router.beforeEach(async (to) => {
     return {
       name: 'login',
       query: { redirect: to.fullPath },
+    }
+  }
+
+  if (to.meta.requiresAdmin) {
+    if (!authStore.isAuthenticated) {
+      return {
+        name: 'login',
+        query: { redirect: to.fullPath },
+      }
+    }
+
+    if (resolveUserRole(authStore.user?.role) !== 'admin') {
+      return { name: 'home' }
     }
   }
 

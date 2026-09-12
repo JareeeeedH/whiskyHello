@@ -7,6 +7,14 @@ import {
   loginWithGoogle as loginWithGoogleApi,
 } from '../services/authService'
 import type { LoginPayload, PublicUser } from '../types/auth'
+import { resolveUserRole } from '../types/auth'
+
+function normalizeUser(raw: PublicUser): PublicUser {
+  return {
+    ...raw,
+    role: resolveUserRole(raw.role),
+  }
+}
 
 function readStoredUser(): PublicUser | null {
   const raw = localStorage.getItem(AUTH_USER_KEY)
@@ -15,7 +23,7 @@ function readStoredUser(): PublicUser | null {
   }
 
   try {
-    return JSON.parse(raw) as PublicUser
+    return normalizeUser(JSON.parse(raw) as PublicUser)
   } catch {
     localStorage.removeItem(AUTH_USER_KEY)
     return null
@@ -30,12 +38,15 @@ export const useAuthStore = defineStore('auth', () => {
   let restorePromise: Promise<void> | null = null
 
   const isAuthenticated = computed(() => Boolean(token.value))
+  const isAdmin = computed(
+    () => resolveUserRole(user.value?.role) === 'admin',
+  )
 
   function setSession(nextToken: string, nextUser: PublicUser) {
     token.value = nextToken
-    user.value = nextUser
+    user.value = normalizeUser(nextUser)
     localStorage.setItem(AUTH_TOKEN_KEY, nextToken)
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser))
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user.value))
   }
 
   function clearSession() {
@@ -79,8 +90,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       try {
         const currentUser = await fetchCurrentUser()
-        user.value = currentUser
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser))
+        user.value = normalizeUser(currentUser)
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user.value))
       } catch {
         clearSession()
       } finally {
@@ -96,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     initialized,
     isAuthenticated,
+    isAdmin,
     setSession,
     clearSession,
     login,

@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts"
+    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/adminRbac.test.ts"
   },
   "engines": {
     "node": ">=20"

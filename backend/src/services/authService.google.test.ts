@@ -156,11 +156,13 @@ describe('authService Google + password (integration)', () => {
     assert.equal(decoded.userId, result.user.id)
 
     const stored = await User.findById(result.user.id).select(
-      '+passwordHash googleId',
+      '+passwordHash googleId role',
     )
     assert.ok(stored)
     assert.equal(stored.googleId, identity.sub)
     assert.equal(stored.passwordHash, undefined)
+    assert.equal(result.user.role, 'user')
+    assert.equal(stored.role, 'user')
   })
 
   it('logs in existing googleId user without creating a duplicate', async (t) => {

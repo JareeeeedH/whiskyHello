@@ -1,5 +1,5 @@
 import type { UserDocument } from '../models/User'
-import type { PublicUser } from '../types/user'
+import { resolveUserRole, type PublicUser } from '../types/user'
 
 export function toPublicUser(user: UserDocument): PublicUser {
   return {
@@ -8,6 +8,7 @@ export function toPublicUser(user: UserDocument): PublicUser {
     email: user.email,
     avatar: user.avatar,
     bio: user.bio,
+    role: resolveUserRole(user.role),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }

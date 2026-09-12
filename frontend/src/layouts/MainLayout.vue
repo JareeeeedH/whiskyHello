@@ -85,6 +85,13 @@ function onLogout() {
         <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
 
         <template v-if="authStore.isAuthenticated">
+          <RouterLink
+            v-if="authStore.isAdmin"
+            to="/admin"
+            active-class="is-active"
+          >
+            Admin
+          </RouterLink>
           <RouterLink to="/profile" active-class="is-active">Profile</RouterLink>
           <button type="button" class="nav-logout" @click="onLogout">
             Logout

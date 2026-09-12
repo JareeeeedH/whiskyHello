@@ -31,6 +31,12 @@ const userSchema = new Schema(
         sparse: true,
       },
     },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+      required: true,
+    },
     avatar: {
       type: String,
       default: '',
@@ -59,4 +65,4 @@ export const User = model<UserSchemaFields, UserModel>('User', userSchema)
 
 /** Helper alias aligning schema create input with domain attrs. */
 export type CreateUserInput = Pick<UserAttrs, 'name' | 'email'> &
-  Partial<Pick<UserAttrs, 'passwordHash' | 'googleId' | 'avatar' | 'bio'>>
+  Partial<Pick<UserAttrs, 'passwordHash' | 'googleId' | 'avatar' | 'bio' | 'role'>>

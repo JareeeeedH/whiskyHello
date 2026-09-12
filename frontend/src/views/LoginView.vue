@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import SocialAuthButtons from '../components/SocialAuthButtons.vue'
 import { AuthApiError } from '../services/authService'
 import { useAuthStore } from '../stores/auth'
+import { resolvePostLoginPath } from '../utils/safeRedirect'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -56,7 +58,7 @@ async function onLogin() {
       email: email.value.trim().toLowerCase(),
       password: password.value,
     })
-    void router.push('/')
+    void router.push(resolvePostLoginPath(route.query.redirect))
   } catch (error) {
     if (error instanceof AuthApiError) {
       if (error.status === 401) {

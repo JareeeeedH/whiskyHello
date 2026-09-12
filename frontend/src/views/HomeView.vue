@@ -200,7 +200,7 @@ function goSearchEntry() {
       <div class="section-inner">
         <div class="news-header">
           <p class="eyebrow">Whisky News</p>
-          <h2 id="home-news-heading">威士忌新鮮事</h2>
+          <h2 id="home-news-heading">值得關注</h2>
         </div>
 
         <div v-if="featuredNews" class="news-layout">

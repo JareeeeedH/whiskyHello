@@ -64,4 +64,8 @@ export const env = {
   nodeEnv,
   isProduction: isProduction(nodeEnv),
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
+  /** Enable Express trust proxy (first hop) when behind a reverse proxy. */
+  trustProxy:
+    process.env.TRUST_PROXY === '1' ||
+    process.env.TRUST_PROXY?.toLowerCase() === 'true',
 }

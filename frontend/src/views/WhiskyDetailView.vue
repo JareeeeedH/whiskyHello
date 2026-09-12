@@ -354,67 +354,68 @@ watch(
 
         <p v-if="listLoading" class="state">載入評論中…</p>
         <p v-else-if="listError" class="state is-error" role="alert">{{ listError }}</p>
-        <p v-else-if="actionError" class="state is-error" role="alert">{{ actionError }}</p>
-        <p v-else-if="reviews.length === 0" class="empty">
-          尚無品飲評論，歡迎留下你的感受。
-        </p>
+        <template v-else>
+          <p v-if="actionError" class="state is-error" role="alert">{{ actionError }}</p>
+          <p v-if="reviews.length === 0" class="empty">
+            尚無品飲評論，歡迎留下你的感受。
+          </p>
+          <ul v-else class="review-list">
+            <li v-for="review in reviews" :key="review.id" class="review-card">
+              <div class="review-main">
+                <div
+                  class="review-score"
+                  :aria-label="`評分 ${review.rating} 分`"
+                >
+                  <span class="score-value">{{ review.rating }}</span>
+                  <span class="score-max">/100</span>
+                </div>
 
-        <ul v-else class="review-list">
-          <li v-for="review in reviews" :key="review.id" class="review-card">
-            <div class="review-main">
-              <div
-                class="review-score"
-                :aria-label="`評分 ${review.rating} 分`"
-              >
-                <span class="score-value">{{ review.rating }}</span>
-                <span class="score-max">/100</span>
-              </div>
+                <div class="review-body">
+                  <div class="review-heading">
+                    <p class="review-title">{{ review.title }}</p>
+                    <div v-if="isOwnReview(review)" class="review-actions">
+                      <button
+                        type="button"
+                        class="action-btn"
+                        :disabled="submitting"
+                        @click="openEditModal(review)"
+                      >
+                        編輯
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn action-delete"
+                        :disabled="submitting"
+                        @click="onDeleteReview(review)"
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  </div>
 
-              <div class="review-body">
-                <div class="review-heading">
-                  <p class="review-title">{{ review.title }}</p>
-                  <div v-if="isOwnReview(review)" class="review-actions">
-                    <button
-                      type="button"
-                      class="action-btn"
-                      :disabled="submitting"
-                      @click="openEditModal(review)"
-                    >
-                      編輯
-                    </button>
-                    <button
-                      type="button"
-                      class="action-btn action-delete"
-                      :disabled="submitting"
-                      @click="onDeleteReview(review)"
-                    >
-                      刪除
-                    </button>
+                  <p class="review-meta">
+                    <span>{{ review.authorName || '酒友' }}</span>
+                    <span class="dot">·</span>
+                    <time :datetime="review.createdAt" :title="formatAbsoluteTime(review.createdAt)">
+                      {{ formatRelativeTime(review.createdAt) }}
+                    </time>
+                  </p>
+
+                  <p class="review-content">{{ review.content }}</p>
+
+                  <div
+                    v-if="review.nose || review.taste || review.finish"
+                    class="tasting-chips"
+                  >
+                    <span v-if="review.nose" class="chip">香氣 · {{ review.nose }}</span>
+                    <span v-if="review.taste" class="chip">口感 · {{ review.taste }}</span>
+                    <span v-if="review.finish" class="chip">尾韻 · {{ review.finish }}</span>
                   </div>
                 </div>
-
-                <p class="review-meta">
-                  <span>{{ review.authorName || '酒友' }}</span>
-                  <span class="dot">·</span>
-                  <time :datetime="review.createdAt" :title="formatAbsoluteTime(review.createdAt)">
-                    {{ formatRelativeTime(review.createdAt) }}
-                  </time>
-                </p>
-
-                <p class="review-content">{{ review.content }}</p>
-
-                <div
-                  v-if="review.nose || review.taste || review.finish"
-                  class="tasting-chips"
-                >
-                  <span v-if="review.nose" class="chip">香氣 · {{ review.nose }}</span>
-                  <span v-if="review.taste" class="chip">口感 · {{ review.taste }}</span>
-                  <span v-if="review.finish" class="chip">尾韻 · {{ review.finish }}</span>
-                </div>
               </div>
-            </div>
-          </li>
-        </ul>
+            </li>
+          </ul>
+        </template>
       </section>
     </template>
 

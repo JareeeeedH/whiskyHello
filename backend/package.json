@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts"
   },
   "engines": {
     "node": ">=20"

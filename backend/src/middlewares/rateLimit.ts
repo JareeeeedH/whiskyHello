@@ -12,11 +12,13 @@ type Bucket = {
   resetAt: number
 }
 
-function clientKey(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for']
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim()
-  }
+/**
+ * Client identity for rate limiting.
+ * Uses Express `req.ip` only — never reads raw `X-Forwarded-For` from the client.
+ * When behind a reverse proxy, set TRUST_PROXY=1 so Express derives `req.ip`
+ * from the first trusted hop (see app.ts).
+ */
+export function clientKey(req: Request): string {
   return req.ip || req.socket.remoteAddress || 'unknown'
 }
 

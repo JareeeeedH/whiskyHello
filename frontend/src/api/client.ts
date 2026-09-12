@@ -15,3 +15,30 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+
+type UnauthorizedHandler = (context: { url: string }) => void
+
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+/** Wired from main.ts after Pinia/router exist (avoids circular imports). */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
+  unauthorizedHandler = handler
+}
+
+function isAuthCredentialRequest(url: string): boolean {
+  return url.includes('/auth/login') || url.includes('/auth/register')
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      const url = String(error.config?.url ?? '')
+      // Failed login/register must not clear an existing session or redirect.
+      if (!isAuthCredentialRequest(url) && unauthorizedHandler) {
+        unauthorizedHandler({ url })
+      }
+    }
+    return Promise.reject(error)
+  },
+)

@@ -7,9 +7,11 @@ import Password from 'primevue/password'
 import SocialAuthButtons from '../components/SocialAuthButtons.vue'
 import { AuthApiError, registerUser } from '../services/authService'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from 'primevue/usetoast'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToast()
 
 const name = ref('')
 const email = ref('')
@@ -104,6 +106,11 @@ async function onGoogleCredential(credential: string) {
 
   try {
     await authStore.loginWithGoogle(credential)
+    toast.add({
+      severity: 'success',
+      summary: '登入成功，歡迎回到 WhiskyHello',
+      life: 1800,
+    })
     void router.push('/')
   } catch (error) {
     if (error instanceof AuthApiError) {

@@ -8,10 +8,12 @@ import SocialAuthButtons from '../components/SocialAuthButtons.vue'
 import { AuthApiError } from '../services/authService'
 import { useAuthStore } from '../stores/auth'
 import { resolvePostLoginPath } from '../utils/safeRedirect'
+import { useToast } from 'primevue/usetoast'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const toast = useToast()
 
 const email = ref('')
 const password = ref('')
@@ -19,6 +21,14 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 const canSubmit = computed(() => !loading.value)
+
+function notifyLoginSuccess() {
+  toast.add({
+    severity: 'success',
+    summary: '登入成功，歡迎回到 WhiskyHello',
+    life: 1800,
+  })
+}
 
 function validateClient(): string | null {
   const trimmedEmail = email.value.trim()
@@ -58,6 +68,7 @@ async function onLogin() {
       email: email.value.trim().toLowerCase(),
       password: password.value,
     })
+    notifyLoginSuccess()
     void router.push(resolvePostLoginPath(route.query.redirect))
   } catch (error) {
     if (error instanceof AuthApiError) {
@@ -91,6 +102,7 @@ async function onGoogleCredential(credential: string) {
 
   try {
     await authStore.loginWithGoogle(credential)
+    notifyLoginSuccess()
     void router.push(resolvePostLoginPath(route.query.redirect))
   } catch (error) {
     if (error instanceof AuthApiError) {

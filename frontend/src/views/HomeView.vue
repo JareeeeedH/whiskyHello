@@ -6,7 +6,6 @@ import InputText from 'primevue/inputtext'
 import NewsCard from '../components/NewsCard.vue'
 import { getRandomNews } from '../data/news'
 import { mockFriendReviews } from '../data/mock/friendReviews'
-import { getWhiskyById } from '../services/whiskyService'
 
 const router = useRouter()
 const searchHint = ref('')
@@ -16,10 +15,12 @@ const newsItems = getRandomNews(3)
 const featuredNews = computed(() => newsItems[0])
 const sideNews = computed(() => newsItems.slice(1))
 
-/** Keep only mock reviews whose whiskyId exists in Static Dataset. */
-const latestFriendReviews = mockFriendReviews.filter((review) =>
-  Boolean(getWhiskyById(review.whiskyId)),
-)
+/**
+ * Mock reviews are curated for the homepage.
+ * Avoid importing whiskyService here — it pulls the full static dataset JSON
+ * into the Home route chunk and causes a long blank first paint.
+ */
+const latestFriendReviews = mockFriendReviews
 
 /** Duplicate list for seamless CSS marquee loop. */
 const reviewFeedLoops = [0, 1] as const

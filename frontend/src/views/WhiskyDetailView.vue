@@ -17,6 +17,9 @@ import {
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
 
+/** Temporarily hide review edit/delete on the detail page UI. */
+const REVIEW_OWNER_ACTIONS_ENABLED = false
+
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -216,6 +219,12 @@ async function submitReview() {
     return
   }
 
+  const confirmMessage =
+    modalMode.value === 'edit' ? '確定要儲存這則評論的修改嗎？' : '確定要發布這則評論嗎？'
+  if (!window.confirm(confirmMessage)) {
+    return
+  }
+
   submitting.value = true
 
   try {
@@ -373,7 +382,10 @@ watch(
                 <div class="review-body">
                   <div class="review-heading">
                     <p class="review-title">{{ review.title }}</p>
-                    <div v-if="isOwnReview(review)" class="review-actions">
+                    <div
+                      v-if="REVIEW_OWNER_ACTIONS_ENABLED && isOwnReview(review)"
+                      class="review-actions"
+                    >
                       <button
                         type="button"
                         class="action-btn"

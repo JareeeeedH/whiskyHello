@@ -40,19 +40,21 @@ defineProps<{
   height: 100%;
   color: inherit;
   text-decoration: none;
-  border: 1px solid #e7e5e4;
+  border: 1px solid rgba(231, 229, 228, 0.95);
   background: #fff;
   overflow: hidden;
   transition:
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    border-color 0.28s ease,
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
 .whisky-card:hover {
-  border-color: #d6d3d1;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(28, 25, 23, 0.06);
+  border-color: rgba(217, 119, 6, 0.45);
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.12),
+    0 14px 28px rgba(28, 25, 23, 0.08);
 }
 
 .whisky-card:focus-visible {
@@ -68,18 +70,19 @@ defineProps<{
   flex-shrink: 0;
   padding: 0.85rem;
   background:
-    radial-gradient(ellipse at center, #fff 0%, #f5f5f4 72%);
+    radial-gradient(ellipse at 50% 35%, #fff 0%, #f5f5f4 55%, #ebe8e4 100%);
+  border-bottom: 1px solid rgba(180, 83, 9, 0.08);
 }
 
 .image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.25s ease;
+  transition: transform 0.35s ease;
 }
 
 .whisky-card:hover .image-wrap img {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .image-fallback {
@@ -164,6 +167,21 @@ defineProps<{
 
   .name {
     font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whisky-card,
+  .image-wrap img {
+    transition: none;
+  }
+
+  .whisky-card:hover {
+    transform: none;
+  }
+
+  .whisky-card:hover .image-wrap img {
+    transform: none;
   }
 }
 </style>

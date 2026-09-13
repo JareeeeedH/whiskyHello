@@ -25,6 +25,7 @@ const latestFriendReviews = mockFriendReviews
 /** Duplicate list for seamless CSS marquee loop. */
 const reviewFeedLoops = [0, 1] as const
 const reviewMarqueePaused = ref(false)
+const heroGlassSrc = `${import.meta.env.BASE_URL}hero-glass.svg`
 
 function pauseReviewMarquee() {
   reviewMarqueePaused.value = true
@@ -68,20 +69,39 @@ function goSearchEntry() {
 <template>
   <main class="home">
     <section class="hero">
-      <div class="hero-glow" aria-hidden="true" />
-      <div class="hero-inner">
-        <h1>威你好，從一杯酒開始，慢慢懂你。</h1>
-        <p class="lead">
+      <div class="hero-atmosphere" aria-hidden="true">
+        <div class="hero-grain" />
+        <div class="hero-glow hero-glow--warm" />
+        <div class="hero-glow hero-glow--edge" />
+        <img
+          class="hero-glass"
+          :src="heroGlassSrc"
+          alt=""
+          width="280"
+          height="420"
+          decoding="async"
+        />
+      </div>
+      <div class="hero-shell">
+        <div class="hero-inner">
+        <p class="brand hero-reveal hero-reveal--1">WhiskyHello</p>
+        <h1 class="hero-reveal hero-reveal--2">
+          從探索開始，走向你的酒單。
+        </h1>
+        <p class="lead hero-reveal hero-reveal--3">
           搜尋酒款、閱讀知名評論，也分享你的品飲感受。
         </p>
         <Button
           label="開始探索威士忌"
           icon="pi pi-search"
-          class="hero-cta"
+          class="hero-cta hero-reveal hero-reveal--4"
           @click="goWhiskies"
         />
+        </div>
       </div>
     </section>
+
+    <div class="luxury-rule" aria-hidden="true" />
 
     <section class="explore section">
       <div class="section-inner explore-grid">
@@ -250,60 +270,192 @@ function goSearchEntry() {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(28, 25, 23, 0.15), rgba(28, 25, 23, 0.55)),
-    radial-gradient(ellipse 80% 70% at 15% 0%, rgba(217, 119, 6, 0.3), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 90% 40%, rgba(146, 64, 14, 0.2), transparent 50%),
-    linear-gradient(160deg, #1c1917 0%, #292524 45%, #1c1917 100%);
+    linear-gradient(105deg, rgba(12, 10, 9, 0.92) 0%, rgba(28, 25, 23, 0.72) 48%, rgba(28, 25, 23, 0.55) 100%),
+    radial-gradient(ellipse 70% 80% at 12% 20%, rgba(180, 83, 9, 0.28), transparent 58%),
+    radial-gradient(ellipse 55% 60% at 88% 70%, rgba(146, 64, 14, 0.22), transparent 55%),
+    linear-gradient(165deg, #0c0a09 0%, #1c1917 42%, #292524 72%, #1c1917 100%);
   color: #fafaf9;
-  padding: 3.5rem 1.5rem 3.25rem;
+  padding: 3.75rem 1.5rem 3.5rem;
+  box-shadow: inset 0 -1px 0 rgba(251, 191, 36, 0.18);
+}
+
+.hero-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 3px
+    );
+  mix-blend-mode: soft-light;
 }
 
 .hero-glow {
   position: absolute;
-  inset: auto -10% -35% auto;
-  width: 50%;
-  height: 65%;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%);
   pointer-events: none;
+}
+
+.hero-glow--warm {
+  inset: auto -8% -40% auto;
+  width: min(52%, 28rem);
+  height: 70%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.16), transparent 68%);
+}
+
+.hero-glow--edge {
+  inset: -20% auto auto -15%;
+  width: min(48%, 24rem);
+  height: 55%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.1), transparent 70%);
+}
+
+.hero-glass {
+  position: absolute;
+  right: max(2%, 0.5rem);
+  bottom: -6%;
+  width: min(34vw, 15.5rem);
+  height: auto;
+  opacity: 0.42;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.45));
+  transform: rotate(-4deg);
+}
+
+.hero-shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 .hero-inner {
   position: relative;
   z-index: 1;
-  max-width: 40rem;
-  margin: 0 auto;
-  text-align: center;
+  max-width: 34rem;
+  margin: 0;
+  text-align: left;
 }
 
 .brand {
-  margin: 0 0 0.85rem;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  margin: 0 0 0.95rem;
+  font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: none;
   color: #fbbf24;
+  text-shadow: 0 0 24px rgba(251, 191, 36, 0.22);
 }
 
 .hero h1 {
-  margin: 0 0 0.85rem;
-  font-size: clamp(1.65rem, 4vw, 2.35rem);
-  line-height: 1.3;
+  margin: 0 0 0.9rem;
+  font-size: clamp(1.85rem, 4.6vw, 2.65rem);
+  line-height: 1.22;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
 }
 
 .lead {
-  margin: 0 auto 1.5rem;
+  margin: 0 0 1.6rem;
   max-width: 28rem;
-  font-size: 1rem;
+  font-size: 1.02rem;
   line-height: 1.7;
   color: #d6d3d1;
 }
 
 .hero-cta {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 55%, #b45309 100%) !important;
-  border: none !important;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%),
+    linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
+  border: 1px solid rgba(253, 230, 138, 0.55) !important;
   color: #1c1917 !important;
   font-weight: 700 !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 -1px 0 rgba(120, 53, 15, 0.35) inset,
+    0 10px 28px rgba(0, 0, 0, 0.28) !important;
+  transition:
+    box-shadow 0.35s ease,
+    filter 0.35s ease,
+    transform 0.35s ease !important;
+}
+
+.hero-cta:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.38) inset,
+    0 -1px 0 rgba(120, 53, 15, 0.3) inset,
+    0 0 0 1px rgba(253, 230, 138, 0.35),
+    0 14px 32px rgba(180, 83, 9, 0.28) !important;
+}
+
+.hero-cta:focus-visible {
+  outline: 2px solid #fde68a;
+  outline-offset: 3px;
+}
+
+.hero-reveal {
+  animation: hero-fade-up 0.9s ease both;
+}
+
+.hero-reveal--1 {
+  animation-delay: 0.05s;
+}
+
+.hero-reveal--2 {
+  animation-delay: 0.16s;
+}
+
+.hero-reveal--3 {
+  animation-delay: 0.28s;
+}
+
+.hero-reveal--4 {
+  animation-delay: 0.4s;
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.65rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.luxury-rule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(180, 83, 9, 0.15) 18%,
+    rgba(251, 191, 36, 0.55) 50%,
+    rgba(180, 83, 9, 0.15) 82%,
+    transparent 100%
+  );
 }
 
 .section {
@@ -311,7 +463,7 @@ function goSearchEntry() {
 }
 
 .section-inner {
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
   width: 100%;
 }
@@ -379,7 +531,7 @@ function goSearchEntry() {
 
 .story-panel {
   padding-top: 1.75rem;
-  border-top: 1px solid #e7e5e4;
+  border-top: 1px solid rgba(180, 83, 9, 0.18);
 }
 
 .story-panel p:not(.eyebrow) {
@@ -392,7 +544,7 @@ function goSearchEntry() {
 .reviews-panel {
   min-width: 0;
   padding-top: 1.75rem;
-  border-top: 1px solid #e7e5e4;
+  border-top: 1px solid rgba(180, 83, 9, 0.18);
 }
 
 .reviews-panel .section-desc {
@@ -580,6 +732,14 @@ function goSearchEntry() {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-reveal {
+    animation: none;
+  }
+
+  .hero-cta {
+    transition: none !important;
+  }
+
   .review-marquee-track {
     animation: none;
   }
@@ -637,7 +797,23 @@ function goSearchEntry() {
 
 @media (max-width: 640px) {
   .hero {
-    padding: 2.5rem 1rem 2.25rem;
+    padding: 2.75rem 1rem 2.5rem;
+  }
+
+  .hero-glass {
+    width: min(46vw, 9.5rem);
+    opacity: 0.28;
+    right: -0.35rem;
+    bottom: -8%;
+  }
+
+  .hero-inner {
+    max-width: 100%;
+    padding-right: 4.5rem;
+  }
+
+  .hero-shell {
+    padding: 0 1rem;
   }
 
   .section {

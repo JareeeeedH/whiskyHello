@@ -131,11 +131,16 @@ function onGoogleError(message: string) {
 
 <template>
   <main class="login-page">
-    <div class="glow glow-a" aria-hidden="true" />
-    <div class="glow glow-b" aria-hidden="true" />
+    <div class="atmosphere" aria-hidden="true">
+      <div class="grain" />
+      <div class="glow glow-a" />
+      <div class="glow glow-b" />
+      <div class="glow glow-edge" />
+    </div>
 
-    <div class="login-shell">
+    <div class="login-shell auth-reveal">
       <div class="login-card">
+        <p class="brand">WhiskyHello</p>
         <h1>登入</h1>
         <p class="subtitle">歡迎回到威你好</p>
 
@@ -207,31 +212,70 @@ function onGoogleError(message: string) {
   min-height: calc(100vh - 3.5rem);
   padding: 2.5rem 1.25rem;
   background:
-    linear-gradient(165deg, #0c0a09 0%, #1c1917 45%, #0c0a09 100%);
+    radial-gradient(ellipse 70% 60% at 15% 10%, rgba(180, 83, 9, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 50% at 90% 85%, rgba(146, 64, 14, 0.18), transparent 50%),
+    linear-gradient(165deg, #0c0a09 0%, #1c1917 42%, #292524 72%, #0c0a09 100%);
   color: #fafaf9;
+}
+
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 3px
+    );
+  mix-blend-mode: soft-light;
 }
 
 .glow {
   position: absolute;
   border-radius: 999px;
-  filter: blur(60px);
-  pointer-events: none;
+  filter: blur(64px);
 }
 
 .glow-a {
-  top: -10%;
-  left: -5%;
-  width: 420px;
-  height: 420px;
-  background: rgba(217, 119, 6, 0.28);
+  top: -12%;
+  left: -8%;
+  width: 26rem;
+  height: 26rem;
+  background: rgba(217, 119, 6, 0.26);
 }
 
 .glow-b {
-  right: -8%;
-  bottom: -15%;
-  width: 380px;
-  height: 380px;
+  right: -10%;
+  bottom: -18%;
+  width: 24rem;
+  height: 24rem;
   background: rgba(251, 191, 36, 0.14);
+}
+
+.glow-edge {
+  top: 35%;
+  left: 50%;
+  width: 18rem;
+  height: 18rem;
+  transform: translate(-50%, -50%);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .login-shell {
@@ -246,23 +290,25 @@ function onGoogleError(message: string) {
   border-radius: 1.1rem;
   background: linear-gradient(
     160deg,
-    rgba(41, 37, 36, 0.92) 0%,
-    rgba(28, 25, 23, 0.96) 100%
+    rgba(55, 48, 42, 0.55) 0%,
+    rgba(28, 25, 23, 0.88) 48%,
+    rgba(12, 10, 9, 0.92) 100%
   );
-  border: 1px solid rgba(251, 191, 36, 0.22);
+  border: 1px solid rgba(251, 191, 36, 0.32);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 20px 50px rgba(0, 0, 0, 0.45),
-    0 0 40px rgba(217, 119, 6, 0.12);
-  backdrop-filter: blur(10px);
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(120, 53, 15, 0.2) inset,
+    0 24px 56px rgba(0, 0, 0, 0.5),
+    0 0 48px rgba(217, 119, 6, 0.12);
+  backdrop-filter: blur(14px);
 }
 
 .brand {
-  margin: 0 0 1.15rem;
+  margin: 0 0 0.85rem;
   text-align: center;
   font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   color: #fbbf24;
   text-shadow: 0 0 24px rgba(251, 191, 36, 0.35);
 }
@@ -270,13 +316,13 @@ function onGoogleError(message: string) {
 h1 {
   margin: 0 0 0.4rem;
   text-align: center;
-  font-size: 1.85rem;
-  letter-spacing: -0.02em;
+  font-size: 1.9rem;
+  letter-spacing: -0.03em;
   color: #fafaf9;
 }
 
 .subtitle {
-  margin: 0 0 1.6rem;
+  margin: 0 0 1.55rem;
   text-align: center;
   color: #a8a29e;
   line-height: 1.5;
@@ -305,10 +351,13 @@ label {
 
 :deep(.p-inputtext),
 :deep(.p-password-input) {
-  background: rgba(12, 10, 9, 0.65) !important;
+  background: rgba(12, 10, 9, 0.72) !important;
   border: 1px solid rgba(168, 162, 158, 0.28) !important;
   color: #fafaf9 !important;
   box-shadow: none !important;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease !important;
 }
 
 :deep(.p-inputtext::placeholder),
@@ -319,7 +368,9 @@ label {
 :deep(.p-inputtext:enabled:focus),
 :deep(.p-password-input:enabled:focus) {
   border-color: rgba(251, 191, 36, 0.65) !important;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25), 0 0 18px rgba(217, 119, 6, 0.2) !important;
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.22),
+    0 0 20px rgba(217, 119, 6, 0.18) !important;
 }
 
 :deep(.p-password-toggle-mask-icon) {
@@ -348,17 +399,29 @@ label {
 .submit-btn {
   width: auto;
   min-width: 7.5rem;
-  border: none !important;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 45%, #d97706 100%) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%),
+    linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
+  border: 1px solid rgba(253, 230, 138, 0.55) !important;
   color: #1c1917 !important;
   font-weight: 700 !important;
-  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3) !important;
-  transition: filter 0.15s ease, transform 0.15s ease !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 -1px 0 rgba(120, 53, 15, 0.3) inset,
+    0 10px 24px rgba(217, 119, 6, 0.28) !important;
+  transition:
+    filter 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease !important;
 }
 
 .submit-btn:hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 0 0 1px rgba(253, 230, 138, 0.28),
+    0 14px 28px rgba(180, 83, 9, 0.28) !important;
 }
 
 .forgot-link {
@@ -399,12 +462,19 @@ label {
   text-decoration: underline;
 }
 
-.tagline {
-  margin: 1.35rem 0 0;
-  text-align: center;
-  font-size: 0.875rem;
-  color: #78716c;
-  letter-spacing: 0.02em;
+.auth-reveal {
+  animation: auth-fade-up 0.85s ease both;
+}
+
+@keyframes auth-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 480px) {
@@ -418,7 +488,21 @@ label {
   }
 
   h1 {
-    font-size: 1.6rem;
+    font-size: 1.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-reveal {
+    animation: none;
+  }
+
+  .submit-btn {
+    transition: none !important;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    transform: none;
   }
 }
 </style>

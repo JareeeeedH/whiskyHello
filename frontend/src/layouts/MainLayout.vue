@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
+const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.svg`
 
 /**
  * Route chunk loading (e.g. first visit to Home pulls a large async view).
@@ -69,7 +70,18 @@ function onLogout() {
     <Toast position="top-center" :pt="{ root: { class: 'wh-toast' } }" />
 
     <header class="site-header">
-      <RouterLink class="brand" to="/">WhiskyHello</RouterLink>
+      <div class="site-header-inner">
+      <RouterLink class="brand" to="/" aria-label="WhiskyHello 首頁">
+        <img
+          class="brand-mark"
+          :src="brandLogoSrc"
+          alt=""
+          width="32"
+          height="32"
+          decoding="async"
+        />
+        <span class="brand-wordmark">WhiskyHello</span>
+      </RouterLink>
       <nav class="nav">
         <RouterLink
           v-slot="{ href, navigate, isExactActive }"
@@ -105,6 +117,7 @@ function onLogout() {
           Login
         </RouterLink>
       </nav>
+      </div>
     </header>
 
     <div class="page">
@@ -151,21 +164,44 @@ function onLogout() {
 }
 
 .site-header {
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.site-header-inner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem 1.25rem;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-weight: 700;
   font-size: 1.125rem;
   color: #0f172a;
   text-decoration: none;
+  min-width: 0;
+}
+
+.brand-mark {
+  flex-shrink: 0;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.45rem;
+  box-shadow: 0 0 0 1px rgba(180, 83, 9, 0.22);
+}
+
+.brand-wordmark {
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .nav {
@@ -292,7 +328,7 @@ function onLogout() {
 }
 
 @media (max-width: 640px) {
-  .site-header {
+  .site-header-inner {
     padding: 0.7rem 1rem;
   }
 

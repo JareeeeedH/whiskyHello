@@ -663,7 +663,8 @@ function goSearchEntry() {
   }
 
   .search-box :deep(.p-button) {
-    width: 100%;
+    width: auto;
+    align-self: flex-start;
   }
 
   .review-marquee-viewport {

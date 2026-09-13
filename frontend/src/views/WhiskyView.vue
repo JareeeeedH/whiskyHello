@@ -416,8 +416,19 @@ function applyHotSearch(term: string) {
     padding: 1.1rem;
   }
 
-  .search-submit {
+  .name-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input {
+    flex: 0 0 auto;
     width: 100%;
+  }
+
+  .search-submit {
+    width: auto;
+    align-self: flex-start;
   }
 
   .points-input,

@@ -140,7 +140,7 @@ function goSearchEntry() {
           @focusout="resumeReviewMarquee"
         >
           <p class="eyebrow">Friend Reviews</p>
-          <h2>看看酒友最近喝了什麼。</h2>
+          <h2>酒友最近喝了什麼。</h2>
 
           <div class="review-marquee" aria-label="酒友最新評論流動列表">
             <div class="review-marquee-viewport">

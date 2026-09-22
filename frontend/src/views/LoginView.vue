@@ -306,8 +306,9 @@ function onGoogleError(message: string) {
 .brand {
   margin: 0 0 0.85rem;
   text-align: center;
+  font-family: var(--font-body);
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.14em;
   color: #fbbf24;
   text-shadow: 0 0 24px rgba(251, 191, 36, 0.35);
@@ -316,16 +317,21 @@ function onGoogleError(message: string) {
 h1 {
   margin: 0 0 0.4rem;
   text-align: center;
-  font-size: 1.9rem;
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.25;
   color: #fafaf9;
 }
 
 .subtitle {
   margin: 0 0 1.55rem;
   text-align: center;
+  font-family: var(--font-body);
   color: #a8a29e;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 400;
 }
 
 .form {
@@ -338,7 +344,9 @@ label {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  font-family: var(--font-body);
   font-size: 0.9rem;
+  font-weight: 500;
   color: #d6d3d1;
 }
 
@@ -404,7 +412,7 @@ label {
     linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
   border: 1px solid rgba(253, 230, 138, 0.55) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.28) inset,
     0 -1px 0 rgba(120, 53, 15, 0.3) inset,

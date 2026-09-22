@@ -328,7 +328,8 @@ function onLogout() {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 1.125rem;
   color: #0f172a;
   text-decoration: none;
@@ -344,6 +345,7 @@ function onLogout() {
 }
 
 .brand-wordmark {
+  font-family: var(--font-body);
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
@@ -353,6 +355,7 @@ function onLogout() {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 1rem;
+  font-family: var(--font-body);
 }
 
 .nav a,

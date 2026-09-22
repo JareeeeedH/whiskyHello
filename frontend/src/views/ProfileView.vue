@@ -299,16 +299,21 @@ function saveEdit() {
 
 h1 {
   margin: 0 0 0.35rem;
-  font-size: clamp(1.65rem, 3.5vw, 2rem);
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.25;
   color: #1c1917;
 }
 
 .page-sub {
   margin: 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 400;
 }
 
 .profile-panel,
@@ -358,9 +363,10 @@ h1 {
   justify-content: center;
   width: 100%;
   height: 100%;
+  font-family: var(--font-body);
   color: #b45309;
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .identity {
@@ -381,8 +387,11 @@ h1 {
 
 .display-name {
   margin: 0;
+  font-family: var(--font-body);
   font-size: clamp(1.35rem, 2.8vw, 1.65rem);
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.3;
   color: #1c1917;
   word-break: break-word;
 }
@@ -421,6 +430,7 @@ h1 {
 .edit-field .label,
 .section-title {
   margin: 0;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -429,10 +439,11 @@ h1 {
 
 .section-title {
   margin-bottom: 0.35rem;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  letter-spacing: normal;
   color: #44403c;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .edit-form {
@@ -491,7 +502,8 @@ h1 {
   border: none !important;
   background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
 }
 
 .cancel-btn {
@@ -510,8 +522,9 @@ h1 {
 
 .section-desc {
   margin: 0 0 0.85rem;
+  font-family: var(--font-body);
   color: #78716c;
-  line-height: 1.55;
+  line-height: 1.7;
   font-size: 0.9375rem;
 }
 
@@ -574,6 +587,7 @@ h1 {
 }
 
 .score-value {
+  font-family: var(--font-body);
   font-size: 1.4rem;
   font-weight: 700;
   line-height: 1;
@@ -582,8 +596,9 @@ h1 {
 }
 
 .score-max {
+  font-family: var(--font-body);
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #a8a29e;
 }
 
@@ -594,11 +609,12 @@ h1 {
 .whisky-name {
   display: inline-block;
   margin: 0 0 0.15rem;
+  font-family: var(--font-display);
   color: #1c1917;
-  font-weight: 700;
-  font-size: 1.02rem;
+  font-weight: 600;
+  font-size: 1.05rem;
   text-decoration: none;
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
   line-height: 1.35;
 }
 
@@ -608,16 +624,19 @@ h1 {
 
 .review-title {
   margin: 0;
+  font-family: var(--font-body);
   color: #78716c;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .review-excerpt {
   margin: 0.35rem 0 0;
+  font-family: var(--font-body);
   color: #57534e;
   font-size: 0.9rem;
-  line-height: 1.55;
+  line-height: 1.7;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -626,8 +645,11 @@ h1 {
 
 .review-meta {
   margin: 0.4rem 0 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .logout-btn {

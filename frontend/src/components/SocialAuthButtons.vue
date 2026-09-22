@@ -285,7 +285,9 @@ onBeforeUnmount(() => {
 
 .divider-text {
   flex-shrink: 0;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
+  font-weight: 400;
   color: #a8a29e;
   white-space: nowrap;
 }

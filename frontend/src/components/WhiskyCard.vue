@@ -100,8 +100,9 @@ defineProps<{
 
 .name {
   margin: 0;
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 600;
   line-height: 1.35;
   color: #1c1917;
   display: -webkit-box;
@@ -113,8 +114,10 @@ defineProps<{
 
 .subtitle {
   margin: 0;
+  font-family: var(--font-body);
   font-size: 0.75rem;
-  line-height: 1.4;
+  line-height: 1.45;
+  font-weight: 400;
   color: #78716c;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -132,6 +135,7 @@ defineProps<{
   display: inline-flex;
   align-items: baseline;
   gap: 0.25rem;
+  font-family: var(--font-body);
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
@@ -139,6 +143,7 @@ defineProps<{
 }
 
 .points-unit {
+  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -146,6 +151,7 @@ defineProps<{
 }
 
 .score-text {
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 700;
   color: #b45309;
@@ -166,7 +172,7 @@ defineProps<{
   }
 
   .name {
-    font-size: 0.85rem;
+    font-size: 0.9375rem;
   }
 }
 

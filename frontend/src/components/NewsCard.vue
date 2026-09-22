@@ -128,6 +128,7 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 }
 
 .source {
+  font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -140,6 +141,7 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 
 .category {
   flex-shrink: 0;
+  font-family: var(--font-body);
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -149,10 +151,11 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 
 .title {
   margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.4;
-  letter-spacing: -0.01em;
+  letter-spacing: normal;
   color: #1c1917;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -162,14 +165,16 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 }
 
 .featured .title {
-  font-size: 1.125rem;
+  font-size: 1.2rem;
   -webkit-line-clamp: 3;
   line-clamp: 3;
 }
 
 .time {
   margin-top: auto;
+  font-family: var(--font-body);
   font-size: 0.75rem;
+  font-weight: 400;
   color: #78716c;
 }
 </style>

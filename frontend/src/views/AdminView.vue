@@ -68,16 +68,21 @@ function goUsers() {
 
 h1 {
   margin: 0 0 0.35rem;
-  font-size: clamp(1.65rem, 3.5vw, 2rem);
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.25;
   color: #1c1917;
 }
 
 .page-sub {
   margin: 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 400;
 }
 
 .feature-grid {
@@ -104,9 +109,10 @@ h1 {
 
 .feature-copy {
   margin: 0;
+  font-family: var(--font-body);
   color: #78716c;
   font-size: 0.92rem;
-  line-height: 1.55;
+  line-height: 1.65;
 }
 
 :deep(.feature-body) {

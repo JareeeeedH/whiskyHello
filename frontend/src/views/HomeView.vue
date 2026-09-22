@@ -356,8 +356,9 @@ function goSearchEntry() {
 
 .brand {
   margin: 0 0 0.95rem;
+  font-family: var(--font-body);
   font-size: clamp(1.05rem, 2.4vw, 1.25rem);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: none;
   color: #fbbf24;
@@ -366,11 +367,13 @@ function goSearchEntry() {
 
 .hero h1 {
   margin: 0 0 0.9rem;
-  font-size: clamp(1.85rem, 4.6vw, 2.65rem);
+  font-family: var(--font-display);
+  font-size: var(--fs-hero);
   line-height: 1.22;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  letter-spacing: normal;
   text-wrap: balance;
+  max-width: 18em;
 }
 
 /* Mobile-only soft break; desktop keeps single-line flow. */
@@ -381,8 +384,10 @@ function goSearchEntry() {
 .lead {
   margin: 0 0 1.6rem;
   max-width: 28rem;
+  font-family: var(--font-body);
   font-size: 1.02rem;
-  line-height: 1.7;
+  line-height: 1.75;
+  font-weight: 400;
   color: #d6d3d1;
 }
 
@@ -394,7 +399,8 @@ function goSearchEntry() {
     linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
   border: 1px solid rgba(253, 230, 138, 0.55) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.28) inset,
     0 -1px 0 rgba(120, 53, 15, 0.35) inset,
@@ -478,7 +484,8 @@ function goSearchEntry() {
 
 .eyebrow {
   margin: 0 0 0.65rem;
-  font-size: 0.8125rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -487,14 +494,18 @@ function goSearchEntry() {
 
 .section h2 {
   margin: 0 0 0.85rem;
-  font-size: clamp(1.4rem, 3vw, 1.75rem);
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: normal;
 }
 
 .section-desc {
   margin: 0 0 1.35rem;
+  font-family: var(--font-body);
   color: #57534e;
-  line-height: 1.65;
+  line-height: 1.75;
 }
 
 .explore {
@@ -540,6 +551,7 @@ function goSearchEntry() {
 
 .story-panel p:not(.eyebrow) {
   margin: 0;
+  font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.8;
   color: #57534e;
@@ -602,23 +614,27 @@ function goSearchEntry() {
 }
 
 .capability-index {
+  font-family: var(--font-body);
   color: #b45309;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.6;
 }
 
 .capability-item h3 {
   margin: 0 0 0.3rem;
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .capability-item p {
   margin: 0;
+  font-family: var(--font-body);
   color: #57534e;
-  line-height: 1.55;
+  line-height: 1.65;
   font-size: 0.9rem;
 }
 
@@ -682,11 +698,12 @@ function goSearchEntry() {
 
 .whisky-name {
   min-width: 0;
+  font-family: var(--font-body);
   color: #1c1917;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 600;
   text-decoration: none;
-  line-height: 1.3;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -699,6 +716,7 @@ function goSearchEntry() {
 
 .rating {
   flex-shrink: 0;
+  font-family: var(--font-body);
   color: #b45309;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -708,9 +726,11 @@ function goSearchEntry() {
 
 .review-summary {
   margin: 0.25rem 0 0.2rem;
+  font-family: var(--font-body);
   color: #78716c;
   font-size: 0.75rem;
-  line-height: 1.4;
+  font-weight: 400;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -725,6 +745,7 @@ function goSearchEntry() {
 }
 
 .review-link {
+  font-family: var(--font-body);
   color: #b45309;
   font-weight: 600;
   font-size: 0.75rem;
@@ -778,13 +799,17 @@ function goSearchEntry() {
 }
 
 .sommelier h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
   color: #fafaf9;
 }
 
 .sommelier-lead {
   margin: 0 0 1.5rem;
+  font-family: var(--font-body);
   color: #d6d3d1;
   line-height: 1.75;
+  font-weight: 400;
 }
 
 .home-footer {
@@ -828,9 +853,10 @@ function goSearchEntry() {
 
   .hero h1 {
     margin: 0 0 0.4rem;
-    font-size: 1.45rem;
-    line-height: 1.28;
-    letter-spacing: -0.03em;
+    font-size: 2rem;
+    line-height: 1.3;
+    letter-spacing: normal;
+    max-width: 11.5em;
     text-wrap: unset;
   }
 
@@ -838,7 +864,7 @@ function goSearchEntry() {
     margin: 0 0 0.85rem;
     max-width: 20rem;
     font-size: 0.875rem;
-    line-height: 1.45;
+    line-height: 1.55;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;

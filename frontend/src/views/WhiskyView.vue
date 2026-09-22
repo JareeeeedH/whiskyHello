@@ -261,7 +261,8 @@ function applyHotSearch(term: string) {
 
 .eyebrow {
   margin: 0 0 0.5rem;
-  font-size: 0.8125rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -270,18 +271,21 @@ function applyHotSearch(term: string) {
 
 .page-header h1 {
   margin: 0 0 0.4rem;
-  font-size: clamp(1.7rem, 3.2vw, 2.2rem);
-  letter-spacing: -0.03em;
-  line-height: 1.22;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  letter-spacing: normal;
+  line-height: 1.25;
+  font-weight: 600;
   color: #fafaf9;
 }
 
 .lead {
   margin: 0;
+  font-family: var(--font-body);
   color: #d6d3d1;
   font-size: 1.02rem;
-  line-height: 1.6;
+  line-height: 1.7;
+  font-weight: 400;
 }
 
 .search-area {
@@ -301,6 +305,7 @@ function applyHotSearch(term: string) {
 .field-label {
   display: block;
   margin-bottom: 0.45rem;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -326,7 +331,8 @@ function applyHotSearch(term: string) {
     linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
   border: 1px solid rgba(253, 230, 138, 0.55) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.28) inset,
     0 -1px 0 rgba(120, 53, 15, 0.3) inset,
@@ -437,12 +443,16 @@ function applyHotSearch(term: string) {
 
 .section-heading h2 {
   margin: 0 0 0.35rem;
-  font-size: clamp(1.2rem, 2.4vw, 1.4rem);
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.35;
 }
 
 .result-meta {
   margin: 0 0 0.25rem;
+  font-family: var(--font-body);
   color: #b45309;
   font-size: 0.95rem;
   font-weight: 600;
@@ -450,9 +460,10 @@ function applyHotSearch(term: string) {
 
 .section-desc {
   margin: 0;
+  font-family: var(--font-body);
   color: #78716c;
   font-size: 0.9375rem;
-  line-height: 1.55;
+  line-height: 1.7;
 }
 
 .card-grid {
@@ -508,12 +519,12 @@ function applyHotSearch(term: string) {
 
   .page-header h1 {
     margin-bottom: 0.25rem;
-    font-size: 1.35rem;
+    font-size: 1.875rem;
   }
 
   .lead {
     font-size: 0.875rem;
-    line-height: 1.4;
+    line-height: 1.55;
   }
 
   .whisky-inner {

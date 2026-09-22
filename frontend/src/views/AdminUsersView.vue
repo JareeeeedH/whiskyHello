@@ -140,16 +140,21 @@ onMounted(() => {
 
 h1 {
   margin: 0 0 0.35rem;
-  font-size: clamp(1.65rem, 3.5vw, 2rem);
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.25;
   color: #1c1917;
 }
 
 .page-sub {
   margin: 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 400;
 }
 
 .users-panel {
@@ -224,14 +229,16 @@ h1 {
   justify-content: center;
   width: 100%;
   height: 100%;
+  font-family: var(--font-body);
   color: #b45309;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .user-meta {
   min-width: 0;
   flex: 1;
+  font-family: var(--font-body);
 }
 
 .user-top {
@@ -242,8 +249,9 @@ h1 {
 }
 
 .user-name {
+  font-family: var(--font-body);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: normal;
   word-break: break-word;
 }
 

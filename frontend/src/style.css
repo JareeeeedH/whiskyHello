@@ -1,9 +1,40 @@
 :root {
-  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* WhiskyHello typography system — Display (editorial) + Body (UI) */
+  --font-display: 'Noto Serif TC', 'Noto Serif', 'Source Han Serif TC', 'Songti TC',
+    'SimSun', serif;
+  --font-body: 'Noto Sans TC', 'Noto Sans', 'Source Han Sans TC', 'PingFang TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Scale — refined hierarchy (desktop-first ranges with mobile floors) */
+  --fs-hero: clamp(1.875rem, 4.8vw, 3.5rem); /* ~30–56px */
+  --fs-h1: clamp(1.875rem, 3.2vw, 2.5rem); /* ~30–40px */
+  --fs-h2: clamp(1.375rem, 2.2vw, 1.875rem); /* ~22–30px */
+  --fs-h3: clamp(1.125rem, 1.5vw, 1.375rem); /* ~18–22px */
+  --fs-whisky: clamp(1.1875rem, 1.8vw, 1.5rem); /* ~19–24px */
+  --fs-body: 1rem;
+  --fs-body-sm: 0.9375rem; /* 15px */
+  --fs-meta: 0.8125rem;
+  --fs-eyebrow: 0.6875rem; /* ~11px */
+
+  /* Line heights */
+  --lh-heading: 1.28;
+  --lh-body: 1.75;
+  --lh-meta: 1.5;
+  --lh-button: 1.45;
+
+  /* Weights */
+  --fw-display: 600;
+  --fw-body: 400;
+  --fw-ui: 500;
+  --fw-emphasis: 600;
+  --fw-score: 700;
+
+  /* Colors (unchanged product palette) */
   color: #1f2937;
   background-color: #f8fafc;
+  font-family: var(--font-body);
+  line-height: var(--lh-body);
+  font-weight: var(--fw-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,6 +49,7 @@
 
 html {
   overflow-x: clip;
+  font-family: var(--font-body);
 }
 
 body {
@@ -26,6 +58,11 @@ body {
   min-height: 100vh;
   overflow-x: clip;
   width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: var(--fw-body);
+  letter-spacing: normal;
 }
 
 #app {
@@ -34,12 +71,179 @@ body {
   overflow-x: clip;
 }
 
-h1 {
+/* ——— Editorial: whisky / magazine headings ——— */
+h1,
+h2 {
   margin: 0;
-  font-size: 2rem;
-  line-height: 1.2;
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
+  line-height: var(--lh-heading);
+  letter-spacing: normal;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+}
+
+h2 {
+  font-size: var(--fs-h2);
+}
+
+/* Default h3 stays Sans — feature / UI small titles are community.
+   Editorial h3 (news, whisky cards) opt into Serif via component classes. */
+h3 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: var(--fw-emphasis);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-heading);
+  letter-spacing: normal;
 }
 
 p {
   margin: 0;
+}
+
+/* Whisky identity + editorial article titles */
+.whisky-name,
+.dialog-whisky,
+.whisky-card .name,
+.news-card .title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
+}
+
+/* Community: review titles, people names, feature titles */
+.review-title,
+.display-name,
+.review-item .whisky-name,
+.capability-item h3 {
+  font-family: var(--font-body);
+  font-weight: var(--fw-emphasis);
+}
+
+/* Eyebrow / section labels — always Sans, editorial tracking */
+.eyebrow,
+.nav-drawer-label,
+.section-label:not(.soft) {
+  font-family: var(--font-body);
+  letter-spacing: 0.14em;
+}
+
+/* Scores & ratings — data UI, Sans */
+.score-value,
+.score-max,
+.points,
+.points-value,
+.points-unit,
+.rating,
+.rating-score,
+.rating-max,
+.score-text,
+.score-line {
+  font-family: var(--font-body);
+}
+
+.score-value,
+.points,
+.points-value,
+.rating-score {
+  font-weight: var(--fw-score);
+}
+
+.score-max,
+.points-unit,
+.rating-max {
+  font-weight: var(--fw-emphasis);
+}
+
+/* Brand wordmark & nav — product UI, Sans */
+.brand,
+.brand-wordmark,
+.site-header,
+.nav,
+.nav a,
+.nav-logout,
+.nav-mobile-link {
+  font-family: var(--font-body);
+}
+
+/* Native controls inherit body font */
+button,
+input,
+textarea,
+select,
+label {
+  font-family: var(--font-body);
+}
+
+/* ——— PrimeVue inheritance ——— */
+.p-component,
+.p-button,
+.p-inputtext,
+.p-textarea,
+.p-password,
+.p-password-input,
+.p-select,
+.p-dropdown,
+.p-toast,
+.p-dialog,
+.p-dialog-title,
+.p-dialog-content,
+.p-slider,
+.p-tag,
+.p-chip {
+  font-family: var(--font-body) !important;
+}
+
+.p-button {
+  font-weight: var(--fw-emphasis) !important;
+  line-height: var(--lh-button) !important;
+  letter-spacing: normal !important;
+}
+
+.p-inputtext,
+.p-textarea,
+.p-password-input {
+  font-weight: var(--fw-body) !important;
+  letter-spacing: normal !important;
+}
+
+.p-inputtext::placeholder,
+.p-textarea::placeholder,
+.p-password-input::placeholder {
+  font-weight: 400 !important;
+  opacity: 0.85;
+}
+
+.p-toast .p-toast-message-text,
+.p-toast .p-toast-summary,
+.p-toast .p-toast-detail {
+  font-family: var(--font-body) !important;
+}
+
+/* Admin / product cards: editorial title, UI subtitle */
+.p-card-title {
+  font-family: var(--font-display) !important;
+  font-weight: var(--fw-display) !important;
+  letter-spacing: normal !important;
+  line-height: var(--lh-heading) !important;
+}
+
+.p-card-subtitle {
+  font-family: var(--font-body) !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+}
+
+/* iOS Safari: avoid auto-zoom on focus (min ~15–16px) */
+@media (max-width: 640px) {
+  .p-inputtext,
+  .p-textarea,
+  .p-password-input,
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select {
+    font-size: max(1rem, var(--fs-body-sm)) !important;
+  }
 }

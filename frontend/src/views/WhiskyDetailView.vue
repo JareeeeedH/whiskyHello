@@ -611,15 +611,20 @@ watch(
 
 .summary h1 {
   margin: 0 0 0.5rem;
-  font-size: 1.75rem;
-  line-height: 1.25;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: normal;
   color: #0f172a;
 }
 
 .subtitle {
   margin: 0 0 1rem;
+  font-family: var(--font-body);
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 400;
 }
 
 .ratings {
@@ -636,6 +641,7 @@ watch(
 }
 
 .points-value {
+  font-family: var(--font-body);
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
@@ -643,6 +649,7 @@ watch(
 }
 
 .points-unit {
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
   color: #0f766e;
@@ -664,6 +671,7 @@ watch(
   display: inline-block;
   min-width: 3.25rem;
   margin-right: 0.35rem;
+  font-family: var(--font-body);
   font-weight: 600;
   color: #475569;
 }
@@ -676,7 +684,10 @@ watch(
 
 .block h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.125rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
   color: #0f172a;
 }
 
@@ -697,7 +708,8 @@ watch(
   border: none !important;
   background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
 }
 
 :deep(.review-dialog.p-dialog) {
@@ -713,9 +725,10 @@ watch(
 
 .note {
   margin: 0;
+  font-family: var(--font-body);
   color: #334155;
   font-size: 1rem;
-  line-height: 1.75;
+  line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -770,6 +783,7 @@ watch(
 }
 
 .score-value {
+  font-family: var(--font-body);
   font-size: 1.55rem;
   font-weight: 700;
   line-height: 1;
@@ -778,8 +792,9 @@ watch(
 }
 
 .score-max {
+  font-family: var(--font-body);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #a8a29e;
 }
 
@@ -796,10 +811,11 @@ watch(
 
 .review-title {
   margin: 0;
-  font-size: 1.02rem;
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 600;
   color: #1c1917;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .review-actions {
@@ -839,8 +855,11 @@ watch(
 
 .review-meta {
   margin: 0.28rem 0 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .review-meta .dot {
@@ -849,8 +868,11 @@ watch(
 
 .review-content {
   margin: 0.55rem 0 0;
+  font-family: var(--font-body);
   color: #44403c;
-  line-height: 1.65;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  font-weight: 400;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -869,8 +891,10 @@ watch(
   border-radius: 999px;
   background: #fafaf9;
   border: 1px solid #f0eeeb;
+  font-family: var(--font-body);
   color: #78716c;
   font-size: 0.78rem;
+  font-weight: 400;
   line-height: 1.35;
   word-break: break-word;
 }
@@ -900,10 +924,11 @@ watch(
 
 .dialog-whisky {
   margin: 0;
+  font-family: var(--font-display);
   color: #1c1917;
   font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: normal;
   line-height: 1.35;
   word-break: break-word;
 }
@@ -916,8 +941,9 @@ watch(
 
 .section-label {
   margin: 0;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   color: #57534e;
 }
@@ -930,13 +956,16 @@ watch(
 
 .section-helper {
   margin: 0;
+  font-family: var(--font-body);
   color: #a8a29e;
   font-size: 0.8125rem;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 .field-label {
   margin: 0;
+  font-family: var(--font-body);
   color: #44403c;
   font-size: 0.9rem;
   font-weight: 600;
@@ -957,6 +986,7 @@ watch(
 }
 
 .rating-score {
+  font-family: var(--font-body);
   font-size: 2.25rem;
   font-weight: 700;
   line-height: 1;
@@ -965,8 +995,9 @@ watch(
 }
 
 .rating-max {
+  font-family: var(--font-body);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #a8a29e;
 }
 
@@ -1049,7 +1080,8 @@ watch(
   border: none !important;
   background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
   color: #1c1917 !important;
-  font-weight: 700 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
 }
 
 .not-found h1 {
@@ -1076,7 +1108,7 @@ watch(
   }
 
   .summary h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .points-value {

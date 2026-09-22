@@ -86,7 +86,7 @@ function goSearchEntry() {
         <div class="hero-inner">
         <p class="brand hero-reveal hero-reveal--1">WhiskyHello</p>
         <h1 class="hero-reveal hero-reveal--2">
-          從探索開始，走向你的酒單。
+          從探索開始，<br class="hero-break" />走向你的酒單。
         </h1>
         <p class="lead hero-reveal hero-reveal--3">
           搜尋酒款、閱讀知名評論，也分享你的品飲感受。
@@ -140,8 +140,7 @@ function goSearchEntry() {
           @focusout="resumeReviewMarquee"
         >
           <p class="eyebrow">Friend Reviews</p>
-          <h2>酒友最新評論</h2>
-          <p class="section-desc">看看酒友最近喝了什麼。</p>
+          <h2>看看酒友最近喝了什麼。</h2>
 
           <div class="review-marquee" aria-label="酒友最新評論流動列表">
             <div class="review-marquee-viewport">
@@ -372,6 +371,11 @@ function goSearchEntry() {
   font-weight: 700;
   letter-spacing: -0.035em;
   text-wrap: balance;
+}
+
+/* Mobile-only soft break; desktop keeps single-line flow. */
+.hero-break {
+  display: none;
 }
 
 .lead {
@@ -796,24 +800,76 @@ function goSearchEntry() {
 }
 
 @media (max-width: 640px) {
+  /* Compact Hero: keep brand identity, free first screen for Search / Community. */
   .hero {
-    padding: 2.75rem 1rem 2.5rem;
+    min-height: 0;
+    max-height: none;
+    padding: 1.15rem 1rem 1.1rem;
   }
 
-  .hero-glass {
-    width: min(46vw, 9.5rem);
-    opacity: 0.28;
-    right: -0.35rem;
-    bottom: -8%;
+  .hero-shell {
+    padding: 0;
   }
 
   .hero-inner {
     max-width: 100%;
-    padding-right: 4.5rem;
+    padding-right: 0;
   }
 
-  .hero-shell {
-    padding: 0 1rem;
+  .brand {
+    margin: 0 0 0.4rem;
+    font-size: 0.92rem;
+    letter-spacing: 0.1em;
+  }
+
+  .hero-break {
+    display: block;
+  }
+
+  .hero h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.45rem;
+    line-height: 1.28;
+    letter-spacing: -0.03em;
+    text-wrap: unset;
+  }
+
+  .lead {
+    margin: 0 0 0.85rem;
+    max-width: 20rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .hero-cta {
+    font-size: 0.875rem !important;
+    padding: 0.55rem 0.95rem !important;
+  }
+
+  .hero-glass {
+    width: min(28vw, 5.25rem);
+    opacity: 0.16;
+    right: -0.75rem;
+    bottom: -18%;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+    transform: rotate(-6deg);
+  }
+
+  .hero-glow--warm {
+    width: min(42%, 14rem);
+    height: 55%;
+    opacity: 0.7;
+  }
+
+  .hero-glow--edge {
+    width: min(40%, 12rem);
+    height: 45%;
+    opacity: 0.65;
   }
 
   .section {

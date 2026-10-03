@@ -54,14 +54,12 @@ Auction 屬於 Phase 3，不屬於 Phase 2。
 - Auction Schema
 - Admin 管理 API（列表、建立、編輯 draft、Start）
 - Admin 管理 UI（`/admin/auctions`）
+- Bid Schema／API（建立出價、Bid History、目前最高價計算）
 
 尚未實作：
 
 - Auction Detail（獨立競標頁）
-- Bid Schema／API
-- 會員出價
-- 目前最高價
-- Bid History
+- 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
 - Auto Close
 - Winner
@@ -586,13 +584,68 @@ POST   /api/v1/admin/auctions/:id/start   將 draft Start 為 active
 - `draft` 顯示 Edit / Start；其他狀態不顯示
 - 建立與編輯欄位：`whiskyId`、`title`、`description`、`startingPrice`、`startAt`、`endAt`
 
+#### Bid Schema
+
+```text
+Bid
+├── _id
+├── auctionId
+├── userId
+├── amount
+├── createdAt
+└── updatedAt
+```
+
+| 欄位 | 說明 |
+|---|---|
+| `_id` | Bid 唯一 ID |
+| `auctionId` | ObjectId，對應 `Auction._id`，必填 |
+| `userId` | ObjectId，對應 `User._id`（出價者），必填 |
+| `amount` | 出價金額，必填，整數，>= 0 |
+| `createdAt` | 出價時間 |
+| `updatedAt` | 修改時間 |
+
+#### Bid 規則
+
+- 必須登入才能出價
+- 只有 `active` 的 Auction 可以出價
+- 目前時間到達 `endAt`（含）後禁止新出價
+- 第一筆出價：最低出價 = `startingPrice`
+- 後續出價：必須 >= 目前最高出價 + 100（同價或低於最低加價皆不允許）
+- 目前最高出價（`currentPrice`）由 Bid 資料計算，不寫入 Auction Schema
+- 沒有任何 Bid 時，`currentPrice = startingPrice`
+- 不檢查 `startAt`；不限制建立者、Admin 出價或同一會員連續出價
+- 不處理 Winner，不新增 `winnerId`
+
+#### Bid API
+
+```http
+POST /api/v1/auctions/:id/bids   建立出價（需要 JWT）
+GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
+```
+
+建立出價：
+
+- Request：`{ "amount": number }`（整數）
+- Response 201：`{ "bid": PublicBid, "currentPrice": number }`
+- Auction id 格式錯誤、`amount` 驗證失敗：400
+- Auction 不存在或為 `draft`：404
+- Auction 非 `active`：400
+- 已到達 `endAt`：400
+- 低於最低出價：400
+
+取得 Bid History：
+
+- Response 200：`{ "bids": PublicBid[], "currentPrice": number }`
+- 依出價時間新到舊排列
+- Auction 不存在或為 `draft`：404；其他狀態皆可取得
+
+`PublicBid`：`id`、`auctionId`、`userId`、`bidderName`、`amount`、`createdAt`、`updatedAt`。只帶出 User 的 `name`，不回傳 `email`、`passwordHash` 等其他 User 欄位。
+
 ### 12.2 尚未實作
 
 - Auction Detail（獨立競標頁）
-- Bid Schema／API
-- 會員出價
-- 目前最高價
-- Bid History
+- 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
 - Auto Close
 - Winner
@@ -602,8 +655,6 @@ POST   /api/v1/admin/auctions/:id/start   將 draft Start 為 active
 
 以下細節尚未討論，不在本規格定義，留待後續 Feature 規格討論：
 
-- Bid Schema 與 Bid API Endpoint
-- 加價規則
 - 結標規則
 - 得標規則
 - 即時更新
@@ -630,7 +681,7 @@ POST   /api/v1/admin/auctions/:id/start   將 draft Start 為 active
 - AI Whisky Sommelier
 - 完整 AI Agent 系統
 - Whisky Auction／酒款競標與交易媒合（屬 Phase 3，不在 Phase 1 範圍；Auction MVP 見第 12 節）
-- Bid、加價／結標／得標規則、即時更新、完整交易流程（尚未決定，見第 12.3 節）
+- Bid（Phase 3，見第 12.1 節）；結標／得標規則、即時更新、完整交易流程（尚未決定，見第 12.3 節）
 - 付款／金流、Escrow、物流（目前暫不處理，見第 12.4 節）
 - Whisky MongoDB Master Data
 - Collection System
@@ -689,6 +740,7 @@ Whisky = Static Dataset
 User = MongoDB
 Review = MongoDB
 Auction = MongoDB（Phase 3）
+Bid = MongoDB（Phase 3）
 ```
 
 ### Architecture
@@ -728,13 +780,13 @@ MongoDB
 8. 串接 Frontend Review UI
 9. 完成 Phase 1 基礎產品
 10. 驗證實際使用流程
-11. Phase 3 Auction MVP（Auction Schema、Admin 管理 API、Admin 管理 UI）
+11. Phase 3 Auction MVP（Auction Schema、Admin 管理 API、Admin 管理 UI、Bid API）
 12. Phase 2 AI Whisky Sommelier
 ```
 
 目前開發順序：**Phase 1 基礎產品 → Phase 3 Auction MVP → Phase 2 AI Whisky Sommelier**。Auction 屬於 Phase 3，不計入 Phase 2。
 
-Phase 3 後續功能（Bid、結標、交易等）需先確認第 12.3 節規則，再另開 Feature 規格；排入時程尚未決定。
+Phase 3 後續功能（結標、得標、交易等）需先確認第 12.3 節規則，再另開 Feature 規格；排入時程尚未決定。
 
 ---
 

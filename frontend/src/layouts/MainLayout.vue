@@ -143,6 +143,7 @@ function onLogout() {
           >Home</a>
         </RouterLink>
         <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
+        <RouterLink to="/auctions" active-class="is-active">Auction</RouterLink>
 
         <template v-if="authStore.isAuthenticated">
           <RouterLink
@@ -219,6 +220,15 @@ function onLogout() {
             @click="closeMobileNav"
           >
             Whisky
+          </RouterLink>
+          <RouterLink
+            to="/auctions"
+            class="nav-mobile-link"
+            active-class="is-active"
+            :tabindex="isMobileNavOpen ? undefined : -1"
+            @click="closeMobileNav"
+          >
+            Auction
           </RouterLink>
 
           <template v-if="authStore.isAuthenticated">

@@ -2,6 +2,7 @@ import axios from 'axios'
 import { apiClient } from '../api/client'
 import type {
   AuctionDetailResponse,
+  AuctionListResponse,
   BidHistoryResponse,
   CreateBidPayload,
   CreateBidResponse,
@@ -48,6 +49,15 @@ function toAuctionApiError(error: unknown, fallbackMessage: string): AuctionApiE
   }
 
   return new AuctionApiError(0, '無法連線到伺服器，請稍後再試')
+}
+
+export async function fetchAuctions(): Promise<PublicAuctionDetail[]> {
+  try {
+    const { data } = await apiClient.get<AuctionListResponse>('/auctions')
+    return data.auctions
+  } catch (error) {
+    throw toAuctionApiError(error, '無法載入競標列表')
+  }
 }
 
 export async function fetchAuctionById(id: string): Promise<PublicAuctionDetail> {

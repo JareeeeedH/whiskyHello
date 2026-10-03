@@ -207,12 +207,16 @@ watch(
 
 <template>
   <main class="detail">
+    <p v-if="!notFound" class="back">
+      <RouterLink to="/auctions">← 返回競標列表</RouterLink>
+    </p>
+
     <p v-if="loading" class="state" role="status">載入競標資訊中…</p>
 
     <section v-else-if="notFound" class="not-found">
       <h1>Auction not found</h1>
       <p>找不到這場競標，可能尚未開放或已不存在。</p>
-      <RouterLink to="/">← 返回首頁</RouterLink>
+      <RouterLink to="/auctions">← 返回競標列表</RouterLink>
     </section>
 
     <section v-else-if="errorMessage" class="error-state" role="alert">
@@ -361,6 +365,11 @@ watch(
   padding: 1.25rem 1.5rem 2.5rem;
 }
 
+.back {
+  margin: 0 0 1.25rem;
+}
+
+.back a,
 .not-found a,
 .whisky-line a {
   color: #0f766e;

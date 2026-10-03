@@ -72,6 +72,40 @@ describe('Auction model', () => {
     ])
   })
 
+  it('defaults statusHistory to an empty list and validates entries', async () => {
+    const doc = new Auction(validInput())
+    await doc.validate()
+    assert.equal(doc.statusHistory.length, 0)
+
+    assert.deepEqual(
+      await validationPaths({
+        ...validInput(),
+        status: 'cancelled',
+        statusHistory: [{ status: 'cancelled' }],
+      }),
+      [
+        'statusHistory.0.changedAt',
+        'statusHistory.0.changedBy',
+        'statusHistory.0.message',
+      ],
+    )
+
+    const cancelled = new Auction({
+      ...validInput(),
+      status: 'cancelled',
+      statusHistory: [
+        {
+          status: 'cancelled',
+          message: 'Seller withdrew',
+          changedBy: createdBy,
+          changedAt: new Date('2026-10-11T00:00:00.000Z'),
+        },
+      ],
+    })
+    await cancelled.validate()
+    assert.equal(cancelled.statusHistory[0].message, 'Seller withdrew')
+  })
+
   it('rejects a negative starting price and an unknown status', async () => {
     assert.deepEqual(
       await validationPaths({

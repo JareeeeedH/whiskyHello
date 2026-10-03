@@ -51,14 +51,18 @@ after(async () => {
   }
 })
 
-async function createAuction(status: AuctionStatus, endAt: Date): Promise<string> {
+async function createAuction(
+  status: AuctionStatus,
+  endAt: Date,
+  startAt = new Date(endAt.getTime() - DAY_MS),
+): Promise<string> {
   const auction = await Auction.create({
     whiskyId: 'qa-auction-list',
     createdBy: new mongoose.Types.ObjectId(),
     title: `QA List ${status}`,
     description: 'Public list test',
     startingPrice: 300,
-    startAt: new Date(endAt.getTime() - DAY_MS),
+    startAt,
     endAt,
     status,
   })
@@ -72,28 +76,38 @@ async function fetchList(): Promise<{ status: number; body: ListResponse }> {
 }
 
 describe('GET /api/v1/auctions', () => {
-  it('lists only open active auctions without logging in', async () => {
-    const future = new Date(Date.now() + DAY_MS)
-    const past = new Date(Date.now() - 60_000)
+  it('lists open active and scheduled auctions without logging in', async () => {
+    const now = Date.now()
+    const future = new Date(now + DAY_MS)
+    const past = new Date(now - 60_000)
     const activeId = await createAuction('active', future)
-    const hiddenIds = [
-      await createAuction('draft', future),
-      await createAuction('scheduled', future),
-      await createAuction('ended', future),
-      await createAuction('cancelled', future),
-      await createAuction('active', past),
-    ]
+    const scheduledId = await createAuction(
+      'scheduled',
+      new Date(now + 3 * DAY_MS),
+      new Date(now + 2 * DAY_MS),
+    )
+    const hiddenIds = {
+      draft: await createAuction('draft', future),
+      ended: await createAuction('ended', future),
+      cancelled: await createAuction('cancelled', future),
+      expiredActive: await createAuction('active', past),
+      expiredScheduled: await createAuction('scheduled', past),
+    }
 
     const { status, body } = await fetchList()
     assert.equal(status, 200)
 
     const ids = body.auctions.map((auction) => auction.id)
-    assert.ok(ids.includes(activeId))
-    for (const hiddenId of hiddenIds) {
-      assert.ok(!ids.includes(hiddenId), `unexpected auction ${hiddenId}`)
+    assert.ok(ids.includes(activeId), 'active auction missing')
+    assert.ok(ids.includes(scheduledId), 'scheduled auction missing')
+    for (const [label, hiddenId] of Object.entries(hiddenIds)) {
+      assert.ok(!ids.includes(hiddenId), `unexpected ${label} auction ${hiddenId}`)
     }
     for (const auction of body.auctions) {
-      assert.equal(auction.status, 'active')
+      assert.ok(
+        auction.status === 'active' || auction.status === 'scheduled',
+        `unexpected status ${String(auction.status)}`,
+      )
       assert.ok(new Date(String(auction.endAt)).getTime() > Date.now() - 5000)
     }
   })
@@ -123,7 +137,7 @@ describe('GET /api/v1/auctions', () => {
     }
   })
 
-  it('sorts by endAt, soonest first', async () => {
+  it('sorts active auctions by endAt, soonest first', async () => {
     const now = Date.now()
     const later = await createAuction('active', new Date(now + 3 * DAY_MS))
     const soonest = await createAuction('active', new Date(now + DAY_MS))
@@ -134,10 +148,42 @@ describe('GET /api/v1/auctions', () => {
     const ours = ids.filter((id) => [later, soonest, middle].includes(id))
     assert.deepEqual(ours, [soonest, middle, later])
 
-    const endTimes = body.auctions.map((auction) =>
-      new Date(String(auction.endAt)).getTime(),
-    )
+    const endTimes = body.auctions
+      .filter((auction) => auction.status === 'active')
+      .map((auction) => new Date(String(auction.endAt)).getTime())
     assert.deepEqual(endTimes, [...endTimes].sort((a, b) => a - b))
+  })
+
+  it('lists active auctions first, then scheduled auctions by startAt', async () => {
+    const now = Date.now()
+    const scheduledLater = await createAuction(
+      'scheduled',
+      new Date(now + 4 * DAY_MS),
+      new Date(now + 3 * DAY_MS),
+    )
+    const scheduledSoonest = await createAuction(
+      'scheduled',
+      new Date(now + 5 * DAY_MS),
+      new Date(now + DAY_MS),
+    )
+    const active = await createAuction('active', new Date(now + 6 * DAY_MS))
+
+    const { body } = await fetchList()
+    const statuses = body.auctions.map((auction) => auction.status)
+    const firstScheduled = statuses.indexOf('scheduled')
+    assert.ok(firstScheduled >= 0)
+    assert.ok(statuses.slice(firstScheduled).every((status) => status === 'scheduled'))
+
+    const ids = body.auctions.map((auction) => String(auction.id))
+    const ours = ids.filter((id) =>
+      [scheduledLater, scheduledSoonest, active].includes(id),
+    )
+    assert.deepEqual(ours, [active, scheduledSoonest, scheduledLater])
+
+    const startTimes = body.auctions
+      .filter((auction) => auction.status === 'scheduled')
+      .map((auction) => new Date(String(auction.startAt)).getTime())
+    assert.deepEqual(startTimes, [...startTimes].sort((a, b) => a - b))
   })
 
   it('returns an empty list when no auction is open', async () => {

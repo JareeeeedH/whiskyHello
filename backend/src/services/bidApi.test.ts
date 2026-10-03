@@ -245,6 +245,13 @@ describe('GET /api/v1/auctions/:id/bids', () => {
     }
   })
 
+  it('returns currentPrice = startingPrice for a scheduled auction', async () => {
+    const auctionId = await createAuction('scheduled')
+    const res = await fetch(`${baseUrl}/api/v1/auctions/${auctionId}/bids`)
+    assert.equal(res.status, 200)
+    assert.deepEqual(await res.json(), { bids: [], currentPrice: 1000 })
+  })
+
   it('returns history for non-draft auctions in other statuses', async () => {
     const auctionId = await createAuction('ended')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auctionId}/bids`)

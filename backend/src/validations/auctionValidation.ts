@@ -24,9 +24,12 @@ const startAt = Joi.date().iso().required().messages({
   'any.required': 'Start time is required',
 })
 
-const endAt = Joi.date().iso().required().messages({
+export const END_AT_AFTER_START_AT_MESSAGE = 'End time must be after start time'
+
+const endAt = Joi.date().iso().greater(Joi.ref('startAt')).required().messages({
   'date.base': 'End time must be a valid date',
   'date.format': 'End time must be a valid date',
+  'date.greater': END_AT_AFTER_START_AT_MESSAGE,
   'any.required': 'End time is required',
 })
 
@@ -55,15 +58,31 @@ export const updateAuctionSchema = Joi.object({
     'date.base': 'Start time must be a valid date',
     'date.format': 'Start time must be a valid date',
   }),
-  endAt: Joi.date().iso().messages({
-    'date.base': 'End time must be a valid date',
-    'date.format': 'End time must be a valid date',
-  }),
+  endAt: Joi.date()
+    .iso()
+    .when('startAt', {
+      is: Joi.exist(),
+      then: Joi.date().greater(Joi.ref('startAt')),
+    })
+    .messages({
+      'date.base': 'End time must be a valid date',
+      'date.format': 'End time must be a valid date',
+      'date.greater': END_AT_AFTER_START_AT_MESSAGE,
+    }),
 })
   .min(1)
   .messages({
     'object.min': 'At least one field is required to update',
   })
+
+export const cancelAuctionSchema = Joi.object({
+  message: Joi.string().trim().min(1).max(500).required().messages({
+    'string.base': 'Status change message is required',
+    'string.empty': 'Status change message is required',
+    'string.max': 'Status change message must be at most 500 characters',
+    'any.required': 'Status change message is required',
+  }),
+})
 
 export const auctionIdParamsSchema = Joi.object({
   id: Joi.string().trim().hex().length(24).required().messages({
@@ -89,4 +108,8 @@ export type UpdateAuctionBody = {
   startingPrice?: number
   startAt?: Date
   endAt?: Date
+}
+
+export type CancelAuctionBody = {
+  message: string
 }

@@ -12,6 +12,12 @@ export function toPublicAuction(auction: AuctionDocument): PublicAuction {
     startAt: auction.startAt,
     endAt: auction.endAt,
     status: auction.status,
+    statusHistory: (auction.statusHistory ?? []).map((change) => ({
+      status: change.status,
+      message: change.message,
+      changedBy: change.changedBy.toString(),
+      changedAt: change.changedAt,
+    })),
     createdAt: auction.createdAt,
     updatedAt: auction.updatedAt,
   }

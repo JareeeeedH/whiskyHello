@@ -16,6 +16,13 @@ export type AuctionStatus =
   | 'ended'
   | 'cancelled'
 
+export interface AuctionStatusChange {
+  status: AuctionStatus
+  message: string
+  changedBy: string
+  changedAt: string
+}
+
 export interface AdminAuction {
   id: string
   whiskyId: string
@@ -26,6 +33,7 @@ export interface AdminAuction {
   startAt: string
   endAt: string
   status: AuctionStatus
+  statusHistory: AuctionStatusChange[]
   createdAt: string
   updatedAt: string
 }

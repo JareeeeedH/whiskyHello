@@ -1,31 +1,52 @@
 import { Types } from 'mongoose'
 import { Auction, type AuctionDocument } from '../models/Auction'
-import type { PublicAuction, PublicAuctionDetail } from '../types/auction'
+import type {
+  AuctionStatus,
+  PublicAuction,
+  PublicAuctionDetail,
+} from '../types/auction'
 import { AppError } from '../utils/AppError'
 import { toPublicAuction } from '../utils/toPublicAuction'
-import type {
-  CreateAuctionBody,
-  UpdateAuctionBody,
+import {
+  END_AT_AFTER_START_AT_MESSAGE,
+  type CancelAuctionBody,
+  type CreateAuctionBody,
+  type UpdateAuctionBody,
 } from '../validations/auctionValidation'
+
+const CANCELLABLE_STATUSES: AuctionStatus[] = ['draft', 'scheduled', 'active']
 
 function isObjectIdString(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value) && Types.ObjectId.isValid(value)
 }
 
 function toPublicAuctionDetail(auction: AuctionDocument): PublicAuctionDetail {
-  const { createdBy: _createdBy, ...detail } = toPublicAuction(auction)
+  const {
+    createdBy: _createdBy,
+    statusHistory: _statusHistory,
+    ...detail
+  } = toPublicAuction(auction)
   return detail
 }
 
+/** Active auctions (soonest endAt first), then scheduled auctions (soonest startAt first). */
 export async function listPublicAuctions(
   now = new Date(),
 ): Promise<PublicAuctionDetail[]> {
-  const auctions = await Auction.find({
-    status: 'active',
-    endAt: { $gt: now },
-  }).sort({ endAt: 1, _id: 1 })
+  const [active, scheduled] = await Promise.all([
+    Auction.find({ status: 'active', endAt: { $gt: now } }).sort({
+      endAt: 1,
+      _id: 1,
+    }),
+    Auction.find({ status: 'scheduled', endAt: { $gt: now } }).sort({
+      startAt: 1,
+      _id: 1,
+    }),
+  ])
 
-  return auctions.map((auction) => toPublicAuctionDetail(auction))
+  return [...active, ...scheduled].map((auction) =>
+    toPublicAuctionDetail(auction),
+  )
 }
 
 export async function getPublicAuctionById(
@@ -41,6 +62,16 @@ export async function getPublicAuctionById(
   }
 
   return toPublicAuctionDetail(auction)
+}
+
+export async function activateScheduledAuctions(
+  now = new Date(),
+): Promise<number> {
+  const result = await Auction.updateMany(
+    { status: 'scheduled', startAt: { $lte: now } },
+    { $set: { status: 'active' } },
+  )
+  return result.modifiedCount
 }
 
 export async function closeExpiredAuctions(now = new Date()): Promise<number> {
@@ -104,12 +135,17 @@ export async function updateDraftAuction(
   if (input.startAt !== undefined) auction.startAt = input.startAt
   if (input.endAt !== undefined) auction.endAt = input.endAt
 
+  if (auction.endAt.getTime() <= auction.startAt.getTime()) {
+    throw new AppError(400, 'Validation failed', [END_AT_AFTER_START_AT_MESSAGE])
+  }
+
   await auction.save()
   return toPublicAuction(auction)
 }
 
 export async function startDraftAuction(
   auctionId: string,
+  now = new Date(),
 ): Promise<PublicAuction> {
   if (!isObjectIdString(auctionId)) {
     throw new AppError(400, 'Invalid auction id')
@@ -125,7 +161,62 @@ export async function startDraftAuction(
   }
 
   await auction.validate()
-  auction.status = 'active'
+
+  if (auction.endAt.getTime() <= auction.startAt.getTime()) {
+    throw new AppError(400, 'Validation failed', [END_AT_AFTER_START_AT_MESSAGE])
+  }
+
+  if (now.getTime() >= auction.endAt.getTime()) {
+    throw new AppError(400, 'Auction end time has already passed')
+  }
+
+  auction.status =
+    now.getTime() < auction.startAt.getTime() ? 'scheduled' : 'active'
   await auction.save()
   return toPublicAuction(auction)
+}
+
+export async function cancelAuction(
+  auctionId: string,
+  adminUserId: string,
+  input: CancelAuctionBody,
+  now = new Date(),
+): Promise<PublicAuction> {
+  if (!isObjectIdString(auctionId)) {
+    throw new AppError(400, 'Invalid auction id')
+  }
+  if (!isObjectIdString(adminUserId)) {
+    throw new AppError(400, 'Invalid user id')
+  }
+
+  // Conditional update so a concurrent lifecycle transition cannot be overwritten.
+  const cancelled = await Auction.findOneAndUpdate(
+    { _id: auctionId, status: { $in: CANCELLABLE_STATUSES } },
+    {
+      $set: { status: 'cancelled' },
+      $push: {
+        statusHistory: {
+          status: 'cancelled',
+          message: input.message,
+          changedBy: new Types.ObjectId(adminUserId),
+          changedAt: now,
+        },
+      },
+    },
+    { returnDocument: 'after', runValidators: true },
+  )
+
+  if (cancelled) {
+    return toPublicAuction(cancelled)
+  }
+
+  const exists = await Auction.exists({ _id: auctionId })
+  if (!exists) {
+    throw new AppError(404, 'Auction not found')
+  }
+
+  throw new AppError(
+    400,
+    'Only draft, scheduled or active auctions can be cancelled',
+  )
 }

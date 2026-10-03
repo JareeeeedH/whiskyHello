@@ -100,3 +100,18 @@ export async function startAdminAuction(id: string): Promise<AdminAuction> {
     throw toAdminApiError(error, 'Unable to start auction.')
   }
 }
+
+export async function cancelAdminAuction(
+  id: string,
+  message: string,
+): Promise<AdminAuction> {
+  try {
+    const { data } = await apiClient.post<AdminAuctionResponse>(
+      `/admin/auctions/${encodeURIComponent(id)}/cancel`,
+      { message },
+    )
+    return data.auction
+  } catch (error) {
+    throw toAdminApiError(error, 'Unable to cancel auction.')
+  }
+}

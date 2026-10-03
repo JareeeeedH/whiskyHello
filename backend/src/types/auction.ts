@@ -19,6 +19,14 @@ export interface AuctionAttrs {
   status: AuctionStatus
 }
 
+/** One admin status change recorded on an auction (e.g. cancel). */
+export interface PublicAuctionStatusChange {
+  status: AuctionStatus
+  message: string
+  changedBy: string
+  changedAt: Date
+}
+
 /** Auction shape returned from admin APIs. */
 export interface PublicAuction {
   id: string
@@ -30,9 +38,10 @@ export interface PublicAuction {
   startAt: Date
   endAt: Date
   status: AuctionStatus
+  statusHistory: PublicAuctionStatusChange[]
   createdAt: Date
   updatedAt: Date
 }
 
-/** Auction shape returned from public APIs (no creator id). */
-export type PublicAuctionDetail = Omit<PublicAuction, 'createdBy'>
+/** Auction shape returned from public APIs (no creator id or admin status history). */
+export type PublicAuctionDetail = Omit<PublicAuction, 'createdBy' | 'statusHistory'>

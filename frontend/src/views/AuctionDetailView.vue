@@ -67,7 +67,7 @@ const whiskyName = computed(
 
 const statusLabel: Record<AuctionStatus, string> = {
   draft: '草稿',
-  scheduled: '已排程',
+  scheduled: '即將開始',
   active: '進行中',
   ended: '已結束',
   cancelled: '已取消',
@@ -330,6 +330,12 @@ watch(
               <RouterLink :to="loginRoute">登入</RouterLink>後即可參與出價。
             </p>
           </template>
+
+          <p v-else-if="auction.status === 'scheduled'" class="empty">
+            競標尚未開始，將於
+            <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
+            開放出價。
+          </p>
 
           <p v-else class="empty">此競標目前不開放出價。</p>
         </template>

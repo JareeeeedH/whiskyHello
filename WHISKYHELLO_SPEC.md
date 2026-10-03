@@ -51,16 +51,17 @@ Auction 屬於 Phase 3，不屬於 Phase 2。
 
 已實作（Auction MVP）：
 
-- Auction Schema
-- Admin 管理 API（列表、建立、編輯 draft、Start）
+- Auction Schema（含 `statusHistory`）
+- Auction Lifecycle（`draft` → `scheduled` → `active` → `ended`；Admin Cancel → `cancelled`）
+- Admin 管理 API（列表、建立、編輯 draft、Start、Cancel）
 - Admin 管理 UI（`/admin/auctions`）
-- Bid Schema／API（建立出價、Bid History、目前最高價計算）
-- Auto Close（`active` → `ended`）
+- Lifecycle Job（`scheduled` → `active`、`active` → `ended`）
+- Public Auction List API／頁面（`/auctions`：進行中的競標、即將開始）
+- Public Auction Detail API／頁面（`/auctions/:id`）
+- Bid Schema／API、會員出價 UI、目前最高價與 Bid History 顯示
 
 尚未實作：
 
-- Auction Detail（獨立競標頁）
-- 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
 - Winner
 - Transaction／Matching
@@ -188,12 +189,15 @@ backend/
 ├── src/
 │   ├── config/
 │   ├── controllers/
+│   ├── jobs/
 │   ├── middlewares/
 │   ├── models/
 │   ├── routes/
 │   ├── services/
+│   ├── test/
 │   ├── validations/
 │   ├── types/
+│   ├── utils/
 │   ├── app.ts
 │   └── server.ts
 ├── .env.example
@@ -272,6 +276,7 @@ Whisky
 - User（Phase 1）
 - Review（Phase 1）
 - Auction（Phase 3，Schema 見第 12 節）
+- Bid（Phase 3，Schema 見第 12 節）
 
 ### User Schema
 
@@ -358,7 +363,7 @@ User 1 ───── N Review N ───── 1 Static Whisky
 
 ## 9. API Specification
 
-目前正式定義的 API 為 Auth、Review、Admin。
+目前正式定義的 API 為 Auth、Review、Admin、Auction／Bid（公開）。
 
 ### Auth
 
@@ -395,10 +400,22 @@ GET    /api/v1/admin/auctions
 POST   /api/v1/admin/auctions
 PATCH  /api/v1/admin/auctions/:id
 POST   /api/v1/admin/auctions/:id/start
+POST   /api/v1/admin/auctions/:id/cancel
 ```
 
 - `GET /api/v1/admin/users`：唯讀使用者列表（名稱、Email、頭像、角色、加入日期），不回傳密碼或 Google ID
 - Admin Auction API 規格見第 12 節
+
+### Auction／Bid（公開）
+
+```http
+GET    /api/v1/auctions
+GET    /api/v1/auctions/:id
+GET    /api/v1/auctions/:id/bids
+POST   /api/v1/auctions/:id/bids
+```
+
+- 規格見第 12 節
 
 ### Authorization
 
@@ -408,6 +425,8 @@ POST   /api/v1/admin/auctions/:id/start
 - 修改 Review：需要 JWT，且只能修改自己的 Review
 - 刪除 Review：需要 JWT，且只能刪除自己的 Review
 - `GET /api/v1/me/reviews`：需要 JWT
+- `GET /api/v1/auctions`、`GET /api/v1/auctions/:id`、`GET /api/v1/auctions/:id/bids`：公開
+- `POST /api/v1/auctions/:id/bids`：需要 JWT
 - `/api/v1/admin/*`：需要 JWT，且 `role` 為 `admin`（Admin RBAC）
   - 未登入回傳 401，非 admin 回傳 403
   - 每次請求都從資料庫讀取最新 `role`
@@ -421,6 +440,15 @@ POST   /api/v1/admin/auctions/:id/start
 ```
 
 以上路由需登入且 `role` 為 `admin`，非 admin 導回首頁。
+
+### Auction Frontend Routes
+
+```text
+/auctions        Public Auction List（進行中的競標、即將開始）
+/auctions/:id    Public Auction Detail（出價需登入）
+```
+
+以上路由公開，不需登入即可瀏覽。
 
 
 Whisky評論搜索的主資料亦不建立 MongoDB CRUD API。
@@ -524,6 +552,11 @@ Auction
 ├── startAt
 ├── endAt
 ├── status
+├── statusHistory[]
+│   ├── status
+│   ├── message
+│   ├── changedBy
+│   └── changedAt
 ├── createdAt
 └── updatedAt
 ```
@@ -536,36 +569,87 @@ Auction
 | `title` | 競標標題，必填 |
 | `description` | 說明，選填 |
 | `startingPrice` | 起標價，必填，>= 0 |
-| `startAt` | 開始時間，必填，由 Admin 建立時設定 |
-| `endAt` | 結束時間，必填 |
+| `startAt` | Auction 正式開始、開放接受出價的時間，必填，由 Admin 建立時設定 |
+| `endAt` | Auction 停止接受出價的時間，必填，必須嚴格晚於 `startAt` |
 | `status` | `draft` / `scheduled` / `active` / `ended` / `cancelled`，必填 |
+| `statusHistory` | Admin 手動狀態變更紀錄（陣列，預設空陣列）；目前只有 Cancel 會寫入 |
+| `statusHistory[].status` | 此次變更後的狀態 |
+| `statusHistory[].message` | Admin 此次狀態變更訊息，必填，最多 500 字 |
+| `statusHistory[].changedBy` | ObjectId，對應 `User._id`（執行變更的 Admin） |
+| `statusHistory[].changedAt` | Date，變更時間 |
 | `createdAt` | 建立時間 |
 | `updatedAt` | 修改時間 |
 
+#### Status 定義
+
+| Status | 定義 | 前台 | 出價 |
+|---|---|---|---|
+| `draft` | Admin 建立後的初始狀態；可編輯、可 Start | 不公開（List 不顯示，Detail／Bid History 回傳 404） | 不可 |
+| `scheduled` | Admin 已 Start，`startAt` 尚未到達 | List「即將開始」；可看 Detail | 不可 |
+| `active` | `startAt` 已到達；`endAt` 到達後轉為 `ended` | List「進行中的競標」；可看 Detail | 可以 |
+| `ended` | `endAt` 已到達 | List 不顯示；可看 Detail | 不可 |
+| `cancelled` | Admin 手動取消，保留取消訊息紀錄 | List 不顯示；Detail 維持既有行為（非 `draft` 皆可查看） | 不可 |
+
+#### startAt／endAt
+
+- `startAt`：Auction 正式開始、開放接受出價的時間
+- `endAt`：Auction 停止接受出價的時間
+- `endAt` 必須嚴格晚於 `startAt`：建立、編輯（含只修改其中一個欄位，與既有值比較）與 Start 時皆檢查，違反時回傳 400
+
 #### 已確認規則
 
-- 建立 Auction 時 `status` 固定為 `draft`，不接受用戶端傳入 `status` 或 `createdBy`
+- 建立 Auction 時 `status` 固定為 `draft`，不接受用戶端傳入 `status`、`createdBy` 或 `statusHistory`
 - `startAt` 由 Admin 建立時設定
 - 只有 `draft` 可以編輯；可編輯欄位為 `whiskyId`、`title`、`description`、`startingPrice`、`startAt`、`endAt`
 - 只有 `draft` 可以 Start；Start 前需通過 Auction Schema 驗證
-- Start 後 `status` 為 `active`
-- `active` / `scheduled` / `ended` / `cancelled` 不可編輯，也不可 Start
+- `scheduled` / `active` / `ended` / `cancelled` 不可編輯，也不可 Start
+- 只有 `draft`、`scheduled`、`active` 可以 Cancel；`ended`、`cancelled` 不可再取消
+
+#### Admin Start
+
+Admin 對 `draft` 執行 Start，依目前時間（`now`）決定結果：
+
+| 條件 | 結果 |
+|---|---|
+| `now < startAt` | `draft` → `scheduled` |
+| `startAt <= now < endAt` | `draft` → `active` |
+| `now >= endAt` | 不允許 Start，回傳 400，維持 `draft` |
+
+#### Admin Cancel
+
+- Admin 可將 `draft`、`scheduled`、`active` 調整為 `cancelled`
+- 必須輸入狀態變更訊息（`message`）
+- 取消時不只覆蓋 `status`，同時在 `statusHistory` 新增一筆 `{ status: 'cancelled', message, changedBy, changedAt }`
+- 以「目前狀態仍可取消」為條件的單次更新寫入，避免與 Lifecycle Job 同時更新時覆蓋對方
+- 已存在的 Bid 保留，不刪除
 
 #### 狀態流程
 
 ```text
-draft ──Start──> active ──Auto Close（now >= endAt）──> ended
+draft
+  ↓ Admin Start（now < startAt）
+scheduled
+  ↓ startAt 到達（Lifecycle Job）
+active
+  ↓ endAt 到達（Lifecycle Job）
+ended
 ```
 
-目前只實作 `draft → active` 與 `active → ended`。`scheduled`、`cancelled` 已存在於 Schema，但沒有任何流程會進入這些狀態。
+- Admin Start 時若 `startAt <= now < endAt`，直接 `draft` → `active`
+- `draft`、`scheduled`、`active` 皆可由 Admin Cancel → `cancelled`
+- `ended`、`cancelled` 為最終狀態
 
-#### Auto Close
+#### Lifecycle Job（Auto Close）
 
-- 條件：`status = active` 且 `now >= endAt`
-- 結果：MongoDB 的 Auction `status` 更新為 `ended`
-- `draft`、`scheduled`、`ended`、`cancelled` 不處理；已 `ended` 不重複處理
-- 執行機制：Backend 啟動且成功連上 MongoDB 後，以 Node 內建 `setInterval` 每 60 秒執行一次（啟動時先執行一次）；未連上 MongoDB 時不啟動
-- 結標最多延遲一個執行間隔；Backend 未執行時不會結標，下次啟動時補處理
+同一個 Job 依序處理（共用同一個 `now`）：
+
+1. `status = scheduled` 且 `now >= startAt` → `active`
+2. `status = active` 且 `now >= endAt` → `ended`
+
+- `draft`、`ended`、`cancelled` 不處理；已轉換者不重複處理
+- 同一次執行中，`startAt` 與 `endAt` 都已過的 `scheduled` 會先轉 `active` 再轉 `ended`
+- 執行機制：Backend 啟動且成功連上 MongoDB 後，以 Node 內建 `setInterval` 每 60 秒執行一次（啟動時先執行一次）；未連上 MongoDB 時不啟動；同一時間只執行一次；不建立第二套 timer
+- 狀態轉換最多延遲一個執行間隔；Backend 未執行時不會轉換，下次啟動時補處理
 - 不處理 Winner／得標，不新增 `winnerId`
 
 #### Admin Auction API
@@ -573,16 +657,22 @@ draft ──Start──> active ──Auto Close（now >= endAt）──> ended
 所有 API 需要 JWT 且 `role` 為 `admin`（見第 9 節 Authorization）。
 
 ```http
-GET    /api/v1/admin/auctions             Auction 列表，依建立時間新到舊
-POST   /api/v1/admin/auctions             建立 Auction（status = draft）
-PATCH  /api/v1/admin/auctions/:id         編輯 draft Auction
-POST   /api/v1/admin/auctions/:id/start   將 draft Start 為 active
+GET    /api/v1/admin/auctions              Auction 列表，依建立時間新到舊
+POST   /api/v1/admin/auctions              建立 Auction（status = draft）
+PATCH  /api/v1/admin/auctions/:id          編輯 draft Auction
+POST   /api/v1/admin/auctions/:id/start    Start draft（→ scheduled 或 active）
+POST   /api/v1/admin/auctions/:id/cancel   取消 Auction（→ cancelled）
 ```
 
 - 建立：`whiskyId`、`title`、`startingPrice`、`startAt`、`endAt` 必填，`description` 選填
 - 編輯：至少一個可編輯欄位
 - 編輯或 Start 非 `draft` 的 Auction：回傳 400
+- `endAt` 未晚於 `startAt`：回傳 400
+- Start 時已到達 `endAt`：回傳 400
+- Cancel：Request `{ "message": string }`（必填，去除前後空白後不可為空，最多 500 字）；Response 200 `{ "auction": ... }`
+- Cancel `ended` / `cancelled`：回傳 400
 - Auction 不存在：回傳 404
+- Admin API 回傳的 Auction 包含 `createdBy` 與 `statusHistory`
 
 #### Admin Auction Management UI
 
@@ -590,8 +680,51 @@ POST   /api/v1/admin/auctions/:id/start   將 draft Start 為 active
 
 - 顯示 Auction 列表
 - 建立 Auction
-- `draft` 顯示 Edit / Start；其他狀態不顯示
+- `draft` 顯示 Edit / Start / Cancel Auction
+- `scheduled`、`active` 顯示 Cancel Auction；`ended`、`cancelled` 不顯示操作
+- Cancel 前需在對話框輸入狀態變更訊息，成功後列表顯示 `cancelled`
+- 有 `statusHistory` 時顯示最後一次狀態變更（狀態、時間、訊息）
 - 建立與編輯欄位：`whiskyId`、`title`、`description`、`startingPrice`、`startAt`、`endAt`
+
+#### Public Auction API
+
+```http
+GET /api/v1/auctions       Public Auction List（公開）
+GET /api/v1/auctions/:id   Public Auction Detail（公開）
+```
+
+Public Auction List：
+
+- Response 200：`{ "auctions": PublicAuctionDetail[] }`
+- 只回傳 `active` 與 `scheduled`，且 `endAt > now`
+- `draft`、`ended`、`cancelled` 不回傳
+- 排序：先 `active`（依 `endAt` 早到晚），再 `scheduled`（依 `startAt` 早到晚）
+- 前台依 `status` 分組
+
+Public Auction Detail：
+
+- Response 200：`{ "auction": PublicAuctionDetail }`
+- `scheduled`、`active`、`ended`、`cancelled` 可查看
+- `draft` 或不存在：404；id 格式錯誤：400
+
+`PublicAuctionDetail`：`id`、`whiskyId`、`title`、`description`、`startingPrice`、`startAt`、`endAt`、`status`、`createdAt`、`updatedAt`。不回傳 `createdBy` 與 `statusHistory`。
+
+#### Public Auction UI
+
+`/auctions`（公開）：
+
+- 固定顯示兩區：「進行中的競標」（`active`）、「即將開始」（`scheduled`）
+- 兩區各自顯示 empty state；另有 loading 與可重試的 error state
+- 卡片顯示：酒款圖片與名稱、標題、狀態、價格、開始時間、結束時間、進入 Detail 的連結
+- `active` 卡片價格為目前價格（逐筆呼叫 Bid History 取得 `currentPrice`，失敗時改顯示起標價）
+- `scheduled` 卡片顯示起標價（尚無出價，不呼叫 Bid History），不顯示出價操作，可進入 Detail
+
+`/auctions/:id`（公開）：
+
+- 顯示狀態、標題、酒款、起標價、開始／結束時間、目前價格、Bid History、說明
+- `active`：登入後可出價；未登入顯示登入連結
+- `scheduled`：目前價格 = 起標價，顯示開放出價時間，不提供出價操作
+- 其他狀態：不提供出價操作
 
 #### Bid Schema
 
@@ -617,13 +750,14 @@ Bid
 #### Bid 規則
 
 - 必須登入才能出價
-- 只有 `active` 的 Auction 可以出價
-- 目前時間到達 `endAt`（含）後禁止新出價
+- 只有 `active` 的 Auction 可以出價（`scheduled`、`ended`、`cancelled` 皆不可）
+- 目前時間到達 `endAt`（含）後禁止新出價（即使 Lifecycle Job 尚未將狀態轉為 `ended`）
 - 第一筆出價：最低出價 = `startingPrice`
 - 後續出價：必須 >= 目前最高出價 + 100（同價或低於最低加價皆不允許）
 - 目前最高出價（`currentPrice`）由 Bid 資料計算，不寫入 Auction Schema
 - 沒有任何 Bid 時，`currentPrice = startingPrice`
-- 不檢查 `startAt`；不限制建立者、Admin 出價或同一會員連續出價
+- 出價時不另外檢查 `startAt`：只有 Start 或 Lifecycle Job 在 `now >= startAt` 時才會將狀態設為 `active`
+- 不限制建立者、Admin 出價或同一會員連續出價
 - 不處理 Winner，不新增 `winnerId`
 
 #### Bid API
@@ -653,8 +787,6 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 
 ### 12.2 尚未實作
 
-- Auction Detail（獨立競標頁）
-- 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
 - Winner
 - Transaction／Matching
@@ -667,10 +799,8 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 - 得標規則
 - 即時更新
 - 完整交易流程
-- `scheduled`、`cancelled` 的進入條件與觸發方式
-- `endAt` 是否必須晚於 `startAt`
-- Start 時是否需比對目前時間與 `startAt`／`endAt`
 - `whiskyId` 是否需驗證存在於 Static Dataset
+- Cancel 以外的 Admin 狀態變更是否也寫入 `statusHistory`
 
 ### 12.4 目前暫不處理
 
@@ -788,7 +918,7 @@ MongoDB
 8. 串接 Frontend Review UI
 9. 完成 Phase 1 基礎產品
 10. 驗證實際使用流程
-11. Phase 3 Auction MVP（Auction Schema、Admin 管理 API、Admin 管理 UI、Bid API、Auto Close）
+11. Phase 3 Auction MVP（Auction Schema、Lifecycle、Admin 管理 API／UI、Public Auction List／Detail、Bid API／UI、Lifecycle Job）
 12. Phase 2 AI Whisky Sommelier
 ```
 

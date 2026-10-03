@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { listUsers } from '../controllers/adminController'
 import {
+  cancel,
   create,
   list,
   start,
@@ -11,6 +12,7 @@ import { requireAdmin } from '../middlewares/requireAdmin'
 import { validate } from '../middlewares/validate'
 import {
   auctionIdParamsSchema,
+  cancelAuctionSchema,
   createAuctionSchema,
   updateAuctionSchema,
 } from '../validations/auctionValidation'
@@ -44,6 +46,15 @@ router.post(
   requireAdmin,
   validate(auctionIdParamsSchema, 'params'),
   start,
+)
+
+router.post(
+  '/auctions/:id/cancel',
+  authenticate,
+  requireAdmin,
+  validate(auctionIdParamsSchema, 'params'),
+  validate(cancelAuctionSchema),
+  cancel,
 )
 
 export default router

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import AuctionCard from '../components/AuctionCard.vue'
 import {
@@ -14,8 +14,17 @@ const prices = ref<Record<string, AuctionCardPrice>>({})
 const loading = ref(true)
 const errorMessage = ref('')
 
+const activeAuctions = computed(() =>
+  auctions.value.filter((auction) => auction.status === 'active'),
+)
+
+const scheduledAuctions = computed(() =>
+  auctions.value.filter((auction) => auction.status === 'scheduled'),
+)
+
 let loadToken = 0
 
+/** Scheduled auctions cannot have bids yet, so only active ones need a bids request. */
 async function loadPrices(list: PublicAuctionDetail[], token: number) {
   await Promise.all(
     list.map(async (auction) => {
@@ -47,9 +56,17 @@ async function loadAuctions() {
     }
     auctions.value = list
     prices.value = Object.fromEntries(
-      list.map((auction) => [auction.id, { status: 'loading' } as AuctionCardPrice]),
+      list.map((auction) => [
+        auction.id,
+        (auction.status === 'active'
+          ? { status: 'loading' }
+          : { status: 'starting' }) as AuctionCardPrice,
+      ]),
     )
-    void loadPrices(list, token)
+    void loadPrices(
+      list.filter((auction) => auction.status === 'active'),
+      token,
+    )
   } catch (error) {
     if (token !== loadToken) {
       return
@@ -78,7 +95,7 @@ onMounted(() => {
         <header class="page-header">
           <p class="eyebrow">Whisky Auction</p>
           <h1 id="auction-list-title">酒款競標</h1>
-          <p class="lead">正在進行中的競標</p>
+          <p class="lead">進行中與即將開始的競標</p>
         </header>
       </div>
     </section>
@@ -86,34 +103,57 @@ onMounted(() => {
     <div class="luxury-rule" aria-hidden="true" />
 
     <div class="auction-inner">
-      <section class="results-section">
-        <div class="section-heading">
-          <h2>進行中的競標</h2>
-          <p v-if="!loading && !errorMessage" class="section-desc">
-            共 {{ auctions.length }} 場
+      <p v-if="loading" class="state" role="status">載入競標列表中…</p>
+
+      <div v-else-if="errorMessage" class="error-state" role="alert">
+        <p>{{ errorMessage }}</p>
+        <Button label="重新載入" severity="secondary" @click="loadAuctions" />
+      </div>
+
+      <template v-else>
+        <section class="results-section" aria-labelledby="active-auctions-title">
+          <div class="section-heading">
+            <h2 id="active-auctions-title">進行中的競標</h2>
+            <p class="section-desc">共 {{ activeAuctions.length }} 場</p>
+          </div>
+
+          <p v-if="activeAuctions.length === 0" class="empty">
+            目前沒有進行中的競標，晚點再來看看。
           </p>
-        </div>
 
-        <p v-if="loading" class="state" role="status">載入競標列表中…</p>
+          <div v-else class="card-grid">
+            <AuctionCard
+              v-for="auction in activeAuctions"
+              :key="auction.id"
+              :auction="auction"
+              :price="prices[auction.id] ?? { status: 'loading' }"
+            />
+          </div>
+        </section>
 
-        <div v-else-if="errorMessage" class="error-state" role="alert">
-          <p>{{ errorMessage }}</p>
-          <Button label="重新載入" severity="secondary" @click="loadAuctions" />
-        </div>
+        <section
+          class="results-section"
+          aria-labelledby="scheduled-auctions-title"
+        >
+          <div class="section-heading">
+            <h2 id="scheduled-auctions-title">即將開始</h2>
+            <p class="section-desc">共 {{ scheduledAuctions.length }} 場</p>
+          </div>
 
-        <p v-else-if="auctions.length === 0" class="empty">
-          目前沒有進行中的競標，晚點再來看看。
-        </p>
+          <p v-if="scheduledAuctions.length === 0" class="empty">
+            目前沒有即將開始的競標。
+          </p>
 
-        <div v-else class="card-grid">
-          <AuctionCard
-            v-for="auction in auctions"
-            :key="auction.id"
-            :auction="auction"
-            :price="prices[auction.id] ?? { status: 'loading' }"
-          />
-        </div>
-      </section>
+          <div v-else class="card-grid">
+            <AuctionCard
+              v-for="auction in scheduledAuctions"
+              :key="auction.id"
+              :auction="auction"
+              :price="prices[auction.id] ?? { status: 'starting' }"
+            />
+          </div>
+        </section>
+      </template>
     </div>
 
     <footer class="page-footer">
@@ -224,8 +264,8 @@ onMounted(() => {
   font-weight: 400;
 }
 
-.results-section {
-  min-height: 18rem;
+.results-section + .results-section {
+  margin-top: 2.25rem;
 }
 
 .section-heading {
@@ -322,8 +362,8 @@ onMounted(() => {
     padding: 0.9rem 1rem 2.25rem;
   }
 
-  .results-section {
-    min-height: 12rem;
+  .results-section + .results-section {
+    margin-top: 1.75rem;
   }
 }
 </style>

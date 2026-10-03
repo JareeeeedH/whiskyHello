@@ -9,12 +9,20 @@ import Textarea from 'primevue/textarea'
 import { useRouter } from 'vue-router'
 import {
   AdminApiError,
+  cancelAdminAuction,
   createAdminAuction,
   fetchAdminAuctions,
   startAdminAuction,
   updateAdminAuction,
 } from '../services/adminService'
-import type { AdminAuction, AuctionFormPayload } from '../types/admin'
+import type {
+  AdminAuction,
+  AuctionFormPayload,
+  AuctionStatus,
+  AuctionStatusChange,
+} from '../types/admin'
+
+const CANCELLABLE_STATUSES: AuctionStatus[] = ['draft', 'scheduled', 'active']
 
 const router = useRouter()
 const auctions = ref<AdminAuction[]>([])
@@ -22,6 +30,12 @@ const loading = ref(true)
 const errorMessage = ref('')
 const actionError = ref('')
 const startingId = ref<string | null>(null)
+
+const cancelTarget = ref<AdminAuction | null>(null)
+const cancelVisible = ref(false)
+const cancelMessage = ref('')
+const cancelSubmitting = ref(false)
+const cancelError = ref('')
 
 const modalVisible = ref(false)
 const editingId = ref<string | null>(null)
@@ -188,7 +202,11 @@ async function onStart(auction: AdminAuction) {
   if (auction.status !== 'draft' || startingId.value) {
     return
   }
-  if (!window.confirm(`Start "${auction.title}"? It can no longer be edited.`)) {
+  if (
+    !window.confirm(
+      `Start "${auction.title}"? It becomes scheduled (before Start At) or active, and can no longer be edited.`,
+    )
+  ) {
     return
   }
 
@@ -209,6 +227,69 @@ async function onStart(auction: AdminAuction) {
   }
 }
 
+function canCancel(auction: AdminAuction): boolean {
+  return CANCELLABLE_STATUSES.includes(auction.status)
+}
+
+function lastStatusChange(auction: AdminAuction): AuctionStatusChange | null {
+  const history = auction.statusHistory ?? []
+  return history.length > 0 ? history[history.length - 1] : null
+}
+
+function openCancel(auction: AdminAuction) {
+  if (!canCancel(auction)) {
+    return
+  }
+  cancelTarget.value = auction
+  cancelMessage.value = ''
+  cancelError.value = ''
+  cancelVisible.value = true
+}
+
+function closeCancel() {
+  if (cancelSubmitting.value) {
+    return
+  }
+  cancelVisible.value = false
+  cancelTarget.value = null
+  cancelMessage.value = ''
+  cancelError.value = ''
+}
+
+async function submitCancel() {
+  const target = cancelTarget.value
+  if (!target || cancelSubmitting.value) {
+    return
+  }
+
+  const message = cancelMessage.value.trim()
+  if (!message) {
+    cancelError.value = 'Status change message is required'
+    return
+  }
+
+  cancelError.value = ''
+  cancelSubmitting.value = true
+  try {
+    const cancelled = await cancelAdminAuction(target.id, message)
+    auctions.value = auctions.value.map((item) =>
+      item.id === cancelled.id ? cancelled : item,
+    )
+    cancelSubmitting.value = false
+    closeCancel()
+  } catch (error) {
+    if (error instanceof AdminApiError && error.details.length > 0) {
+      cancelError.value = error.details.join('; ')
+    } else if (error instanceof AdminApiError) {
+      cancelError.value = error.message
+    } else {
+      cancelError.value = 'Unable to cancel auction. Please try again.'
+    }
+  } finally {
+    cancelSubmitting.value = false
+  }
+}
+
 onMounted(() => {
   void loadAuctions()
 })
@@ -220,7 +301,9 @@ onMounted(() => {
       <div class="intro-row">
         <div>
           <h1>Auction Management</h1>
-          <p class="page-sub">Create drafts, edit drafts, and start auctions.</p>
+          <p class="page-sub">
+            Create drafts, edit drafts, start and cancel auctions.
+          </p>
         </div>
         <div class="intro-actions">
           <Button
@@ -275,23 +358,43 @@ onMounted(() => {
                 <p v-if="auction.description" class="auction-description">
                   {{ auction.description }}
                 </p>
+                <p v-if="lastStatusChange(auction)" class="status-change">
+                  Last status change ·
+                  <span class="status-change-status">
+                    {{ lastStatusChange(auction)!.status }}
+                  </span>
+                  · {{ formatDateTime(lastStatusChange(auction)!.changedAt) }}
+                  <span class="status-change-message">
+                    “{{ lastStatusChange(auction)!.message }}”
+                  </span>
+                </p>
               </div>
 
-              <div v-if="auction.status === 'draft'" class="auction-actions">
+              <div v-if="canCancel(auction)" class="auction-actions">
+                <template v-if="auction.status === 'draft'">
+                  <Button
+                    label="Edit"
+                    severity="secondary"
+                    text
+                    size="small"
+                    :disabled="startingId !== null"
+                    @click="openEdit(auction)"
+                  />
+                  <Button
+                    label="Start"
+                    size="small"
+                    :loading="startingId === auction.id"
+                    :disabled="startingId !== null && startingId !== auction.id"
+                    @click="onStart(auction)"
+                  />
+                </template>
                 <Button
-                  label="Edit"
-                  severity="secondary"
+                  label="Cancel Auction"
+                  severity="danger"
                   text
                   size="small"
                   :disabled="startingId !== null"
-                  @click="openEdit(auction)"
-                />
-                <Button
-                  label="Start"
-                  size="small"
-                  :loading="startingId === auction.id"
-                  :disabled="startingId !== null && startingId !== auction.id"
-                  @click="onStart(auction)"
+                  @click="openCancel(auction)"
                 />
               </div>
             </li>
@@ -385,6 +488,55 @@ onMounted(() => {
           form="auction-form"
           :label="isEditing ? 'Save' : 'Create Draft'"
           :loading="submitting"
+        />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="cancelVisible"
+      modal
+      :draggable="false"
+      header="Cancel Auction"
+      :style="{ width: 'min(94vw, 480px)' }"
+      :closable="!cancelSubmitting"
+      :dismissable-mask="!cancelSubmitting"
+      @hide="closeCancel"
+    >
+      <form id="cancel-form" class="auction-form" @submit.prevent="submitCancel">
+        <p v-if="cancelTarget" class="cancel-intro">
+          Cancel “{{ cancelTarget.title }}” ({{ cancelTarget.status }})? The
+          status becomes cancelled and cannot be changed back.
+        </p>
+        <label class="field-label" for="cancel-message">
+          Status change message
+        </label>
+        <Textarea
+          id="cancel-message"
+          v-model="cancelMessage"
+          class="field"
+          rows="3"
+          auto-resize
+          maxlength="500"
+          :disabled="cancelSubmitting"
+        />
+        <p v-if="cancelError" class="form-error" role="alert">{{ cancelError }}</p>
+      </form>
+
+      <template #footer>
+        <Button
+          type="button"
+          label="Back"
+          severity="secondary"
+          text
+          :disabled="cancelSubmitting"
+          @click="closeCancel"
+        />
+        <Button
+          type="submit"
+          form="cancel-form"
+          label="Cancel Auction"
+          severity="danger"
+          :loading="cancelSubmitting"
         />
       </template>
     </Dialog>
@@ -535,6 +687,44 @@ h1 {
   border-color: rgba(21, 128, 61, 0.3);
   color: #15803d;
   background: #f0fdf4;
+}
+
+.status-badge.is-scheduled {
+  border-color: rgba(37, 99, 235, 0.3);
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.status-badge.is-cancelled {
+  border-color: rgba(185, 28, 28, 0.3);
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.status-change {
+  margin: 0.35rem 0 0;
+  color: #78716c;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.status-change-status {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-change-message {
+  display: block;
+  color: #44403c;
+}
+
+.cancel-intro {
+  margin: 0 0 0.5rem;
+  color: #44403c;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .auction-line,

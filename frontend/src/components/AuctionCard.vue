@@ -19,6 +19,12 @@ const priceLabel = computed(() =>
   props.price.status === 'starting' ? '起標價' : '目前價格',
 )
 
+const isActive = computed(() => props.auction.status === 'active')
+
+const statusText = computed(() => (isActive.value ? '進行中' : '即將開始'))
+
+const ctaText = computed(() => (isActive.value ? '參與競標 →' : '查看詳情 →'))
+
 const priceText = computed(() => {
   if (props.price.status === 'loading') return '—'
   if (props.price.status === 'current') return formatPrice(props.price.value)
@@ -59,17 +65,24 @@ function formatAbsoluteTime(value: string): string {
       <div v-else class="image-fallback" aria-hidden="true">No image</div>
     </div>
     <div class="body">
+      <span class="status-badge" :class="`is-${auction.status}`">
+        {{ statusText }}
+      </span>
       <p class="whisky-name">{{ whiskyName }}</p>
       <h3 class="title">{{ auction.title }}</h3>
       <p class="price-line">
         <span class="price-label">{{ priceLabel }}</span>
         <span class="price-value">{{ priceText }}</span>
       </p>
-      <p class="end-line">
+      <p class="time-line">
+        開始
+        <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
+      </p>
+      <p class="time-line">
         結束
         <time :datetime="auction.endAt">{{ formatAbsoluteTime(auction.endAt) }}</time>
       </p>
-      <span class="cta">查看競標 →</span>
+      <span class="cta">{{ ctaText }}</span>
     </div>
   </RouterLink>
 </template>
@@ -190,7 +203,30 @@ function formatAbsoluteTime(value: string): string {
   color: #b45309;
 }
 
-.end-line {
+.status-badge {
+  align-self: flex-start;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.status-badge.is-active {
+  border-color: rgba(21, 128, 61, 0.3);
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.status-badge.is-scheduled {
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.time-line {
   margin: 0;
   font-family: var(--font-body);
   font-size: 0.75rem;

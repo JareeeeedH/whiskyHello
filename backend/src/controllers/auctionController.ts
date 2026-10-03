@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import * as auctionService from '../services/auctionService'
 import type {
+  CancelAuctionBody,
   CreateAuctionBody,
   UpdateAuctionBody,
 } from '../validations/auctionValidation'
@@ -100,6 +101,28 @@ export async function start(
     }
 
     const auction = await auctionService.startDraftAuction(String(req.params.id))
+    res.status(200).json({ auction })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function cancel(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: 'Unauthorized' })
+      return
+    }
+
+    const auction = await auctionService.cancelAuction(
+      String(req.params.id),
+      req.user.userId,
+      req.body as CancelAuctionBody,
+    )
     res.status(200).json({ auction })
   } catch (error) {
     next(error)

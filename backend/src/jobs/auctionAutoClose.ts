@@ -1,18 +1,27 @@
 import { env } from '../config/env'
-import { closeExpiredAuctions } from '../services/auctionService'
+import {
+  activateScheduledAuctions,
+  closeExpiredAuctions,
+} from '../services/auctionService'
 
 export const AUCTION_AUTO_CLOSE_INTERVAL_MS = 60_000
 
 let running = false
 
-export async function runAuctionAutoClose(): Promise<void> {
+/** Lifecycle tick: scheduled → active (startAt reached), then active → ended (endAt reached). */
+export async function runAuctionAutoClose(now = new Date()): Promise<void> {
   if (running) {
     return
   }
 
   running = true
   try {
-    const closed = await closeExpiredAuctions()
+    const activated = await activateScheduledAuctions(now)
+    if (activated > 0) {
+      console.log(`Auction lifecycle: ${activated} auction(s) activated.`)
+    }
+
+    const closed = await closeExpiredAuctions(now)
     if (closed > 0) {
       console.log(`Auction auto close: ${closed} auction(s) ended.`)
     }

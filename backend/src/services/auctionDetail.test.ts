@@ -18,7 +18,9 @@ let server: http.Server | null = null
 let baseUrl = ''
 const createdAuctionIds: string[] = []
 
-async function createAuction(status: 'draft' | 'active' | 'ended') {
+async function createAuction(
+  status: 'draft' | 'scheduled' | 'active' | 'ended' | 'cancelled',
+) {
   const auction = await Auction.create({
     whiskyId: 'qa-auction-detail',
     createdBy: new mongoose.Types.ObjectId(),
@@ -93,6 +95,40 @@ describe('GET /api/v1/auctions/:id', () => {
     assert.equal(res.status, 200)
     const body = (await res.json()) as { auction: { status: string } }
     assert.equal(body.auction.status, 'ended')
+  })
+
+  it('returns a scheduled auction', async () => {
+    const auction = await createAuction('scheduled')
+    const res = await fetch(`${baseUrl}/api/v1/auctions/${auction.id}`)
+    assert.equal(res.status, 200)
+    const body = (await res.json()) as { auction: Record<string, unknown> }
+    assert.equal(body.auction.status, 'scheduled')
+    assert.equal(body.auction.startingPrice, 200)
+    assert.equal(body.auction.startAt, '2026-10-10T00:00:00.000Z')
+  })
+
+  it('returns a cancelled auction without the admin status history', async () => {
+    const auction = await createAuction('cancelled')
+    await Auction.updateOne(
+      { _id: auction._id },
+      {
+        $push: {
+          statusHistory: {
+            status: 'cancelled',
+            message: 'Internal admin note',
+            changedBy: new mongoose.Types.ObjectId(),
+            changedAt: new Date(),
+          },
+        },
+      },
+    )
+
+    const res = await fetch(`${baseUrl}/api/v1/auctions/${auction.id}`)
+    assert.equal(res.status, 200)
+    const body = (await res.json()) as { auction: Record<string, unknown> }
+    assert.equal(body.auction.status, 'cancelled')
+    assert.ok(!('statusHistory' in body.auction))
+    assert.ok(!('createdBy' in body.auction))
   })
 
   it('returns 404 for a draft auction', async () => {

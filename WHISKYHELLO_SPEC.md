@@ -55,13 +55,13 @@ Auction 屬於 Phase 3，不屬於 Phase 2。
 - Admin 管理 API（列表、建立、編輯 draft、Start）
 - Admin 管理 UI（`/admin/auctions`）
 - Bid Schema／API（建立出價、Bid History、目前最高價計算）
+- Auto Close（`active` → `ended`）
 
 尚未實作：
 
 - Auction Detail（獨立競標頁）
 - 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
-- Auto Close
 - Winner
 - Transaction／Matching
 
@@ -554,10 +554,19 @@ Auction
 #### 狀態流程
 
 ```text
-draft ──Start──> active
+draft ──Start──> active ──Auto Close（now >= endAt）──> ended
 ```
 
-目前只實作 `draft → active`。`scheduled`、`ended`、`cancelled` 已存在於 Schema，但沒有任何流程會進入這些狀態。
+目前只實作 `draft → active` 與 `active → ended`。`scheduled`、`cancelled` 已存在於 Schema，但沒有任何流程會進入這些狀態。
+
+#### Auto Close
+
+- 條件：`status = active` 且 `now >= endAt`
+- 結果：MongoDB 的 Auction `status` 更新為 `ended`
+- `draft`、`scheduled`、`ended`、`cancelled` 不處理；已 `ended` 不重複處理
+- 執行機制：Backend 啟動且成功連上 MongoDB 後，以 Node 內建 `setInterval` 每 60 秒執行一次（啟動時先執行一次）；未連上 MongoDB 時不啟動
+- 結標最多延遲一個執行間隔；Backend 未執行時不會結標，下次啟動時補處理
+- 不處理 Winner／得標，不新增 `winnerId`
 
 #### Admin Auction API
 
@@ -647,7 +656,6 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 - Auction Detail（獨立競標頁）
 - 會員出價 UI、目前最高價與 Bid History 的前端顯示
 - Countdown
-- Auto Close
 - Winner
 - Transaction／Matching
 
@@ -659,7 +667,7 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 - 得標規則
 - 即時更新
 - 完整交易流程
-- `scheduled`、`ended`、`cancelled` 的進入條件與觸發方式
+- `scheduled`、`cancelled` 的進入條件與觸發方式
 - `endAt` 是否必須晚於 `startAt`
 - Start 時是否需比對目前時間與 `startAt`／`endAt`
 - `whiskyId` 是否需驗證存在於 Static Dataset
@@ -780,7 +788,7 @@ MongoDB
 8. 串接 Frontend Review UI
 9. 完成 Phase 1 基礎產品
 10. 驗證實際使用流程
-11. Phase 3 Auction MVP（Auction Schema、Admin 管理 API、Admin 管理 UI、Bid API）
+11. Phase 3 Auction MVP（Auction Schema、Admin 管理 API、Admin 管理 UI、Bid API、Auto Close）
 12. Phase 2 AI Whisky Sommelier
 ```
 

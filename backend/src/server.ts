@@ -1,10 +1,14 @@
 import app from './app'
 import { connectDatabase } from './config/db'
 import { env } from './config/env'
+import { startAuctionAutoClose } from './jobs/auctionAutoClose'
 
 async function start(): Promise<void> {
+  let databaseConnected = false
+
   try {
     await connectDatabase()
+    databaseConnected = true
   } catch (error) {
     console.error('MongoDB connection failed.')
 
@@ -29,6 +33,12 @@ async function start(): Promise<void> {
     console.error('Failed to start server:', error.message)
     process.exit(1)
   })
+
+  if (databaseConnected) {
+    startAuctionAutoClose()
+  } else {
+    console.warn('Auction auto close disabled: no database connection.')
+  }
 }
 
 void start()

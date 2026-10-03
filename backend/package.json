@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/adminRbac.test.ts src/models/Auction.test.ts src/validations/auctionValidation.test.ts src/services/auctionAdmin.test.ts src/services/auctionDetail.test.ts src/services/bidApi.test.ts"
+    "test": "tsx --test src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/adminRbac.test.ts src/models/Auction.test.ts src/validations/auctionValidation.test.ts src/services/auctionAdmin.test.ts src/services/auctionDetail.test.ts src/services/bidApi.test.ts src/services/auctionAutoClose.test.ts"
   },
   "engines": {
     "node": ">=20"

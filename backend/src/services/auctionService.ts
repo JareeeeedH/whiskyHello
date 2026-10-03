@@ -28,6 +28,14 @@ export async function getPublicAuctionById(
   return detail
 }
 
+export async function closeExpiredAuctions(now = new Date()): Promise<number> {
+  const result = await Auction.updateMany(
+    { status: 'active', endAt: { $lte: now } },
+    { $set: { status: 'ended' } },
+  )
+  return result.modifiedCount
+}
+
 export async function listAuctionsForAdmin(): Promise<PublicAuction[]> {
   const auctions = await Auction.find().sort({ createdAt: -1 })
   return auctions.map((auction) => toPublicAuction(auction))

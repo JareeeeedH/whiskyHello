@@ -1,0 +1,602 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import { useRouter } from 'vue-router'
+import {
+  AdminApiError,
+  createAdminAuction,
+  fetchAdminAuctions,
+  startAdminAuction,
+  updateAdminAuction,
+} from '../services/adminService'
+import type { AdminAuction, AuctionFormPayload } from '../types/admin'
+
+const router = useRouter()
+const auctions = ref<AdminAuction[]>([])
+const loading = ref(true)
+const errorMessage = ref('')
+const actionError = ref('')
+const startingId = ref<string | null>(null)
+
+const modalVisible = ref(false)
+const editingId = ref<string | null>(null)
+const submitting = ref(false)
+const formError = ref('')
+const formWhiskyId = ref('')
+const formTitle = ref('')
+const formDescription = ref('')
+const formStartingPrice = ref<number | null>(null)
+const formStartAt = ref('')
+const formEndAt = ref('')
+
+const isEditing = computed(() => editingId.value !== null)
+
+function formatDateTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat().format(value)
+}
+
+/** `datetime-local` inputs expect local time without a timezone suffix. */
+function toLocalInputValue(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function toIsoString(localValue: string): string | null {
+  const date = new Date(localValue)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+async function loadAuctions() {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    auctions.value = await fetchAdminAuctions()
+  } catch {
+    auctions.value = []
+    errorMessage.value = 'Unable to load auctions. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+function resetForm() {
+  editingId.value = null
+  formWhiskyId.value = ''
+  formTitle.value = ''
+  formDescription.value = ''
+  formStartingPrice.value = null
+  formStartAt.value = ''
+  formEndAt.value = ''
+  formError.value = ''
+}
+
+function openCreate() {
+  resetForm()
+  modalVisible.value = true
+}
+
+function openEdit(auction: AdminAuction) {
+  if (auction.status !== 'draft') {
+    return
+  }
+  editingId.value = auction.id
+  formWhiskyId.value = auction.whiskyId
+  formTitle.value = auction.title
+  formDescription.value = auction.description
+  formStartingPrice.value = auction.startingPrice
+  formStartAt.value = toLocalInputValue(auction.startAt)
+  formEndAt.value = toLocalInputValue(auction.endAt)
+  formError.value = ''
+  modalVisible.value = true
+}
+
+function closeModal() {
+  if (submitting.value) {
+    return
+  }
+  modalVisible.value = false
+  resetForm()
+}
+
+function buildPayload(): AuctionFormPayload | string {
+  const whiskyId = formWhiskyId.value.trim()
+  const title = formTitle.value.trim()
+  const startingPrice = formStartingPrice.value
+  const startAt = toIsoString(formStartAt.value)
+  const endAt = toIsoString(formEndAt.value)
+
+  if (!whiskyId) return 'Whisky id is required'
+  if (!title) return 'Title is required'
+  if (startingPrice === null || startingPrice < 0) {
+    return 'Starting price must be at least 0'
+  }
+  if (!startAt) return 'Start time is required'
+  if (!endAt) return 'End time is required'
+
+  return {
+    whiskyId,
+    title,
+    description: formDescription.value.trim(),
+    startingPrice,
+    startAt,
+    endAt,
+  }
+}
+
+async function submitAuction() {
+  if (submitting.value) {
+    return
+  }
+
+  formError.value = ''
+  const payload = buildPayload()
+  if (typeof payload === 'string') {
+    formError.value = payload
+    return
+  }
+
+  submitting.value = true
+  try {
+    if (editingId.value) {
+      const updated = await updateAdminAuction(editingId.value, payload)
+      auctions.value = auctions.value.map((item) =>
+        item.id === updated.id ? updated : item,
+      )
+    } else {
+      const created = await createAdminAuction(payload)
+      auctions.value = [created, ...auctions.value]
+    }
+    modalVisible.value = false
+    resetForm()
+  } catch (error) {
+    if (error instanceof AdminApiError && error.details.length > 0) {
+      formError.value = error.details.join('; ')
+    } else if (error instanceof AdminApiError) {
+      formError.value = error.message
+    } else {
+      formError.value = 'Unable to save auction. Please try again.'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function onStart(auction: AdminAuction) {
+  if (auction.status !== 'draft' || startingId.value) {
+    return
+  }
+  if (!window.confirm(`Start "${auction.title}"? It can no longer be edited.`)) {
+    return
+  }
+
+  actionError.value = ''
+  startingId.value = auction.id
+  try {
+    const started = await startAdminAuction(auction.id)
+    auctions.value = auctions.value.map((item) =>
+      item.id === started.id ? started : item,
+    )
+  } catch (error) {
+    actionError.value =
+      error instanceof AdminApiError
+        ? [error.message, ...error.details].join(': ')
+        : 'Unable to start auction. Please try again.'
+  } finally {
+    startingId.value = null
+  }
+}
+
+onMounted(() => {
+  void loadAuctions()
+})
+</script>
+
+<template>
+  <main class="admin-auctions">
+    <header class="page-intro">
+      <div class="intro-row">
+        <div>
+          <h1>Auction Management</h1>
+          <p class="page-sub">Create drafts, edit drafts, and start auctions.</p>
+        </div>
+        <div class="intro-actions">
+          <Button
+            label="Back"
+            severity="secondary"
+            text
+            @click="router.push('/admin')"
+          />
+          <Button label="New Auction" @click="openCreate" />
+        </div>
+      </div>
+    </header>
+
+    <Card class="auctions-panel" :pt="{ body: { class: 'auctions-body' } }">
+      <template #content>
+        <div v-if="loading" class="state" role="status">Loading auctions…</div>
+
+        <div v-else-if="errorMessage" class="state state-error" role="alert">
+          <p>{{ errorMessage }}</p>
+          <Button label="Retry" severity="secondary" @click="loadAuctions" />
+        </div>
+
+        <div v-else-if="auctions.length === 0" class="state">
+          No auctions yet.
+        </div>
+
+        <template v-else>
+          <p v-if="actionError" class="action-error" role="alert">
+            {{ actionError }}
+          </p>
+
+          <ul class="auction-list" aria-label="Auctions">
+            <li v-for="auction in auctions" :key="auction.id" class="auction-row">
+              <div class="auction-meta">
+                <div class="auction-top">
+                  <span class="auction-title">{{ auction.title }}</span>
+                  <span
+                    class="status-badge"
+                    :class="`is-${auction.status}`"
+                  >
+                    {{ auction.status }}
+                  </span>
+                </div>
+                <p class="auction-line">
+                  Whisky {{ auction.whiskyId }} · Starting
+                  {{ formatPrice(auction.startingPrice) }}
+                </p>
+                <p class="auction-time">
+                  {{ formatDateTime(auction.startAt) }} →
+                  {{ formatDateTime(auction.endAt) }}
+                </p>
+                <p v-if="auction.description" class="auction-description">
+                  {{ auction.description }}
+                </p>
+              </div>
+
+              <div v-if="auction.status === 'draft'" class="auction-actions">
+                <Button
+                  label="Edit"
+                  severity="secondary"
+                  text
+                  size="small"
+                  :disabled="startingId !== null"
+                  @click="openEdit(auction)"
+                />
+                <Button
+                  label="Start"
+                  size="small"
+                  :loading="startingId === auction.id"
+                  :disabled="startingId !== null && startingId !== auction.id"
+                  @click="onStart(auction)"
+                />
+              </div>
+            </li>
+          </ul>
+        </template>
+      </template>
+    </Card>
+
+    <Dialog
+      v-model:visible="modalVisible"
+      modal
+      :draggable="false"
+      :header="isEditing ? 'Edit Draft Auction' : 'New Auction'"
+      :style="{ width: 'min(94vw, 520px)' }"
+      :closable="!submitting"
+      :dismissable-mask="!submitting"
+      @hide="closeModal"
+    >
+      <form id="auction-form" class="auction-form" @submit.prevent="submitAuction">
+        <label class="field-label" for="auction-whisky-id">Whisky ID</label>
+        <InputText
+          id="auction-whisky-id"
+          v-model="formWhiskyId"
+          class="field"
+          :disabled="submitting"
+        />
+
+        <label class="field-label" for="auction-title">Title</label>
+        <InputText
+          id="auction-title"
+          v-model="formTitle"
+          class="field"
+          :disabled="submitting"
+        />
+
+        <label class="field-label" for="auction-description">
+          Description (optional)
+        </label>
+        <Textarea
+          id="auction-description"
+          v-model="formDescription"
+          class="field"
+          rows="3"
+          auto-resize
+          :disabled="submitting"
+        />
+
+        <label class="field-label" for="auction-starting-price">
+          Starting Price
+        </label>
+        <InputNumber
+          v-model="formStartingPrice"
+          input-id="auction-starting-price"
+          fluid
+          :min="0"
+          :disabled="submitting"
+        />
+
+        <label class="field-label" for="auction-start-at">Start At</label>
+        <InputText
+          id="auction-start-at"
+          v-model="formStartAt"
+          type="datetime-local"
+          class="field"
+          :disabled="submitting"
+        />
+
+        <label class="field-label" for="auction-end-at">End At</label>
+        <InputText
+          id="auction-end-at"
+          v-model="formEndAt"
+          type="datetime-local"
+          class="field"
+          :disabled="submitting"
+        />
+
+        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+      </form>
+
+      <template #footer>
+        <Button
+          type="button"
+          label="Cancel"
+          severity="secondary"
+          text
+          :disabled="submitting"
+          @click="closeModal"
+        />
+        <Button
+          type="submit"
+          form="auction-form"
+          :label="isEditing ? 'Save' : 'Create Draft'"
+          :loading="submitting"
+        />
+      </template>
+    </Dialog>
+  </main>
+</template>
+
+<style scoped>
+.admin-auctions {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.25rem 1.5rem 3.5rem;
+  color: #1c1917;
+}
+
+.page-intro {
+  margin-bottom: 1.5rem;
+}
+
+.intro-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.intro-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.25;
+  color: #1c1917;
+}
+
+.page-sub {
+  margin: 0;
+  font-family: var(--font-body);
+  color: #a8a29e;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.auctions-panel {
+  border: 1px solid #f0eeeb;
+  background: #fff;
+  box-shadow: none;
+}
+
+:deep(.auctions-body) {
+  padding-top: 0.25rem;
+}
+
+.state {
+  padding: 1.25rem 0.25rem;
+  color: #78716c;
+  font-size: 0.95rem;
+}
+
+.state-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: #b91c1c;
+}
+
+.state-error p {
+  margin: 0;
+}
+
+.action-error,
+.form-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.auction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auction-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.95rem;
+  padding: 0.85rem 0.15rem;
+  border-bottom: 1px solid #f5f5f4;
+}
+
+.auction-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0.25rem;
+}
+
+.auction-meta {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-body);
+}
+
+.auction-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.auction-title {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.35rem;
+  color: #78716c;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-badge.is-draft {
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.status-badge.is-active {
+  border-color: rgba(21, 128, 61, 0.3);
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.auction-line,
+.auction-time,
+.auction-description {
+  margin: 0.2rem 0 0;
+  color: #a8a29e;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.auction-time {
+  font-size: 0.82rem;
+}
+
+.auction-description {
+  color: #78716c;
+}
+
+.auction-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.auction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-label {
+  margin-top: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #44403c;
+}
+
+.field-label:first-child {
+  margin-top: 0;
+}
+
+.field {
+  width: 100%;
+}
+
+.auction-form .form-error {
+  margin: 0.75rem 0 0;
+}
+
+@media (max-width: 480px) {
+  .intro-row,
+  .auction-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .intro-actions,
+  .auction-actions {
+    justify-content: flex-end;
+  }
+}
+</style>

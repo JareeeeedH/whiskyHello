@@ -8,6 +8,10 @@ const router = useRouter()
 function goUsers() {
   void router.push('/admin/users')
 }
+
+function goAuctions() {
+  void router.push('/admin/auctions')
+}
 </script>
 
 <template>
@@ -35,19 +39,20 @@ function goUsers() {
         </template>
       </Card>
 
-      <Card
-        class="feature-card is-disabled"
-        :pt="{ body: { class: 'feature-body' } }"
-      >
-        <template #title>Coming Soon</template>
-        <template #subtitle>Not available yet</template>
+      <Card class="feature-card" :pt="{ body: { class: 'feature-body' } }">
+        <template #title>Auction Management</template>
+        <template #subtitle>Create and start auctions</template>
         <template #content>
           <p class="feature-copy">
-            Additional admin tools will appear here in a later phase.
+            Create draft auctions, edit drafts, and start them.
           </p>
         </template>
         <template #footer>
-          <Button label="Coming Soon" disabled />
+          <Button
+            label="Open"
+            severity="secondary"
+            @click="goAuctions"
+          />
         </template>
       </Card>
     </div>

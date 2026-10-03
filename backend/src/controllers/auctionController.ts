@@ -5,6 +5,19 @@ import type {
   UpdateAuctionBody,
 } from '../validations/auctionValidation'
 
+export async function listPublic(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const auctions = await auctionService.listPublicAuctions()
+    res.status(200).json({ auctions })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export async function getById(
   req: Request,
   res: Response,

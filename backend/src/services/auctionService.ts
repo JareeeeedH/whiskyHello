@@ -1,5 +1,5 @@
 import { Types } from 'mongoose'
-import { Auction } from '../models/Auction'
+import { Auction, type AuctionDocument } from '../models/Auction'
 import type { PublicAuction, PublicAuctionDetail } from '../types/auction'
 import { AppError } from '../utils/AppError'
 import { toPublicAuction } from '../utils/toPublicAuction'
@@ -10,6 +10,22 @@ import type {
 
 function isObjectIdString(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value) && Types.ObjectId.isValid(value)
+}
+
+function toPublicAuctionDetail(auction: AuctionDocument): PublicAuctionDetail {
+  const { createdBy: _createdBy, ...detail } = toPublicAuction(auction)
+  return detail
+}
+
+export async function listPublicAuctions(
+  now = new Date(),
+): Promise<PublicAuctionDetail[]> {
+  const auctions = await Auction.find({
+    status: 'active',
+    endAt: { $gt: now },
+  }).sort({ endAt: 1, _id: 1 })
+
+  return auctions.map((auction) => toPublicAuctionDetail(auction))
 }
 
 export async function getPublicAuctionById(
@@ -24,8 +40,7 @@ export async function getPublicAuctionById(
     throw new AppError(404, 'Auction not found')
   }
 
-  const { createdBy: _createdBy, ...detail } = toPublicAuction(auction)
-  return detail
+  return toPublicAuctionDetail(auction)
 }
 
 export async function closeExpiredAuctions(now = new Date()): Promise<number> {

@@ -21,6 +21,11 @@ const router = createRouter({
       component: () => import('../views/WhiskyDetailView.vue'),
     },
     {
+      path: '/auctions/:id',
+      name: 'auction-detail',
+      component: () => import('../views/AuctionDetailView.vue'),
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),

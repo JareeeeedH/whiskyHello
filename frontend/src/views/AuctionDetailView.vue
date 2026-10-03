@@ -2,19 +2,58 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import Button from 'primevue/button'
-import { AuctionApiError, fetchAuctionById } from '../services/auctionService'
+import InputNumber from 'primevue/inputnumber'
+import {
+  AuctionApiError,
+  createAuctionBid,
+  fetchAuctionBids,
+  fetchAuctionById,
+} from '../services/auctionService'
 import { getWhiskyById } from '../services/whiskyService'
+import { useAuthStore } from '../stores/auth'
 import type { AuctionStatus } from '../types/admin'
-import type { PublicAuctionDetail } from '../types/auction'
+import type { PublicAuctionDetail, PublicBid } from '../types/auction'
+
+/** Display-only hint; the backend enforces the real minimum bid. */
+const BID_INCREMENT = 100
 
 const route = useRoute()
+const authStore = useAuthStore()
 
 const auction = ref<PublicAuctionDetail | null>(null)
 const loading = ref(true)
 const notFound = ref(false)
 const errorMessage = ref('')
 
+const bids = ref<PublicBid[]>([])
+const currentPrice = ref(0)
+const bidsLoading = ref(false)
+const bidsError = ref('')
+
+const bidAmount = ref<number | null>(null)
+const bidSubmitting = ref(false)
+const bidError = ref('')
+const bidSuccess = ref('')
+
 const auctionId = computed(() => String(route.params.id ?? ''))
+
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+const canBid = computed(() => auction.value?.status === 'active')
+
+const minimumBid = computed(() => {
+  if (!auction.value) {
+    return 0
+  }
+  return bids.value.length > 0
+    ? currentPrice.value + BID_INCREMENT
+    : auction.value.startingPrice
+})
+
+const loginRoute = computed(() => ({
+  name: 'login',
+  query: { redirect: route.fullPath },
+}))
 
 const whisky = computed(() =>
   auction.value ? getWhiskyById(auction.value.whiskyId) : undefined,
@@ -52,11 +91,84 @@ function formatPrice(value: number): string {
   return new Intl.NumberFormat('zh-TW').format(value)
 }
 
+function resetBidForm() {
+  bidAmount.value = minimumBid.value
+  bidError.value = ''
+}
+
+async function loadBids(id: string) {
+  bidsLoading.value = true
+  bidsError.value = ''
+
+  try {
+    const result = await fetchAuctionBids(id)
+    bids.value = result.bids
+    currentPrice.value = result.currentPrice
+    resetBidForm()
+  } catch (error) {
+    bids.value = []
+    bidsError.value =
+      error instanceof AuctionApiError
+        ? error.message
+        : '無法載入出價紀錄，請稍後再試'
+  } finally {
+    bidsLoading.value = false
+  }
+}
+
+async function submitBid() {
+  if (bidSubmitting.value || !auction.value) {
+    return
+  }
+
+  bidError.value = ''
+  bidSuccess.value = ''
+
+  if (bidAmount.value === null) {
+    bidError.value = '請輸入出價金額'
+    return
+  }
+
+  const amount = bidAmount.value
+  if (!window.confirm(`確定要出價 ${formatPrice(amount)} 嗎？`)) {
+    return
+  }
+
+  bidSubmitting.value = true
+
+  try {
+    const result = await createAuctionBid(auction.value.id, { amount })
+    bids.value = [result.bid, ...bids.value.filter((bid) => bid.id !== result.bid.id)]
+    currentPrice.value = result.currentPrice
+    resetBidForm()
+    bidSuccess.value = '出價成功'
+  } catch (error) {
+    if (error instanceof AuctionApiError) {
+      if (error.status === 400 && error.details.length > 0) {
+        bidError.value = error.details.join('；')
+      } else if (error.status === 401) {
+        bidError.value = '登入已失效，請重新登入後再試'
+      } else {
+        bidError.value = error.message
+      }
+    } else {
+      bidError.value = '出價失敗，請稍後再試'
+    }
+  } finally {
+    bidSubmitting.value = false
+  }
+}
+
 async function loadAuction(id: string) {
   loading.value = true
   notFound.value = false
   errorMessage.value = ''
   auction.value = null
+  bids.value = []
+  currentPrice.value = 0
+  bidsError.value = ''
+  bidError.value = ''
+  bidSuccess.value = ''
 
   if (!id) {
     notFound.value = true
@@ -66,6 +178,7 @@ async function loadAuction(id: string) {
 
   try {
     auction.value = await fetchAuctionById(id)
+    void loadBids(id)
   } catch (error) {
     if (
       error instanceof AuctionApiError &&
@@ -158,6 +271,78 @@ watch(
             <time :datetime="auction.endAt">{{ formatAbsoluteTime(auction.endAt) }}</time>
           </p>
         </div>
+      </section>
+
+      <section class="block">
+        <h2>目前價格</h2>
+
+        <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
+
+        <div v-else-if="bidsError" class="error-state" role="alert">
+          <p>{{ bidsError }}</p>
+          <Button
+            label="重新載入"
+            severity="secondary"
+            @click="loadBids(auction.id)"
+          />
+        </div>
+
+        <template v-else>
+          <div class="price-block current-price">
+            <span class="price-value">{{ formatPrice(currentPrice) }}</span>
+            <span class="price-note">
+              {{ bids.length > 0 ? `共 ${bids.length} 筆出價` : '尚無出價，以起標價計' }}
+            </span>
+          </div>
+
+          <template v-if="canBid">
+            <form
+              v-if="isAuthenticated"
+              class="bid-form"
+              @submit.prevent="submitBid"
+            >
+              <label class="field-label" for="bid-amount">出價金額</label>
+              <p class="bid-hint">目前最低可出價：{{ formatPrice(minimumBid) }}</p>
+              <div class="bid-row">
+                <InputNumber
+                  v-model="bidAmount"
+                  input-id="bid-amount"
+                  class="bid-input"
+                  :min="0"
+                  :disabled="bidSubmitting"
+                />
+                <Button
+                  type="submit"
+                  :label="bidSubmitting ? '出價中…' : '出價'"
+                  :loading="bidSubmitting"
+                  class="submit-btn"
+                />
+              </div>
+              <p v-if="bidError" class="form-error" role="alert">{{ bidError }}</p>
+              <p v-if="bidSuccess" class="form-success" role="status">{{ bidSuccess }}</p>
+            </form>
+
+            <p v-else class="login-hint">
+              <RouterLink :to="loginRoute">登入</RouterLink>後即可參與出價。
+            </p>
+          </template>
+
+          <p v-else class="empty">此競標目前不開放出價。</p>
+        </template>
+      </section>
+
+      <section v-if="!bidsLoading && !bidsError" class="block">
+        <h2>出價紀錄</h2>
+        <p v-if="bids.length === 0" class="empty">目前還沒有人出價。</p>
+        <ul v-else class="bid-list">
+          <li v-for="bid in bids" :key="bid.id" class="bid-item">
+            <span class="bid-name">{{ bid.bidderName || '會員' }}</span>
+            <span class="bid-amount">{{ formatPrice(bid.amount) }}</span>
+            <time class="bid-time" :datetime="bid.createdAt">
+              {{ formatAbsoluteTime(bid.createdAt) }}
+            </time>
+          </li>
+        </ul>
       </section>
 
       <section class="block">
@@ -350,6 +535,124 @@ watch(
   margin: 0;
 }
 
+.current-price {
+  margin: 0 0 1rem;
+}
+
+.price-note {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.bid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #f0eeeb;
+  background: linear-gradient(165deg, #fffefb 0%, #fafaf9 100%);
+}
+
+.field-label {
+  margin: 0;
+  font-family: var(--font-body);
+  color: #44403c;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bid-hint {
+  margin: 0;
+  font-family: var(--font-body);
+  color: #78716c;
+  font-size: 0.8125rem;
+}
+
+.bid-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.bid-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.bid-input :deep(.p-inputtext) {
+  width: 100%;
+}
+
+.submit-btn {
+  border: none !important;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+  color: #1c1917 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+}
+
+.form-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.form-success {
+  margin: 0;
+  color: #15803d;
+  font-size: 0.875rem;
+}
+
+.login-hint {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.login-hint a {
+  color: #0f766e;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bid-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bid-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem 1.25rem;
+  align-items: baseline;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #f0eeeb;
+  font-family: var(--font-body);
+}
+
+.bid-item:last-child {
+  border-bottom: none;
+}
+
+.bid-name {
+  color: #334155;
+  font-weight: 600;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.bid-amount {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.bid-time {
+  color: #a8a29e;
+  font-size: 0.8125rem;
+}
+
 .not-found h1 {
   margin: 0 0 0.75rem;
 }
@@ -371,6 +674,14 @@ watch(
 
   .image-wrap {
     height: 220px;
+  }
+
+  .bid-item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .bid-time {
+    grid-column: 1 / -1;
   }
 }
 </style>

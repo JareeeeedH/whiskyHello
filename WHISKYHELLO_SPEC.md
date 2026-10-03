@@ -39,11 +39,24 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
    - 解釋推薦原因
 
 
-### Phase 3｜交易媒合
+### Phase 3｜Whisky Auction / 交易媒合
 
-7. **酒款買賣媒合**
+7. **Whisky Auction / 酒款競標與交易媒合**
 
-目前僅規劃「買賣媒合」，不預設實作平台金流、物流、Escrow 或完整交易系統。
+目前已確認的產品概念：
+
+- Admin 在 Admin Page 建立競標產品
+- Admin 可啟動競標
+- 啟動後提供獨立競標頁面
+- 競標頁顯示酒款／產品資訊
+- 顯示起標價
+- 顯示目前最高價格
+- 顯示競標倒數
+- 顯示投標價格明細
+- 會員可參與投標
+- 競標結束後產生後續交易／媒合流程
+
+Auction Schema、Bid Schema、API、加價／結標／得標規則、即時更新、金流、Escrow、物流與完整交易流程尚未討論，不在本規格定義。
 
 ---
 
@@ -426,19 +439,34 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 ---
 
-## 12. Phase 3｜酒款買賣媒合
+## 12. Phase 3｜Whisky Auction / 酒款競標與交易媒合
 
-目標不是立即建立完整電商交易平台，而是先提供：
+目標不是立即建立完整電商交易平台。目前已確認的產品概念：
 
-> **收藏家有酒想出售 → 有需求的使用者找到酒 → 雙方媒合**
+- Admin 在 Admin Page 建立競標產品
+- Admin 可啟動競標
+- 啟動後提供獨立競標頁面
+- 競標頁顯示酒款／產品資訊
+- 顯示起標價
+- 顯示目前最高價格
+- 顯示競標倒數
+- 顯示投標價格明細
+- 會員可參與投標
+- 競標結束後產生後續交易／媒合流程
 
-初期不預設處理：
+以下細節尚未討論，不在本規格定義，留待後續 Feature 規格討論：
 
-- 平台金流
+- Auction Schema
+- Bid Schema
+- API Endpoint
+- 加價規則
+- 結標規則
+- 得標規則
+- 即時更新
+- 金流
 - Escrow
 - 物流
-- 拍賣
-- 複雜交易爭議系統
+- 完整交易流程
 
 正式開發前，需另外進行台灣酒類販售／轉讓及相關平台責任的合規評估。
 
@@ -450,10 +478,9 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 - AI Whisky Sommelier
 - 完整 AI Agent 系統
-- 酒款 Marketplace
-- Auction
-- 酒款金流
-- 酒款物流
+- Whisky Auction／酒款競標與交易媒合（屬 Phase 3，本階段不做）
+- Auction Schema、Bid Schema、API Endpoint、加價／結標／得標規則、即時更新（尚未定義，留待後續 Feature 規格）
+- 金流、Escrow、物流與完整交易流程（尚未定義，留待後續 Feature 規格）
 - Whisky MongoDB Master Data
 - Collection System
 - 獨立 TasteProfile Model
@@ -550,6 +577,8 @@ MongoDB
 9. 完成 Phase 1 基礎產品
 10. 驗證實際使用流程
 11. 再評估 Phase 2 AI Whisky Sommelier
+12. Phase 2 完成並驗證後，再進入 Phase 3 Whisky Auction／酒款競標與交易媒合
+13. Phase 3 的 Schema、API、競標規則與交易流程另開 Feature 規格討論，不在目前規格定義
 ```
 
 ---

@@ -1,6 +1,6 @@
 /**
  * Auction bid API tests.
- * Skips MongoDB cases when the database is unreachable.
+ * Requires TEST_MONGODB_URI (dedicated test database).
  */
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -11,15 +11,15 @@ import app from '../app'
 import { Auction } from '../models/Auction'
 import { Bid } from '../models/Bid'
 import { User } from '../models/User'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 import { signAccessToken } from '../utils/jwt'
 import { hashPassword } from '../utils/password'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
 const DAY_MS = 24 * 60 * 60 * 1000
 
-let mongoReady = false
 let server: http.Server | null = null
 let baseUrl = ''
 const createdUserIds: string[] = []
@@ -38,12 +38,7 @@ type HistoryResponse = {
 }
 
 before(async () => {
-  try {
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
-    mongoReady = true
-  } catch {
-    mongoReady = false
-  }
+  await connectTestDatabase()
 
   server = http.createServer(app)
   await new Promise<void>((resolve) => {
@@ -59,7 +54,7 @@ after(async () => {
       server!.close((err) => (err ? reject(err) : resolve()))
     })
   }
-  if (mongoReady) {
+  if (mongoose.connection.readyState === 1) {
     if (createdAuctionIds.length > 0) {
       await Bid.deleteMany({ auctionId: { $in: createdAuctionIds } })
       await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
@@ -67,7 +62,7 @@ after(async () => {
     if (createdUserIds.length > 0) {
       await User.deleteMany({ _id: { $in: createdUserIds } })
     }
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   }
 })
 
@@ -118,12 +113,7 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.equal(res.status, 401)
   })
 
-  it('rejects bids on non-active auctions', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects bids on non-active auctions', async () => {
     const { token } = await createUser()
 
     for (const status of ['scheduled', 'ended', 'cancelled'] as const) {
@@ -141,12 +131,7 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.deepEqual(await draftRes.json(), { message: 'Auction not found' })
   })
 
-  it('rejects bids once endAt has passed', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects bids once endAt has passed', async () => {
     const { token } = await createUser()
     const auctionId = await createAuction('active', new Date(Date.now() - 1000))
     const res = await postBid(auctionId, 1000, token)
@@ -154,12 +139,7 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.deepEqual(await res.json(), { message: 'Auction has ended' })
   })
 
-  it('enforces startingPrice for the first bid and +100 afterwards', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('enforces startingPrice for the first bid and +100 afterwards', async () => {
     const bidder = await createUser()
     const auctionId = await createAuction('active')
 
@@ -204,12 +184,7 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.equal(await Bid.countDocuments({ auctionId }), 2)
   })
 
-  it('rejects a non-integer amount', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects a non-integer amount', async () => {
     const { token } = await createUser()
     const auctionId = await createAuction('active')
     const res = await postBid(auctionId, 1000.5, token)
@@ -219,12 +194,7 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.ok(body.details.includes('Amount must be an integer'))
   })
 
-  it('returns 404 for a missing auction and 400 for an invalid id', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns 404 for a missing auction and 400 for an invalid id', async () => {
     const { token } = await createUser()
     const missingId = new mongoose.Types.ObjectId().toString()
     const missing = await postBid(missingId, 1000, token)
@@ -239,24 +209,14 @@ describe('POST /api/v1/auctions/:id/bids', () => {
 })
 
 describe('GET /api/v1/auctions/:id/bids', () => {
-  it('returns currentPrice = startingPrice when there are no bids', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns currentPrice = startingPrice when there are no bids', async () => {
     const auctionId = await createAuction('active')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auctionId}/bids`)
     assert.equal(res.status, 200)
     assert.deepEqual(await res.json(), { bids: [], currentPrice: 1000 })
   })
 
-  it('returns bid history newest first without logging in', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns bid history newest first without logging in', async () => {
     const bidder = await createUser()
     const auctionId = await createAuction('active')
     for (const amount of [1000, 1100, 1250]) {
@@ -285,23 +245,13 @@ describe('GET /api/v1/auctions/:id/bids', () => {
     }
   })
 
-  it('returns history for non-draft auctions in other statuses', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns history for non-draft auctions in other statuses', async () => {
     const auctionId = await createAuction('ended')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auctionId}/bids`)
     assert.equal(res.status, 200)
   })
 
-  it('returns 404 for a draft or missing auction', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns 404 for a draft or missing auction', async () => {
     const draftId = await createAuction('draft')
     const draft = await fetch(`${baseUrl}/api/v1/auctions/${draftId}/bids`)
     assert.equal(draft.status, 404)

@@ -1,6 +1,6 @@
 /**
  * Admin RBAC tests: middleware + users list + role defaults.
- * Uses real MongoDB when available; Google verifier is mocked where needed.
+ * Requires TEST_MONGODB_URI (dedicated test database); Google verifier is mocked where needed.
  */
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -20,11 +20,11 @@ import {
   setGoogleTokenVerifierForTests,
 } from '../services/authService'
 import { registerSchema } from '../validations/authValidation'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
-let mongoReady = false
 const createdUserIds: string[] = []
 let server: http.Server | null = null
 let baseUrl = ''
@@ -49,22 +49,17 @@ async function stopServer(): Promise<void> {
 }
 
 before(async () => {
-  try {
-    await mongoose.connect(mongoUri)
-    mongoReady = true
-  } catch {
-    mongoReady = false
-  }
+  await connectTestDatabase()
   await startServer()
 })
 
 after(async () => {
   await stopServer()
-  if (mongoReady && createdUserIds.length > 0) {
-    await User.deleteMany({ _id: { $in: createdUserIds } })
-  }
-  if (mongoReady) {
-    await mongoose.disconnect()
+  if (mongoose.connection.readyState === 1) {
+    if (createdUserIds.length > 0) {
+      await User.deleteMany({ _id: { $in: createdUserIds } })
+    }
+    await disconnectTestDatabase()
   }
   setGoogleTokenVerifierForTests(null)
 })
@@ -94,12 +89,7 @@ describe('registerSchema role stripping', () => {
 })
 
 describe('Admin RBAC', () => {
-  it('register always creates role user even if role=admin is attempted', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('register always creates role user even if role=admin is attempted', async () => {
     const email = `qa-role-register-${Date.now()}@example.com`
     const user = await registerUser({
       name: 'Role Register',
@@ -117,12 +107,7 @@ describe('Admin RBAC', () => {
     assert.ok(!('passwordHash' in user))
   })
 
-  it('Google OAuth new user defaults to role user', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('Google OAuth new user defaults to role user', async () => {
     const email = `qa-role-google-${Date.now()}@example.com`
     setGoogleTokenVerifierForTests(async () => ({
       sub: `google-sub-role-${Date.now()}`,
@@ -140,12 +125,7 @@ describe('Admin RBAC', () => {
     assert.equal(stored?.role, 'user')
   })
 
-  it('legacy users without role are treated as user in PublicUser', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('legacy users without role are treated as user in PublicUser', async () => {
     const email = `qa-role-legacy-${Date.now()}@example.com`
     const created = await User.create({
       name: 'Legacy',
@@ -170,12 +150,7 @@ describe('Admin RBAC', () => {
     assert.equal(res.status, 401)
   })
 
-  it('GET /api/v1/admin/users → 403 for normal authenticated user', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('GET /api/v1/admin/users → 403 for normal authenticated user', async () => {
     const email = `qa-admin-normal-${Date.now()}@example.com`
     const user = await User.create({
       name: 'Normal User',
@@ -192,12 +167,7 @@ describe('Admin RBAC', () => {
     assert.equal(res.status, 403)
   })
 
-  it('GET /api/v1/admin/users → 200 for admin without secrets', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('GET /api/v1/admin/users → 200 for admin without secrets', async () => {
     const email = `qa-admin-ok-${Date.now()}@example.com`
     const admin = await User.create({
       name: 'Admin User',

@@ -1,6 +1,6 @@
 /**
  * Admin auction API tests.
- * Skips MongoDB cases when the database is unreachable.
+ * Requires TEST_MONGODB_URI (dedicated test database).
  */
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -10,13 +10,13 @@ import mongoose from 'mongoose'
 import app from '../app'
 import { Auction } from '../models/Auction'
 import { User } from '../models/User'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 import { signAccessToken } from '../utils/jwt'
 import { hashPassword } from '../utils/password'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
-let mongoReady = false
 let server: http.Server | null = null
 let baseUrl = ''
 const createdUserIds: string[] = []
@@ -41,12 +41,7 @@ async function startServer(): Promise<void> {
 }
 
 before(async () => {
-  try {
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
-    mongoReady = true
-  } catch {
-    mongoReady = false
-  }
+  await connectTestDatabase()
   await startServer()
 })
 
@@ -56,14 +51,14 @@ after(async () => {
       server!.close((err) => (err ? reject(err) : resolve()))
     })
   }
-  if (mongoReady) {
+  if (mongoose.connection.readyState === 1) {
     if (createdAuctionIds.length > 0) {
       await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     }
     if (createdUserIds.length > 0) {
       await User.deleteMany({ _id: { $in: createdUserIds } })
     }
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   }
 })
 
@@ -93,12 +88,7 @@ describe('Admin auction API', () => {
     assert.equal(res.status, 401)
   })
 
-  it('POST /api/v1/admin/auctions → 403 for a non-admin', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('POST /api/v1/admin/auctions → 403 for a non-admin', async () => {
     const userId = await createUser('user')
     const res = await fetch(`${baseUrl}/api/v1/admin/auctions`, {
       method: 'POST',
@@ -111,12 +101,7 @@ describe('Admin auction API', () => {
     assert.equal(res.status, 403)
   })
 
-  it('creates a draft, edits it, and starts it', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('creates a draft, edits it, and starts it', async () => {
     const adminId = await createUser('admin')
     const headers = {
       Authorization: `Bearer ${signAccessToken({ userId: adminId })}`,
@@ -186,12 +171,7 @@ describe('Admin auction API', () => {
     assert.equal(startAgain.status, 400)
   })
 
-  it('does not start a draft that fails Auction model rules', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('does not start a draft that fails Auction model rules', async () => {
     const adminId = await createUser('admin')
     const auction = await Auction.create({
       whiskyId: 'qa-auction-invalid',

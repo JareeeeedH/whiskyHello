@@ -1,6 +1,6 @@
 /**
  * Review service regression tests against a real MongoDB.
- * Skips the suite when MONGODB_URI is unreachable (no new test infra required).
+ * Requires TEST_MONGODB_URI (dedicated test database).
  */
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
@@ -12,65 +12,55 @@ import {
   deleteReview,
   updateReview,
 } from './reviewService'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 import { AppError } from '../utils/AppError'
 import { hashPassword } from '../utils/password'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
-let mongoReady = false
 let ownerId = ''
 let otherId = ''
 let reviewId = ''
 
 describe('reviewService (integration)', () => {
   before(async () => {
-    try {
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2000 })
-      mongoReady = true
+    await connectTestDatabase()
 
-      await Promise.all([
-        User.deleteMany({ email: /^qa-review-/ }),
-        Review.deleteMany({ whiskyId: 'qa-whisky-1' }),
-      ])
+    await Promise.all([
+      User.deleteMany({ email: /^qa-review-/ }),
+      Review.deleteMany({ whiskyId: 'qa-whisky-1' }),
+    ])
 
-      const [owner, other] = await User.create([
-        {
-          name: 'QA Owner',
-          email: `qa-review-owner-${Date.now()}@example.com`,
-          passwordHash: await hashPassword('password123'),
-        },
-        {
-          name: 'QA Other',
-          email: `qa-review-other-${Date.now()}@example.com`,
-          passwordHash: await hashPassword('password123'),
-        },
-      ])
+    const [owner, other] = await User.create([
+      {
+        name: 'QA Owner',
+        email: `qa-review-owner-${Date.now()}@example.com`,
+        passwordHash: await hashPassword('password123'),
+      },
+      {
+        name: 'QA Other',
+        email: `qa-review-other-${Date.now()}@example.com`,
+        passwordHash: await hashPassword('password123'),
+      },
+    ])
 
-      ownerId = owner.id
-      otherId = other.id
-    } catch {
-      mongoReady = false
-    }
+    ownerId = owner.id
+    otherId = other.id
   })
 
   after(async () => {
-    if (!mongoReady) {
+    if (mongoose.connection.readyState !== 1) {
       return
     }
     await Promise.all([
       Review.deleteMany({ whiskyId: 'qa-whisky-1' }),
       User.deleteMany({ _id: { $in: [ownerId, otherId] } }),
     ])
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   })
 
-  it('creates a review for the authenticated user', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('creates a review for the authenticated user', async () => {
     const review = await createReview(ownerId, {
       whiskyId: 'qa-whisky-1',
       title: 'QA create',
@@ -84,12 +74,7 @@ describe('reviewService (integration)', () => {
     assert.equal(review.title, 'QA create')
   })
 
-  it('rejects update from a non-owner', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects update from a non-owner', async () => {
     await assert.rejects(
       () =>
         updateReview(reviewId, otherId, {
@@ -102,12 +87,7 @@ describe('reviewService (integration)', () => {
     )
   })
 
-  it('allows update from the owner', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('allows update from the owner', async () => {
     const updated = await updateReview(reviewId, ownerId, {
       title: 'QA updated',
       rating: 91,
@@ -116,12 +96,7 @@ describe('reviewService (integration)', () => {
     assert.equal(updated.rating, 91)
   })
 
-  it('rejects delete from a non-owner', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects delete from a non-owner', async () => {
     await assert.rejects(
       () => deleteReview(reviewId, otherId),
       (err: unknown) =>
@@ -129,12 +104,7 @@ describe('reviewService (integration)', () => {
     )
   })
 
-  it('rejects invalid review ObjectId', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects invalid review ObjectId', async () => {
     await assert.rejects(
       () => deleteReview('not-valid-id', ownerId),
       (err: unknown) =>
@@ -142,12 +112,7 @@ describe('reviewService (integration)', () => {
     )
   })
 
-  it('allows delete from the owner', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('allows delete from the owner', async () => {
     await deleteReview(reviewId, ownerId)
     const gone = await Review.findById(reviewId)
     assert.equal(gone, null)

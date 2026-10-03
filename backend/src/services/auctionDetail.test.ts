@@ -1,6 +1,6 @@
 /**
  * Public auction detail API tests.
- * Skips MongoDB cases when the database is unreachable.
+ * Requires TEST_MONGODB_URI (dedicated test database).
  */
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -9,11 +9,11 @@ import { after, before, describe, it } from 'node:test'
 import mongoose from 'mongoose'
 import app from '../app'
 import { Auction } from '../models/Auction'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
-let mongoReady = false
 let server: http.Server | null = null
 let baseUrl = ''
 const createdAuctionIds: string[] = []
@@ -34,12 +34,7 @@ async function createAuction(status: 'draft' | 'active' | 'ended') {
 }
 
 before(async () => {
-  try {
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
-    mongoReady = true
-  } catch {
-    mongoReady = false
-  }
+  await connectTestDatabase()
 
   server = http.createServer(app)
   await new Promise<void>((resolve) => {
@@ -55,21 +50,16 @@ after(async () => {
       server!.close((err) => (err ? reject(err) : resolve()))
     })
   }
-  if (mongoReady) {
+  if (mongoose.connection.readyState === 1) {
     if (createdAuctionIds.length > 0) {
       await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     }
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   }
 })
 
 describe('GET /api/v1/auctions/:id', () => {
-  it('returns an active auction without logging in', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns an active auction without logging in', async () => {
     const auction = await createAuction('active')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auction.id}`)
     assert.equal(res.status, 200)
@@ -97,12 +87,7 @@ describe('GET /api/v1/auctions/:id', () => {
     assert.equal(body.auction.status, 'active')
   })
 
-  it('returns a non-draft auction in another status', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns a non-draft auction in another status', async () => {
     const auction = await createAuction('ended')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auction.id}`)
     assert.equal(res.status, 200)
@@ -110,24 +95,14 @@ describe('GET /api/v1/auctions/:id', () => {
     assert.equal(body.auction.status, 'ended')
   })
 
-  it('returns 404 for a draft auction', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns 404 for a draft auction', async () => {
     const auction = await createAuction('draft')
     const res = await fetch(`${baseUrl}/api/v1/auctions/${auction.id}`)
     assert.equal(res.status, 404)
     assert.deepEqual(await res.json(), { message: 'Auction not found' })
   })
 
-  it('returns 404 when the auction does not exist', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('returns 404 when the auction does not exist', async () => {
     const missingId = new mongoose.Types.ObjectId().toString()
     const res = await fetch(`${baseUrl}/api/v1/auctions/${missingId}`)
     assert.equal(res.status, 404)

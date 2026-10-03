@@ -1,40 +1,33 @@
 /**
  * Auction auto close tests.
- * Skips MongoDB cases when the database is unreachable.
- * `now` is always the real current time so other auctions in the database
- * are never closed before their endAt.
+ * Requires TEST_MONGODB_URI (dedicated test database).
  */
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 import mongoose from 'mongoose'
 import { runAuctionAutoClose } from '../jobs/auctionAutoClose'
 import { Auction } from '../models/Auction'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 import type { AuctionStatus } from '../types/auction'
 import { closeExpiredAuctions } from './auctionService'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
 const DAY_MS = 24 * 60 * 60 * 1000
 
-let mongoReady = false
 const createdAuctionIds: string[] = []
 
 before(async () => {
-  try {
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
-    mongoReady = true
-  } catch {
-    mongoReady = false
-  }
+  await connectTestDatabase()
 })
 
 after(async () => {
-  if (mongoReady) {
+  if (mongoose.connection.readyState === 1) {
     if (createdAuctionIds.length > 0) {
       await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     }
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   }
 })
 
@@ -58,24 +51,14 @@ async function statusOf(id: string): Promise<string | undefined> {
 }
 
 describe('closeExpiredAuctions', () => {
-  it('keeps an active auction active before endAt', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('keeps an active auction active before endAt', async () => {
     const now = new Date()
     const id = await createAuction('active', new Date(now.getTime() + DAY_MS))
     await closeExpiredAuctions(now)
     assert.equal(await statusOf(id), 'active')
   })
 
-  it('ends an active auction when now equals endAt', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('ends an active auction when now equals endAt', async () => {
     const now = new Date()
     const id = await createAuction('active', now)
     const closed = await closeExpiredAuctions(now)
@@ -83,24 +66,14 @@ describe('closeExpiredAuctions', () => {
     assert.equal(await statusOf(id), 'ended')
   })
 
-  it('ends an active auction after endAt', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('ends an active auction after endAt', async () => {
     const now = new Date()
     const id = await createAuction('active', new Date(now.getTime() - 60_000))
     await closeExpiredAuctions(now)
     assert.equal(await statusOf(id), 'ended')
   })
 
-  it('does not reprocess an ended auction', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('does not reprocess an ended auction', async () => {
     const now = new Date()
     const id = await createAuction('ended', new Date(now.getTime() - 60_000))
     const original = await Auction.findById(id)
@@ -112,12 +85,7 @@ describe('closeExpiredAuctions', () => {
     assert.equal(reloaded?.updatedAt.getTime(), original?.updatedAt.getTime())
   })
 
-  it('ignores draft, scheduled and cancelled auctions past endAt', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('ignores draft, scheduled and cancelled auctions past endAt', async () => {
     const now = new Date()
     const pastEndAt = new Date(now.getTime() - 60_000)
     const ids = {
@@ -135,12 +103,7 @@ describe('closeExpiredAuctions', () => {
 })
 
 describe('runAuctionAutoClose', () => {
-  it('ends expired active auctions in MongoDB', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('ends expired active auctions in MongoDB', async () => {
     const id = await createAuction('active', new Date(Date.now() - 1000))
     await runAuctionAutoClose()
     assert.equal(await statusOf(id), 'ended')

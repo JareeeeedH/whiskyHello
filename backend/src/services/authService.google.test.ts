@@ -1,6 +1,6 @@
 /**
  * Google auth unit + integration tests.
- * Google network verification is mocked; MongoDB used when available.
+ * Google network verification is mocked; integration cases require TEST_MONGODB_URI.
  */
 import assert from 'node:assert/strict'
 import { after, before, beforeEach, describe, it } from 'node:test'
@@ -21,11 +21,11 @@ import {
   setGoogleTokenVerifierForTests,
 } from './authService'
 import { googleLoginSchema } from '../validations/authValidation'
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+} from '../test/testDatabase'
 
-const mongoUri =
-  process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/whiskyhello_test'
-
-let mongoReady = false
 const createdUserIds: string[] = []
 
 const mockIdentity = (overrides: Partial<GoogleIdentity> = {}): GoogleIdentity => ({
@@ -106,13 +106,8 @@ describe('buildGoogleIdentityFromPayload', () => {
 
 describe('authService Google + password (integration)', () => {
   before(async () => {
-    try {
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2000 })
-      mongoReady = true
-      await User.deleteMany({ email: /^qa-google-/ })
-    } catch {
-      mongoReady = false
-    }
+    await connectTestDatabase()
+    await User.deleteMany({ email: /^qa-google-/ })
   })
 
   beforeEach(() => {
@@ -121,22 +116,17 @@ describe('authService Google + password (integration)', () => {
 
   after(async () => {
     setGoogleTokenVerifierForTests(null)
-    if (!mongoReady) {
+    if (mongoose.connection.readyState !== 1) {
       return
     }
     if (createdUserIds.length > 0) {
       await User.deleteMany({ _id: { $in: createdUserIds } })
     }
     await User.deleteMany({ email: /^qa-google-/ })
-    await mongoose.disconnect()
+    await disconnectTestDatabase()
   })
 
-  it('creates a new Google user and returns WhiskyHello JWT', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('creates a new Google user and returns WhiskyHello JWT', async () => {
     const identity = mockIdentity({
       email: `qa-google-new-${Date.now()}@example.com`,
       sub: `google-sub-new-${Date.now()}`,
@@ -165,12 +155,7 @@ describe('authService Google + password (integration)', () => {
     assert.equal(stored.role, 'user')
   })
 
-  it('logs in existing googleId user without creating a duplicate', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('logs in existing googleId user without creating a duplicate', async () => {
     const sub = `google-sub-exist-${Date.now()}`
     const email = `qa-google-exist-${Date.now()}@example.com`
     const existing = await User.create({
@@ -199,12 +184,7 @@ describe('authService Google + password (integration)', () => {
     assert.equal(count, 1)
   })
 
-  it('rejects when email exists without googleId (no auto-merge)', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('rejects when email exists without googleId (no auto-merge)', async () => {
     const email = `qa-google-conflict-${Date.now()}@example.com`
     const passwordUser = await User.create({
       name: 'Password User',
@@ -243,12 +223,7 @@ describe('authService Google + password (integration)', () => {
     )
   })
 
-  it('password login on Google-only user returns 401, not server error', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('password login on Google-only user returns 401, not server error', async () => {
     const email = `qa-google-only-login-${Date.now()}@example.com`
     const googleOnly = await User.create({
       name: 'Google Only',
@@ -266,12 +241,7 @@ describe('authService Google + password (integration)', () => {
     )
   })
 
-  it('email/password register and login still work', async (t) => {
-    if (!mongoReady) {
-      t.skip('MongoDB not available')
-      return
-    }
-
+  it('email/password register and login still work', async () => {
     const email = `qa-google-password-${Date.now()}@example.com`
 
     const user = await registerUser({

@@ -33,3 +33,6 @@ export interface PublicAuction {
   createdAt: Date
   updatedAt: Date
 }
+
+/** Auction shape returned from public APIs (no creator id). */
+export type PublicAuctionDetail = Omit<PublicAuction, 'createdBy'>

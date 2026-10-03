@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import adminRoutes from './adminRoutes'
+import auctionRoutes from './auctionRoutes'
 import authRoutes from './authRoutes'
 import reviewRoutes from './reviewRoutes'
 
@@ -15,5 +16,6 @@ router.get('/health', (_req, res) => {
 router.use('/auth', authRoutes)
 router.use('/admin', adminRoutes)
 router.use(reviewRoutes)
+router.use(auctionRoutes)
 
 export default router

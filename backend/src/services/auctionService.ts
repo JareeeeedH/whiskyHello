@@ -1,6 +1,6 @@
 import { Types } from 'mongoose'
 import { Auction } from '../models/Auction'
-import type { PublicAuction } from '../types/auction'
+import type { PublicAuction, PublicAuctionDetail } from '../types/auction'
 import { AppError } from '../utils/AppError'
 import { toPublicAuction } from '../utils/toPublicAuction'
 import type {
@@ -10,6 +10,22 @@ import type {
 
 function isObjectIdString(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value) && Types.ObjectId.isValid(value)
+}
+
+export async function getPublicAuctionById(
+  auctionId: string,
+): Promise<PublicAuctionDetail> {
+  if (!isObjectIdString(auctionId)) {
+    throw new AppError(400, 'Invalid auction id')
+  }
+
+  const auction = await Auction.findById(auctionId)
+  if (!auction || auction.status === 'draft') {
+    throw new AppError(404, 'Auction not found')
+  }
+
+  const { createdBy: _createdBy, ...detail } = toPublicAuction(auction)
+  return detail
 }
 
 export async function listAuctionsForAdmin(): Promise<PublicAuction[]> {

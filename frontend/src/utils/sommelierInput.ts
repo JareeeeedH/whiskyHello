@@ -1,6 +1,5 @@
 import type {
   FlavorTag,
-  SommelierBudget,
   SommelierInput,
   SommelierInputDraft,
   SommelierInputErrors,
@@ -22,6 +21,9 @@ export const FLAVOR_TAG_LABELS: Record<FlavorTag, string> = {
 
 export const FLAVOR_TAGS = Object.keys(FLAVOR_TAG_LABELS) as FlavorTag[]
 
+/** Flavor chips offered in Q1 (§2.6); smoke and peat are asked separately as intensity. */
+export const TASTE_CHOICES: readonly FlavorTag[] = ['sweet', 'fruity', 'floral', 'vanilla', 'woody', 'spicy']
+
 export const OCCASION_LABELS: Record<SommelierOccasion, string> = {
   relaxing: '放鬆、獨飲',
   social: '聚會、朋友小酌',
@@ -31,36 +33,37 @@ export const OCCASION_LABELS: Record<SommelierOccasion, string> = {
   premium: '特別場合、想喝好一點',
 }
 
-export const OCCASIONS = Object.keys(OCCASION_LABELS) as SommelierOccasion[]
+export const INTENSITY_MIN = 0
+export const INTENSITY_MAX = 100
+
+export const BUDGET_MIN = 1000
+export const BUDGET_MAX = 6000
+export const BUDGET_STEP = 100
+export const BUDGET_DEFAULT = 2000
 
 export function createEmptySommelierDraft(): SommelierInputDraft {
   return {
     taste: [],
-    dislikes: [],
-    budgetMin: null,
-    budgetMax: null,
-    occasion: null,
+    peaty: INTENSITY_MIN,
+    smoky: INTENSITY_MIN,
+    budget: BUDGET_DEFAULT,
     freeText: '',
   }
 }
 
-function isFlavorTag(value: unknown): value is FlavorTag {
-  return typeof value === 'string' && (FLAVOR_TAGS as string[]).includes(value)
+function isTasteChoice(value: unknown): value is FlavorTag {
+  return typeof value === 'string' && (TASTE_CHOICES as readonly string[]).includes(value)
 }
 
-function isOccasion(value: unknown): value is SommelierOccasion {
-  return typeof value === 'string' && (OCCASIONS as string[]).includes(value)
-}
-
-/** Returns de-duplicated tags in first-seen order, or null if any value is not a known tag. */
-function normalizeTags(values: unknown): FlavorTag[] | null {
+/** Returns de-duplicated tags in first-seen order, or null if any value is not a Q1 choice. */
+function normalizeTaste(values: unknown): FlavorTag[] | null {
   if (!Array.isArray(values)) {
     return null
   }
 
   const tags: FlavorTag[] = []
   for (const value of values) {
-    if (!isFlavorTag(value)) {
+    if (!isTasteChoice(value)) {
       return null
     }
     if (!tags.includes(value)) {
@@ -70,55 +73,44 @@ function normalizeTags(values: unknown): FlavorTag[] | null {
   return tags
 }
 
-function isValidBudgetValue(value: unknown): boolean {
-  return value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0)
+function isIntegerInRange(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
 }
 
-/** Validates Step 1 form values and produces the normalized Step 1 output (spec §2.4, §3.2). */
+/** Validates the conversational Step 1 values and produces the normalized Step 1 output (§2.6, §3.1). */
 export function validateSommelierInput(draft: SommelierInputDraft): SommelierInputResult {
   const errors: SommelierInputErrors = {}
 
-  const taste = normalizeTags(draft.taste)
+  const taste = normalizeTaste(draft.taste)
   if (!taste) {
     errors.taste = '請從清單中選擇風味'
+  } else if (taste.length === 0) {
+    errors.taste = '請至少選擇一種風味'
   }
 
-  const dislikes = normalizeTags(draft.dislikes)
-  if (!dislikes) {
-    errors.dislikes = '請從清單中選擇風味'
+  if (
+    !isIntegerInRange(draft.peaty, INTENSITY_MIN, INTENSITY_MAX) ||
+    !isIntegerInRange(draft.smoky, INTENSITY_MIN, INTENSITY_MAX)
+  ) {
+    errors.intensity = `強度需為 ${INTENSITY_MIN}–${INTENSITY_MAX} 的整數`
   }
 
-  if (!isValidBudgetValue(draft.budgetMin) || !isValidBudgetValue(draft.budgetMax)) {
-    errors.budget = '預算需為大於或等於 0 的數字'
-  }
-
-  if (draft.occasion !== null && !isOccasion(draft.occasion)) {
-    errors.occasion = '請從清單中選擇情境'
+  if (!isIntegerInRange(draft.budget, BUDGET_MIN, BUDGET_MAX)) {
+    errors.budget = `預算需介於 ${BUDGET_MIN}–${BUDGET_MAX}`
   }
 
   if (typeof draft.freeText !== 'string') {
     errors.freeText = '補充說明格式不正確'
   }
 
-  if (!taste || !dislikes || Object.keys(errors).length > 0) {
+  if (!taste || Object.keys(errors).length > 0) {
     return { ok: false, errors }
   }
 
-  const value: SommelierInput = { taste, dislikes }
-
-  const budget: SommelierBudget = {}
-  if (draft.budgetMin !== null) {
-    budget.min = draft.budgetMin
-  }
-  if (draft.budgetMax !== null) {
-    budget.max = draft.budgetMax
-  }
-  if (budget.min !== undefined || budget.max !== undefined) {
-    value.budget = budget
-  }
-
-  if (isOccasion(draft.occasion)) {
-    value.occasion = draft.occasion
+  const value: SommelierInput = {
+    taste,
+    intensity: { peaty: draft.peaty, smoky: draft.smoky },
+    budget: { max: draft.budget },
   }
 
   const freeText = draft.freeText.trim()

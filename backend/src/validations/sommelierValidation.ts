@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { FLAVOR_TAGS, STEP1_OCCASIONS } from '../types/sommelier'
+import { FLAVOR_TAGS, INTENSITY_MAX, INTENSITY_MIN, STEP1_OCCASIONS } from '../types/sommelier'
 import type { SommelierInput } from '../types/sommelier'
 
 /** Upper bound on text forwarded to the LLM. */
@@ -16,7 +16,6 @@ function flavorTagList(label: string) {
         }),
     )
     .unique()
-    .required()
     .messages({
       'array.base': `${label} must be an array`,
       'array.unique': `${label} must not contain duplicate tags`,
@@ -33,9 +32,28 @@ const budgetValue = (label: string) =>
       'number.infinity': `Budget ${label} must be a number`,
     })
 
+const intensityValue = (label: string) =>
+  Joi.number()
+    .integer()
+    .min(INTENSITY_MIN)
+    .max(INTENSITY_MAX)
+    .messages({
+      'number.base': `Intensity ${label} must be a number`,
+      'number.integer': `Intensity ${label} must be an integer`,
+      'number.min': `Intensity ${label} must be at least ${INTENSITY_MIN}`,
+      'number.max': `Intensity ${label} must be at most ${INTENSITY_MAX}`,
+      'number.infinity': `Intensity ${label} must be a number`,
+    })
+
 export const preferenceRequestSchema = Joi.object({
-  taste: flavorTagList('Taste'),
-  dislikes: flavorTagList('Dislikes'),
+  taste: flavorTagList('Taste').required(),
+  dislikes: flavorTagList('Dislikes').default([]),
+  intensity: Joi.object({
+    peaty: intensityValue('peaty'),
+    smoky: intensityValue('smoky'),
+  }).messages({
+    'object.base': 'Intensity must be an object',
+  }),
   budget: Joi.object({
     min: budgetValue('min'),
     max: budgetValue('max'),

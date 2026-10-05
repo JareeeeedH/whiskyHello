@@ -41,10 +41,20 @@ export interface PreferenceBudget {
   max?: number
 }
 
-/** Step 1 output sent by the frontend (§3.2). */
+export const INTENSITY_MIN = 0
+export const INTENSITY_MAX = 100
+
+/** Peat and smoke intensity on a 0–100 scale (§2.5). */
+export interface PreferenceIntensity {
+  peaty?: number
+  smoky?: number
+}
+
+/** Validated Step 1 input (§3.2); validation defaults a missing `dislikes` to []. */
 export interface SommelierInput {
   taste: FlavorTag[]
   dislikes: FlavorTag[]
+  intensity?: PreferenceIntensity
   budget?: PreferenceBudget
   occasion?: Step1Occasion
   freeText?: string
@@ -69,6 +79,7 @@ export interface PreferenceExtraction {
 export interface Preference {
   taste: PreferenceTaste[]
   dislikes: FlavorTag[]
+  intensity?: PreferenceIntensity
   budget?: PreferenceBudget
   occasion?: PreferenceOccasion
   mood?: Mood

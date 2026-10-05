@@ -3,8 +3,8 @@ import type {
   SommelierCompanion,
   SommelierMood,
   TasteLevel,
-} from '../types/sommelier'
-import { OCCASION_LABELS } from './sommelierInput'
+} from '../types/sommelier.ts'
+import { OCCASION_LABELS } from './sommelierInput.ts'
 
 export const TASTE_LEVEL_LABELS: Record<TasteLevel, string> = {
   low: '輕微',

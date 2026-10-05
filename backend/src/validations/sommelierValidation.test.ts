@@ -27,6 +27,29 @@ describe('preferenceRequestSchema', () => {
     assert.equal(value.freeText, '想找適合晚上慢慢喝的酒')
   })
 
+  it('accepts intensity at the 0 and 100 boundaries and a partial intensity', () => {
+    for (const intensity of [{ peaty: 0, smoky: 100 }, { peaty: 55 }, {}]) {
+      const { error, value } = preferenceRequestSchema.validate({ taste: [], dislikes: [], intensity })
+      assert.equal(error, undefined)
+      assert.deepEqual(value.intensity, intensity)
+    }
+  })
+
+  it('defaults dislikes to [] for the conversational Step 1 input', () => {
+    const { error, value } = preferenceRequestSchema.validate({
+      taste: ['sweet'],
+      intensity: { peaty: 0, smoky: 30 },
+      budget: { max: 2000 },
+    })
+    assert.equal(error, undefined)
+    assert.deepEqual(value, {
+      taste: ['sweet'],
+      dislikes: [],
+      intensity: { peaty: 0, smoky: 30 },
+      budget: { max: 2000 },
+    })
+  })
+
   it('strips unknown fields', () => {
     const { error, value } = preferenceRequestSchema.validate(
       { taste: [], dislikes: [], mood: 'positive' },
@@ -38,12 +61,17 @@ describe('preferenceRequestSchema', () => {
 
   const invalidBodies: Array<[string, unknown]> = [
     ['missing taste', { dislikes: [] }],
-    ['missing dislikes', { taste: [] }],
+    ['dislikes not an array', { taste: [], dislikes: 'peaty' }],
     ['taste not an array', { taste: 'sweet', dislikes: [] }],
     ['unknown flavor tag', { taste: ['salty'], dislikes: [] }],
     ['duplicate tags', { taste: ['sweet', 'sweet'], dislikes: [] }],
     ['negative budget', { taste: [], dislikes: [], budget: { min: -1 } }],
     ['non-numeric budget', { taste: [], dislikes: [], budget: { max: 'cheap' } }],
+    ['intensity not an object', { taste: [], dislikes: [], intensity: 50 }],
+    ['intensity below 0', { taste: [], dislikes: [], intensity: { peaty: -1 } }],
+    ['intensity above 100', { taste: [], dislikes: [], intensity: { smoky: 101 } }],
+    ['non-integer intensity', { taste: [], dislikes: [], intensity: { peaty: 12.5 } }],
+    ['non-numeric intensity', { taste: [], dislikes: [], intensity: { smoky: 'high' } }],
     ['date occasion from Step 1', { taste: [], dislikes: [], occasion: 'date' }],
     ['unknown occasion', { taste: [], dislikes: [], occasion: 'party' }],
     ['non-string freeText', { taste: [], dislikes: [], freeText: 123 }],

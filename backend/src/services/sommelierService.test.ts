@@ -326,6 +326,42 @@ describe('mergePreference', () => {
     assert.equal('mood' in mergePreference(input(), sanitizeExtraction(llmOutput())), false)
   })
 
+  it('passes Step 1 intensity through unchanged, including 0', () => {
+    const preference = mergePreference(
+      input({ intensity: { peaty: 0, smoky: 65 } }),
+      sanitizeExtraction(llmOutput({ taste: [{ tag: 'smoky', level: 'high' }] })),
+    )
+
+    assert.deepEqual(preference.intensity, { peaty: 0, smoky: 65 })
+    assert.deepEqual(preference.taste, [{ tag: 'smoky', level: 'high' }])
+    assert.deepEqual(
+      mergePreference(input({ intensity: { smoky: 30 } }), sanitizeExtraction(llmOutput())).intensity,
+      { smoky: 30 },
+    )
+  })
+
+  it('keeps natural-language peat and smoke alongside the unchanged Step 1 intensity', () => {
+    const extraction = sanitizeExtraction(
+      llmOutput({
+        taste: [{ tag: 'sweet', level: 'low' }],
+        dislikes: ['smoky'],
+      }),
+    )
+
+    const preference = mergePreference(input({ intensity: { peaty: 20, smoky: 53 } }), extraction)
+    assert.deepEqual(preference.taste, [{ tag: 'sweet', level: 'low' }])
+    assert.deepEqual(preference.dislikes, ['smoky'])
+    assert.deepEqual(preference.intensity, { peaty: 20, smoky: 53 })
+  })
+
+  it('omits intensity when Step 1 has no intensity values', () => {
+    assert.equal('intensity' in mergePreference(input(), sanitizeExtraction(llmOutput())), false)
+    assert.equal(
+      'intensity' in mergePreference(input({ intensity: {} }), sanitizeExtraction(llmOutput())),
+      false,
+    )
+  })
+
   it('takes companion only from the LLM', () => {
     assert.equal(
       mergePreference(input(), sanitizeExtraction(llmOutput({ companion: 'family' }))).companion,
@@ -409,7 +445,12 @@ describe('POST /api/v1/sommelier/preference', () => {
   it('rejects an invalid request with the validation error format', async () => {
     const create = mockExtraction(llmOutput())
 
-    const result = await post({ taste: ['salty'], budget: { min: -1 }, freeText: '想喝甜的' })
+    const result = await post({
+      taste: ['salty'],
+      dislikes: 'peaty',
+      budget: { min: -1 },
+      freeText: '想喝甜的',
+    })
 
     assert.equal(result.status, 400)
     assert.equal(result.body.message, 'Validation failed')
@@ -428,6 +469,97 @@ describe('POST /api/v1/sommelier/preference', () => {
       preference: { taste: [{ tag: 'sweet', level: 'medium' }], dislikes: [] },
     })
     assert.equal(create.mock.callCount(), 0)
+  })
+
+  it('returns intensity and a max-only budget from the conversational UI', async () => {
+    const create = mockExtraction(llmOutput())
+
+    const result = await post({
+      taste: ['fruity'],
+      dislikes: [],
+      intensity: { peaty: 20, smoky: 0 },
+      budget: { max: 3500 },
+    })
+
+    assert.equal(result.status, 200)
+    assert.deepEqual(result.body.preference, {
+      taste: [{ tag: 'fruity', level: 'medium' }],
+      dislikes: [],
+      intensity: { peaty: 20, smoky: 0 },
+      budget: { max: 3500 },
+    })
+    assert.equal(create.mock.callCount(), 0)
+  })
+
+  it('accepts the conversational Step 1 contract without dislikes', async () => {
+    const create = mockExtraction(llmOutput())
+
+    const result = await post({
+      taste: ['sweet', 'fruity'],
+      intensity: { peaty: 0, smoky: 30 },
+      budget: { max: 2000 },
+    })
+
+    assert.equal(result.status, 200)
+    assert.deepEqual(result.body.preference, {
+      taste: [
+        { tag: 'sweet', level: 'medium' },
+        { tag: 'fruity', level: 'medium' },
+      ],
+      dislikes: [],
+      intensity: { peaty: 0, smoky: 30 },
+      budget: { max: 2000 },
+    })
+    assert.equal(create.mock.callCount(), 0)
+  })
+
+  it('keeps Step 1 intensity unchanged while freeText smoke/peat wording reaches the Preference', async () => {
+    const create = mockExtraction(
+      llmOutput({ taste: [{ tag: 'sweet', level: 'medium' }], dislikes: ['smoky'], mood: 'low' }),
+    )
+
+    const result = await post({
+      taste: ['sweet', 'fruity'],
+      intensity: { peaty: 20, smoky: 53 },
+      budget: { max: 2000 },
+      freeText: '今天有點累，想喝甜一點的，但不要太煙燻。',
+    })
+
+    assert.equal(result.status, 200)
+    assert.equal(create.mock.callCount(), 1)
+    assert.deepEqual(result.body.preference, {
+      taste: [
+        { tag: 'sweet', level: 'medium' },
+        { tag: 'fruity', level: 'medium' },
+      ],
+      dislikes: ['smoky'],
+      intensity: { peaty: 20, smoky: 53 },
+      budget: { max: 2000 },
+      mood: 'low',
+    })
+  })
+
+  it('keeps intensity alongside the LLM extraction when freeText is provided', async () => {
+    const create = mockExtraction(llmOutput({ mood: 'positive', companion: 'date' }))
+
+    const result = await post({
+      taste: ['sweet'],
+      dislikes: [],
+      intensity: { peaty: 0, smoky: 10 },
+      budget: { max: 3000 },
+      freeText: '今晚約會，想喝舒服一點',
+    })
+
+    assert.equal(result.status, 200)
+    assert.equal(create.mock.callCount(), 1)
+    assert.deepEqual(result.body.preference, {
+      taste: [{ tag: 'sweet', level: 'medium' }],
+      dislikes: [],
+      intensity: { peaty: 0, smoky: 10 },
+      budget: { max: 3000 },
+      mood: 'positive',
+      companion: 'date',
+    })
   })
 
   it('returns the merged Preference when freeText is provided', async () => {

@@ -2,18 +2,20 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import type { SommelierInputDraft } from '../types/sommelier.ts'
 import {
+  BUDGET_MAX,
+  BUDGET_MIN,
   FLAVOR_TAGS,
-  OCCASIONS,
+  TASTE_CHOICES,
   createEmptySommelierDraft,
   validateSommelierInput,
 } from './sommelierInput.ts'
 
 function draft(overrides: Partial<SommelierInputDraft> = {}): SommelierInputDraft {
-  return { ...createEmptySommelierDraft(), ...overrides }
+  return { ...createEmptySommelierDraft(), taste: ['sweet'], ...overrides }
 }
 
 describe('sommelier step 1 options', () => {
-  it('exposes the spec flavor tags and occasions in order', () => {
+  it('keeps all spec flavor tags for extraction', () => {
     assert.deepEqual(FLAVOR_TAGS, [
       'sweet',
       'fruity',
@@ -25,27 +27,43 @@ describe('sommelier step 1 options', () => {
       'peaty',
       'maritime',
     ])
-    assert.deepEqual(OCCASIONS, ['relaxing', 'social', 'meal', 'gift', 'beginner', 'premium'])
+  })
+
+  it('offers only the six Q1 flavor chips in order', () => {
+    assert.deepEqual(TASTE_CHOICES, ['sweet', 'fruity', 'floral', 'vanilla', 'woody', 'spicy'])
+  })
+
+  it('starts with zero intensity, a NT$ 2,000 budget and no free text', () => {
+    assert.deepEqual(createEmptySommelierDraft(), {
+      taste: [],
+      peaty: 0,
+      smoky: 0,
+      budget: 2000,
+      freeText: '',
+    })
   })
 })
 
 describe('validateSommelierInput', () => {
-  it('returns only empty taste and dislikes arrays for an empty form', () => {
+  it('always sends the displayed intensity and budget, even untouched', () => {
     assert.deepEqual(validateSommelierInput(draft()), {
       ok: true,
-      value: { taste: [], dislikes: [] },
+      value: {
+        taste: ['sweet'],
+        intensity: { peaty: 0, smoky: 0 },
+        budget: { max: 2000 },
+      },
     })
   })
 
-  it('normalizes a fully filled form', () => {
+  it('normalizes a fully answered conversation without legacy fields', () => {
     const result = validateSommelierInput(
       draft({
         taste: ['fruity', 'vanilla'],
-        dislikes: ['peaty'],
-        budgetMin: 1000,
-        budgetMax: 3000,
-        occasion: 'relaxing',
-        freeText: '  想找適合晚上慢慢喝、不要太烈的酒  ',
+        peaty: 0,
+        smoky: 30,
+        budget: 3500,
+        freeText: '  今晚和女朋友約會，想喝舒服一點，不要太重  ',
       }),
     )
 
@@ -53,102 +71,96 @@ describe('validateSommelierInput', () => {
       ok: true,
       value: {
         taste: ['fruity', 'vanilla'],
-        dislikes: ['peaty'],
-        budget: { min: 1000, max: 3000 },
-        occasion: 'relaxing',
-        freeText: '想找適合晚上慢慢喝、不要太烈的酒',
+        intensity: { peaty: 0, smoky: 30 },
+        budget: { max: 3500 },
+        freeText: '今晚和女朋友約會，想喝舒服一點，不要太重',
       },
     })
-  })
-
-  it('removes duplicate tags while keeping first-seen order', () => {
-    const result = validateSommelierInput(
-      draft({ taste: ['smoky', 'sweet', 'smoky'], dislikes: ['floral', 'floral'] }),
-    )
-
-    assert.equal(result.ok, true)
     if (result.ok) {
-      assert.deepEqual(result.value.taste, ['smoky', 'sweet'])
-      assert.deepEqual(result.value.dislikes, ['floral'])
-    }
-  })
-
-  it('rejects unknown taste and dislike tags', () => {
-    const result = validateSommelierInput(draft({ taste: ['sweet', 'salty'], dislikes: ['umami'] }))
-
-    assert.equal(result.ok, false)
-    if (!result.ok) {
-      assert.ok(result.errors.taste)
-      assert.ok(result.errors.dislikes)
-    }
-  })
-
-  it('rejects taste or dislikes that are not arrays', () => {
-    const result = validateSommelierInput(
-      draft({ taste: 'sweet' as unknown as string[], dislikes: null as unknown as string[] }),
-    )
-
-    assert.equal(result.ok, false)
-    if (!result.ok) {
-      assert.ok(result.errors.taste)
-      assert.ok(result.errors.dislikes)
-    }
-  })
-
-  it('keeps a budget with only min or only max, including 0', () => {
-    const onlyMin = validateSommelierInput(draft({ budgetMin: 0 }))
-    const onlyMax = validateSommelierInput(draft({ budgetMax: 2000 }))
-
-    assert.deepEqual(onlyMin.ok && onlyMin.value.budget, { min: 0 })
-    assert.deepEqual(onlyMax.ok && onlyMax.value.budget, { max: 2000 })
-  })
-
-  it('omits budget when neither min nor max is provided', () => {
-    const result = validateSommelierInput(draft())
-
-    assert.equal(result.ok, true)
-    if (result.ok) {
-      assert.equal('budget' in result.value, false)
-    }
-  })
-
-  for (const invalid of [-1, Number.NaN, Number.POSITIVE_INFINITY, '100' as unknown as number]) {
-    it(`rejects budget value ${String(invalid)}`, () => {
-      const asMin = validateSommelierInput(draft({ budgetMin: invalid }))
-      const asMax = validateSommelierInput(draft({ budgetMax: invalid }))
-
-      assert.equal(asMin.ok, false)
-      assert.equal(asMax.ok, false)
-      if (!asMin.ok) assert.ok(asMin.errors.budget)
-      if (!asMax.ok) assert.ok(asMax.errors.budget)
-    })
-  }
-
-  it('rejects occasions outside the step 1 list, including date', () => {
-    for (const occasion of ['party', 'date']) {
-      const result = validateSommelierInput(draft({ occasion }))
-      assert.equal(result.ok, false)
-      if (!result.ok) {
-        assert.ok(result.errors.occasion)
-      }
-    }
-  })
-
-  it('omits occasion when not selected', () => {
-    const result = validateSommelierInput(draft({ occasion: null }))
-
-    assert.equal(result.ok, true)
-    if (result.ok) {
+      assert.equal('dislikes' in result.value, false)
       assert.equal('occasion' in result.value, false)
     }
   })
 
-  it('treats whitespace-only freeText as not provided', () => {
-    const result = validateSommelierInput(draft({ freeText: ' \n\t ' }))
+  it('requires at least one flavor', () => {
+    const result = validateSommelierInput(draft({ taste: [] }))
+
+    assert.equal(result.ok, false)
+    if (!result.ok) {
+      assert.ok(result.errors.taste)
+    }
+  })
+
+  it('removes duplicate tags while keeping first-seen order', () => {
+    const result = validateSommelierInput(draft({ taste: ['woody', 'sweet', 'woody'] }))
 
     assert.equal(result.ok, true)
     if (result.ok) {
-      assert.equal('freeText' in result.value, false)
+      assert.deepEqual(result.value.taste, ['woody', 'sweet'])
+    }
+  })
+
+  it('rejects unknown tags and tags not offered in Q1', () => {
+    for (const tag of ['salty', 'smoky', 'peaty', 'maritime']) {
+      const result = validateSommelierInput(draft({ taste: ['sweet', tag] }))
+      assert.equal(result.ok, false)
+      if (!result.ok) {
+        assert.ok(result.errors.taste)
+      }
+    }
+  })
+
+  it('rejects taste that is not an array', () => {
+    const result = validateSommelierInput(draft({ taste: 'sweet' as unknown as string[] }))
+
+    assert.equal(result.ok, false)
+    if (!result.ok) {
+      assert.ok(result.errors.taste)
+    }
+  })
+
+  it('accepts intensity at the 0 and 100 boundaries', () => {
+    const result = validateSommelierInput(draft({ peaty: 0, smoky: 100 }))
+
+    assert.deepEqual(result.ok && result.value.intensity, { peaty: 0, smoky: 100 })
+  })
+
+  for (const invalid of [-1, 101, 12.5, Number.NaN, '50' as unknown as number]) {
+    it(`rejects intensity value ${String(invalid)}`, () => {
+      const asPeaty = validateSommelierInput(draft({ peaty: invalid }))
+      const asSmoky = validateSommelierInput(draft({ smoky: invalid }))
+
+      assert.equal(asPeaty.ok, false)
+      assert.equal(asSmoky.ok, false)
+      if (!asPeaty.ok) assert.ok(asPeaty.errors.intensity)
+      if (!asSmoky.ok) assert.ok(asSmoky.errors.intensity)
+    })
+  }
+
+  it('maps the budget slider to a max-only budget, including its boundaries', () => {
+    for (const budget of [BUDGET_MIN, 2000, 3500, BUDGET_MAX]) {
+      const result = validateSommelierInput(draft({ budget }))
+      assert.deepEqual(result.ok && result.value.budget, { max: budget })
+    }
+  })
+
+  for (const invalid of [900, 6100, 2500.5, Number.POSITIVE_INFINITY, '3000' as unknown as number]) {
+    it(`rejects budget value ${String(invalid)}`, () => {
+      const result = validateSommelierInput(draft({ budget: invalid }))
+
+      assert.equal(result.ok, false)
+      if (!result.ok) assert.ok(result.errors.budget)
+    })
+  }
+
+  it('omits freeText when skipped or whitespace-only', () => {
+    for (const freeText of ['', ' \n\t ']) {
+      const result = validateSommelierInput(draft({ freeText }))
+
+      assert.equal(result.ok, true)
+      if (result.ok) {
+        assert.equal('freeText' in result.value, false)
+      }
     }
   })
 })

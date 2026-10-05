@@ -50,7 +50,10 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 | 欄位 | 用途 | 是否必填 | 可否為空 |
 |---|---|---|---|
 | `taste` | 這次喜歡、想喝到的風味 | 必填 | 可為空陣列 `[]` |
-| `dislikes` | 這次不想要的風味 | 必填 | 可為空陣列 `[]` |
+| `dislikes` | 這次不想要的風味（舊欄位，對話式 UI 不送出） | 選填 | 省略時視為 `[]` |
+| `intensity` | 泥煤與煙燻的強度（2.5） | 選填 | 可省略 |
+| `intensity.peaty` | 泥煤強度 | 選填 | 可省略 |
+| `intensity.smoky` | 煙燻強度 | 選填 | 可省略 |
 | `budget` | 這次的價格範圍 | 選填 | 可省略 |
 | `budget.min` | 預算下限 | 選填 | 可省略 |
 | `budget.max` | 預算上限 | 選填 | 可省略 |
@@ -60,9 +63,45 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 ### 2.4 欄位規則
 
 - `taste`、`dislikes`：可複選，值只能是 2.1 的 Flavor Tags，同一陣列內不重複
+- `intensity.peaty`、`intensity.smoky`：整數，0–100；可只填其中一個
 - `budget.min`、`budget.max`：數字，>= 0；可只填其中一個
 - `occasion`：單選，值只能是 2.2 的 Occasion
 - `freeText`：字串；去除前後空白後為空時視為未填
+
+### 2.5 Intensity
+
+以 0–100 的刻度表示使用者希望的泥煤（`peaty`）與煙燻（`smoky`）程度：
+
+| 值 | 說明 |
+|---|---|
+| `0` | 不想要 |
+| `1`–`100` | 數字越大越強烈 |
+
+### 2.6 對話式 UI（AI Sommelier 問答）
+
+`/sommelier` 以對話方式固定詢問 4 題，一次只顯示目前的問題（進度 01 / 04 – 04 / 04）：
+
+| 題目 | 對應欄位 | UI 行為 |
+|---|---|---|
+| Q1「這次想喝到哪些風味？」 | `taste` | 複選 `sweet`、`fruity`、`floral`、`vanilla`、`woody`、`spicy`；至少選 1 個才能繼續 |
+| Q2「泥煤與煙燻，你希望到什麼程度？」 | `intensity` | 兩個 Slider（0–100，間隔 1，預設 0）；0 代表這次不想要；沒移動也送出目前值 |
+| Q3「這次大概想把預算控制在哪裡？」 | `budget.max` | 單一 Slider（1,000–6,000，間隔 100，預設 2,000）；值代表「以內」，沒移動也送出 2,000 |
+| Q4「還有什麼想告訴我的嗎？」 | `freeText` | 自然語言輸入；「完成」送出，「跳過」不送 `freeText`；去除前後空白後為空時視為未填 |
+
+頁面以聊天形式呈現：Sommelier 訊息在左（連續訊息共用一個 `S` 頭像），使用者訊息在右；作答 UI 位於對話最下方，作為回覆輸入區。尚未問到的題目不顯示。
+
+每題的節奏：
+
+> 使用者回答（作答 UI 淡出，轉為右側 `YOU` 訊息，例如「甜感 · 果香」、「預算 NT$ 2,000」）→ 0.2–0.4 秒後進入 Thinking State（0.8–1.5 秒）→ Sommelier 回應（1 句）→ 下一題 → 回覆輸入區出現
+
+- Thinking State 與 Sommelier 回應為固定文案（deterministic templates），依步驟與回答內容選用，不呼叫 LLM、不新增任何 API 請求
+- Sommelier 回應只複述已提供的資訊，不推薦酒款、不推測使用者沒提供的內容
+- 已回答的內容可以「修改」，回到該題並保留所有回答；重新作答後，之後的對話重新進行
+- Q4 完成或跳過後，立即送出 3.1 的 Step 1 Input（Step 2）；Thinking State 至少維持最短時間，API 較慢時持續到回應為止（超過 4 秒改顯示「還在整理，馬上就好…」）
+- Step 2 成功後，Sommelier 依 Preference 產生收尾訊息（4.8：`freeText` 提到的泥煤／煙燻優先於 Slider 的描述），接著顯示「查看偏好輪廓」；點擊後經 Thinking State 顯示偏好輪廓（4.9）
+- Step 2 失敗時，Sommelier 以訊息說明錯誤，並提供「重試」與「修改需求」
+- UI 不提供 `dislikes` 與 `occasion`；API 仍接受這兩個欄位
+- `smoky`、`peaty`、`maritime` 保留在 Flavor Tags 中，供 `freeText` 萃取與 API 相容使用
 
 ---
 
@@ -70,12 +109,53 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 
 ### 3.1 Input
 
-使用者在 Step 1 送出的資料：
+對話式 UI（2.6）送出的 Step 1 Input：
+
+```ts
+type SommelierInput = {
+  taste: string[]          // 至少 1 個
+  intensity: {
+    peaty: number          // 0–100
+    smoky: number          // 0–100
+  }
+  budget?: {
+    max?: number           // Q3 Slider 的值
+  }
+  freeText?: string        // Q4 跳過或空白時省略
+}
+```
+
+範例：
+
+```json
+{
+  "taste": ["sweet", "fruity", "vanilla"],
+  "intensity": { "peaty": 0, "smoky": 30 },
+  "budget": { "max": 2000 },
+  "freeText": "今晚和女朋友約會，想喝舒服一點，不要太重。"
+}
+```
+
+Q4 跳過：
+
+```json
+{
+  "taste": ["sweet"],
+  "intensity": { "peaty": 0, "smoky": 0 },
+  "budget": { "max": 2000 }
+}
+```
+
+`POST /api/v1/sommelier/preference` 為相容舊用法，仍接受以下完整欄位（`taste` 以外皆可省略，`dislikes` 省略時視為 `[]`）：
 
 ```ts
 {
   taste: string[]
-  dislikes: string[]
+  dislikes?: string[]
+  intensity?: {
+    peaty?: number
+    smoky?: number
+  }
   budget?: {
     min?: number
     max?: number
@@ -85,24 +165,11 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 }
 ```
 
-範例：
+API 最小輸入：
 
 ```json
 {
-  "taste": ["fruity", "vanilla"],
-  "dislikes": ["peaty"],
-  "budget": { "min": 1000, "max": 3000 },
-  "occasion": "relaxing",
-  "freeText": "想找適合晚上慢慢喝、不要太烈的酒"
-}
-```
-
-最小輸入：
-
-```json
-{
-  "taste": [],
-  "dislikes": []
+  "taste": []
 }
 ```
 
@@ -110,7 +177,7 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 
 Step 1 的輸出為驗證並整理後的使用者需求，結構與 Input 相同，作為後續 Step 的輸入：
 
-- `taste`、`dislikes` 一定存在（沒有選擇時為 `[]`）
+- `taste`、`dislikes` 一定存在（沒有選擇時為 `[]`；`dislikes` 由 Backend 驗證補上）
 - 未填的選填欄位不出現在輸出中
 - `freeText` 已去除前後空白
 
@@ -217,6 +284,8 @@ LLM Extraction 結果（所有欄位皆可省略）：
 | `taste` | 取聯集；Step 1 的 Tag 轉為 `level: medium`；同一 Tag 兩邊都有時使用 LLM 的 `level` |
 | `dislikes` | 取聯集 |
 | `taste` ↔ `dislikes` | Step 1 `taste` 的 Tag 出現在 LLM `dislikes` 時，從 `taste` 移除；Step 1 `dislikes` 的 Tag 出現在 LLM `taste` 時，從 `dislikes` 移除 |
+| `intensity` | 只來自 Step 1，原樣保留（包含 `0`）；LLM 不萃取此欄位 |
+| `intensity` ↔ LLM `peaty`／`smoky` | `intensity` 數值不被修改；`freeText` 提到的泥煤／煙燻照一般規則進入 `taste`／`dislikes`。兩者衝突時，自然語言（`taste`／`dislikes` 中的 `peaty`、`smoky`）優先，對話式 UI 的總結以它為準 |
 | `budget` | `min`、`max` 各自判斷：LLM 有萃取的值覆蓋 Step 1；LLM 未提及的值保留 Step 1 |
 | `occasion` | LLM 有萃取時覆蓋 Step 1；否則保留 Step 1 |
 | `mood` | 只來自 LLM |
@@ -271,6 +340,10 @@ type Preference = {
     level: 'low' | 'medium' | 'high'
   }[]
   dislikes: string[]                   // 2.1 Flavor Tags
+  intensity?: {                        // 2.5 Intensity
+    peaty?: number
+    smoky?: number
+  }
   budget?: {
     min?: number
     max?: number
@@ -284,6 +357,7 @@ type Preference = {
 - `taste`、`dislikes` 一定存在（沒有資料時為 `[]`），同一陣列內 Tag 不重複
 - 同一個 Tag 不會同時出現在 `taste` 與 `dislikes`（依 4.8 處理 Step 1 與 LLM 之間的衝突）
 - 沒有資料的選填欄位不出現
+- `intensity` 沒有 `peaty` 也沒有 `smoky` 時不出現
 - `budget` 沒有 `min` 也沒有 `max` 時不出現
 
 範例：
@@ -320,8 +394,7 @@ type Preference = {
 
 - LLM 供應商、模型與 Prompt
 - LLM 呼叫失敗、逾時或回傳格式錯誤時的處理方式
-- 合併後 `budget.min` 大於 `budget.max` 時的處理方式
-- Step 1 表單是否加入 `occasion: date`
+- 合併後 `budget.min` 大於 `budget.max` 時的處理方式- Step 1 表單是否加入 `occasion: date`
 - `Preference` 是否保留原始 `freeText` 供後續 Step 使用
 - `freeText` 支援的語言
 - Preference 是否需要儲存

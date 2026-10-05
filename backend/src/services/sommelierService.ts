@@ -10,6 +10,7 @@ import type {
   Preference,
   PreferenceBudget,
   PreferenceExtraction,
+  PreferenceIntensity,
   PreferenceTaste,
   SommelierInput,
 } from '../types/sommelier'
@@ -42,6 +43,17 @@ function buildBudget(min: number | undefined, max: number | undefined): Preferen
   return {
     ...(min !== undefined ? { min } : {}),
     ...(max !== undefined ? { max } : {}),
+  }
+}
+
+/** Copies only the defined intensity values; returns undefined when none are set. */
+function buildIntensity(intensity: PreferenceIntensity | undefined): PreferenceIntensity | undefined {
+  if (intensity?.peaty === undefined && intensity?.smoky === undefined) {
+    return undefined
+  }
+  return {
+    ...(intensity.peaty !== undefined ? { peaty: intensity.peaty } : {}),
+    ...(intensity.smoky !== undefined ? { smoky: intensity.smoky } : {}),
   }
 }
 
@@ -102,8 +114,9 @@ export function sanitizeExtraction(raw: unknown): PreferenceExtraction {
 
 /**
  * Merges Step 1 input with the validated extraction (§4.8). freeText wins on
- * conflicts. When Step 1 alone lists a tag as both taste and dislike, taste is
- * kept so every tag ends up in exactly one array.
+ * conflicts; Step 1 intensity values are kept as entered. When Step 1 alone
+ * lists a tag as both taste and dislike, taste is kept so every tag ends up in
+ * exactly one array.
  */
 export function mergePreference(
   input: SommelierInput,
@@ -136,6 +149,11 @@ export function mergePreference(
   }
 
   const preference: Preference = { taste, dislikes }
+
+  const intensity = buildIntensity(input.intensity)
+  if (intensity) {
+    preference.intensity = intensity
+  }
 
   const budget = buildBudget(
     extraction.budget?.min ?? input.budget?.min,

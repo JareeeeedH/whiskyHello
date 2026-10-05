@@ -24,26 +24,33 @@ export interface SommelierBudget {
   max?: number
 }
 
-/** Normalized Step 1 output (§3.2); the input for Step 2 Preference Extraction. */
+/** Peat and smoke intensity on a 0–100 scale (§2.5), as returned in a Preference. */
+export interface SommelierIntensity {
+  peaty?: number
+  smoky?: number
+}
+
+/** Normalized Step 1 output (§3.1); the input for Step 2 Preference Extraction. */
 export interface SommelierInput {
   taste: FlavorTag[]
-  dislikes: FlavorTag[]
-  budget?: SommelierBudget
-  occasion?: SommelierOccasion
+  intensity: {
+    peaty: number
+    smoky: number
+  }
+  budget?: Pick<SommelierBudget, 'max'>
   freeText?: string
 }
 
-/** Raw Step 1 form values before validation and normalization. */
+/** Raw values from the conversational Step 1 (§2.6) before validation and normalization. */
 export interface SommelierInputDraft {
   taste: readonly string[]
-  dislikes: readonly string[]
-  budgetMin: number | null
-  budgetMax: number | null
-  occasion: string | null
+  peaty: number
+  smoky: number
+  budget: number
   freeText: string
 }
 
-export type SommelierInputField = 'taste' | 'dislikes' | 'budget' | 'occasion' | 'freeText'
+export type SommelierInputField = 'taste' | 'intensity' | 'budget' | 'freeText'
 
 export type SommelierInputErrors = Partial<Record<SommelierInputField, string>>
 
@@ -69,6 +76,7 @@ export interface PreferenceTaste {
 export interface Preference {
   taste: PreferenceTaste[]
   dislikes: FlavorTag[]
+  intensity?: SommelierIntensity
   budget?: SommelierBudget
   occasion?: PreferenceOccasion
   mood?: SommelierMood

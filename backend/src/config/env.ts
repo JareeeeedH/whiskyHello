@@ -62,6 +62,14 @@ export function resolveGoogleClientId(): string {
   return process.env.GOOGLE_CLIENT_ID?.trim() ?? ''
 }
 
+/** Live read of OpenAI settings from process.env. Empty strings mean "not configured". */
+export function resolveOpenAIConfig(): { apiKey: string; model: string } {
+  return {
+    apiKey: process.env.OPENAI_API_KEY?.trim() ?? '',
+    model: process.env.OPENAI_MODEL?.trim() ?? '',
+  }
+}
+
 const nodeEnv = readNodeEnv()
 
 export const env = {

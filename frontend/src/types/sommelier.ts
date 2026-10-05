@@ -50,3 +50,31 @@ export type SommelierInputErrors = Partial<Record<SommelierInputField, string>>
 export type SommelierInputResult =
   | { ok: true; value: SommelierInput }
   | { ok: false; errors: SommelierInputErrors }
+
+export type TasteLevel = 'low' | 'medium' | 'high'
+
+/** Step 2 occasions (§4.4): Step 1 occasions plus `date`, which only comes from freeText. */
+export type PreferenceOccasion = SommelierOccasion | 'date'
+
+export type SommelierMood = 'positive' | 'neutral' | 'low' | 'stressed'
+
+export type SommelierCompanion = 'alone' | 'friend' | 'date' | 'partner' | 'family'
+
+export interface PreferenceTaste {
+  tag: FlavorTag
+  level: TasteLevel
+}
+
+/** Step 2 output from POST /api/v1/sommelier/preference (§4.9). */
+export interface Preference {
+  taste: PreferenceTaste[]
+  dislikes: FlavorTag[]
+  budget?: SommelierBudget
+  occasion?: PreferenceOccasion
+  mood?: SommelierMood
+  companion?: SommelierCompanion
+}
+
+export interface PreferenceResponse {
+  preference: Preference
+}

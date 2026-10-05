@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
+import { SommelierApiError, fetchPreference } from '../services/sommelierService'
 import type {
+  Preference,
   SommelierBudget,
   SommelierInput,
   SommelierInputDraft,
@@ -17,11 +19,25 @@ import {
   createEmptySommelierDraft,
   validateSommelierInput,
 } from '../utils/sommelierInput'
+import {
+  COMPANION_LABELS,
+  MOOD_LABELS,
+  PREFERENCE_OCCASION_LABELS,
+  TASTE_LEVEL_LABELS,
+  TASTE_LEVEL_STEPS,
+} from '../utils/sommelierPreference'
 
 const draft = ref<SommelierInputDraft>(createEmptySommelierDraft())
 const errors = ref<SommelierInputErrors>({})
 const hasAttemptedSubmit = ref(false)
 const submittedInput = ref<SommelierInput | null>(null)
+const preference = ref<Preference | null>(null)
+const preferenceLoading = ref(false)
+const preferenceError = ref('')
+const preferenceErrorDetails = ref<string[]>([])
+const resultRef = ref<HTMLElement | null>(null)
+
+let preferenceRequestToken = 0
 
 const hasErrors = computed(() => Object.keys(errors.value).length > 0)
 
@@ -48,10 +64,51 @@ function onSubmit() {
 
   errors.value = {}
   submittedInput.value = result.value
+  void nextTick(() => resultRef.value?.scrollIntoView({ block: 'start' }))
+  void requestPreference()
+}
+
+async function requestPreference() {
+  const input = submittedInput.value
+  if (!input) {
+    return
+  }
+
+  const token = ++preferenceRequestToken
+  preferenceLoading.value = true
+  preferenceError.value = ''
+  preferenceErrorDetails.value = []
+  preference.value = null
+
+  try {
+    const result = await fetchPreference(input)
+    if (token === preferenceRequestToken) {
+      preference.value = result
+    }
+  } catch (error) {
+    if (token !== preferenceRequestToken) {
+      return
+    }
+    if (error instanceof SommelierApiError) {
+      preferenceError.value = error.message
+      preferenceErrorDetails.value = error.details
+    } else {
+      preferenceError.value = 'AI 偏好分析暫時無法使用，請稍後再試'
+    }
+  } finally {
+    if (token === preferenceRequestToken) {
+      preferenceLoading.value = false
+    }
+  }
 }
 
 function onEdit() {
+  preferenceRequestToken++
   submittedInput.value = null
+  preference.value = null
+  preferenceLoading.value = false
+  preferenceError.value = ''
+  preferenceErrorDetails.value = []
 }
 
 function onReset() {
@@ -86,8 +143,8 @@ function formatBudget(budget: SommelierBudget): string {
           <p class="lead">告訴我們這一次想要的風味、預算與情境，作為挑選酒款的起點。</p>
         </header>
         <p class="step-indicator">
-          <strong>STEP 01</strong>
-          <span>輸入這次的需求</span>
+          <strong>{{ submittedInput ? 'STEP 02' : 'STEP 01' }}</strong>
+          <span>{{ submittedInput ? '分析你的偏好' : '輸入這次的需求' }}</span>
         </p>
       </div>
     </section>
@@ -281,67 +338,129 @@ function formatBudget(budget: SommelierBudget): string {
         </div>
       </form>
 
-      <section v-else class="summary" aria-labelledby="summary-title">
-        <p class="summary-eyebrow">STEP 01 · COMPLETE</p>
-        <h2 id="summary-title">需求已整理完成</h2>
-        <p class="section-hint">以下是這次的需求摘要，下一步將依此分析你的偏好。</p>
-
-        <dl class="summary-list">
-          <div>
-            <dt>想喝到的風味</dt>
-            <dd>
-              <span v-if="submittedInput.taste.length === 0" class="muted">未指定</span>
-              <span v-for="tag in submittedInput.taste" :key="tag" class="summary-tag is-taste">
-                {{ FLAVOR_TAG_LABELS[tag] }}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>不想要的風味</dt>
-            <dd>
-              <span v-if="submittedInput.dislikes.length === 0" class="muted">未指定</span>
-              <span
-                v-for="tag in submittedInput.dislikes"
-                :key="tag"
-                class="summary-tag is-dislike"
-              >
-                {{ FLAVOR_TAG_LABELS[tag] }}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>預算</dt>
-            <dd>
-              <span v-if="submittedInput.budget">{{ formatBudget(submittedInput.budget) }}</span>
-              <span v-else class="muted">未指定</span>
-            </dd>
-          </div>
-          <div>
-            <dt>飲酒情境</dt>
-            <dd>
-              <span v-if="submittedInput.occasion">{{ OCCASION_LABELS[submittedInput.occasion] }}</span>
-              <span v-else class="muted">未指定</span>
-            </dd>
-          </div>
-          <div>
-            <dt>補充說明</dt>
-            <dd>
-              <span v-if="submittedInput.freeText" class="free-text-value">{{ submittedInput.freeText }}</span>
-              <span v-else class="muted">未填寫</span>
-            </dd>
-          </div>
-        </dl>
-
-        <div class="action-buttons">
-          <Button
-            type="button"
-            label="修改需求"
-            icon="pi pi-pencil"
-            severity="secondary"
-            outlined
-            @click="onEdit"
-          />
+      <section v-else ref="resultRef" class="summary" aria-labelledby="summary-title">
+        <div v-if="preferenceLoading" class="result-state" role="status" aria-live="polite">
+          <i class="pi pi-spin pi-spinner result-spinner" aria-hidden="true" />
+          <h2 id="summary-title">正在分析你的偏好…</h2>
+          <p class="section-hint">
+            {{ submittedInput.freeText ? 'AI 正在解讀你的補充說明，並與你的選擇整合。' : '正在整理你的選擇。' }}
+          </p>
         </div>
+
+        <div v-else-if="preferenceError" class="result-state is-error" role="alert">
+          <i class="pi pi-exclamation-circle result-icon" aria-hidden="true" />
+          <h2 id="summary-title">分析沒有完成</h2>
+          <p class="result-error">{{ preferenceError }}</p>
+          <ul v-if="preferenceErrorDetails.length > 0" class="error-details">
+            <li v-for="detail in preferenceErrorDetails" :key="detail">{{ detail }}</li>
+          </ul>
+          <div class="action-buttons">
+            <Button
+              type="button"
+              label="修改需求"
+              icon="pi pi-pencil"
+              severity="secondary"
+              outlined
+              @click="onEdit"
+            />
+            <Button
+              type="button"
+              label="重試"
+              icon="pi pi-refresh"
+              class="submit-btn"
+              @click="requestPreference"
+            />
+          </div>
+        </div>
+
+        <template v-else-if="preference">
+          <p class="summary-eyebrow">STEP 02 · PREFERENCE</p>
+          <h2 id="summary-title">你的偏好輪廓</h2>
+          <p class="section-hint">
+            {{ submittedInput.freeText ? '已整合你的選擇與補充說明；補充說明與選擇衝突時，以補充說明為準。' : '依據你的選擇整理而成。' }}
+          </p>
+
+          <dl class="summary-list">
+            <div>
+              <dt>想喝到的風味</dt>
+              <dd>
+                <span v-if="preference.taste.length === 0" class="muted">未指定</span>
+                <span
+                  v-for="item in preference.taste"
+                  :key="item.tag"
+                  class="summary-tag is-taste taste-level"
+                >
+                  {{ FLAVOR_TAG_LABELS[item.tag] }}
+                  <span class="level-meter" aria-hidden="true">
+                    <i
+                      v-for="step in 3"
+                      :key="step"
+                      :class="{ 'is-on': step <= TASTE_LEVEL_STEPS[item.level] }"
+                    />
+                  </span>
+                  <span class="level-text">{{ TASTE_LEVEL_LABELS[item.level] }}</span>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>不想要的風味</dt>
+              <dd>
+                <span v-if="preference.dislikes.length === 0" class="muted">未指定</span>
+                <span
+                  v-for="tag in preference.dislikes"
+                  :key="tag"
+                  class="summary-tag is-dislike"
+                >
+                  {{ FLAVOR_TAG_LABELS[tag] }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>預算</dt>
+              <dd>
+                <span v-if="preference.budget">{{ formatBudget(preference.budget) }}</span>
+                <span v-else class="muted">未指定</span>
+              </dd>
+            </div>
+            <div>
+              <dt>飲酒情境</dt>
+              <dd>
+                <span v-if="preference.occasion">{{ PREFERENCE_OCCASION_LABELS[preference.occasion] }}</span>
+                <span v-else class="muted">未指定</span>
+              </dd>
+            </div>
+            <div>
+              <dt>心情</dt>
+              <dd>
+                <span v-if="preference.mood">{{ MOOD_LABELS[preference.mood] }}</span>
+                <span v-else class="muted">未提及</span>
+              </dd>
+            </div>
+            <div>
+              <dt>同伴</dt>
+              <dd>
+                <span v-if="preference.companion">{{ COMPANION_LABELS[preference.companion] }}</span>
+                <span v-else class="muted">未提及</span>
+              </dd>
+            </div>
+          </dl>
+
+          <blockquote v-if="submittedInput.freeText" class="source-text">
+            <span>你的補充說明</span>
+            <p class="free-text-value">{{ submittedInput.freeText }}</p>
+          </blockquote>
+
+          <div class="action-buttons">
+            <Button
+              type="button"
+              label="修改需求"
+              icon="pi pi-pencil"
+              severity="secondary"
+              outlined
+              @click="onEdit"
+            />
+          </div>
+        </template>
       </section>
     </div>
 
@@ -738,6 +857,95 @@ legend.section-title + .section-hint {
 .summary-tag.is-dislike {
   background: #292524;
   color: #fafaf9;
+}
+
+.summary {
+  scroll-margin-top: 1rem;
+}
+
+.result-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.result-state .action-buttons {
+  margin-top: 0.9rem;
+}
+
+.result-spinner,
+.result-icon {
+  margin-bottom: 0.5rem;
+  color: #b77932;
+  font-size: 1.6rem;
+}
+
+.result-state.is-error .result-icon {
+  color: #b91c1c;
+}
+
+.result-error {
+  color: #57534e;
+  line-height: 1.6;
+}
+
+.error-details {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  color: #b91c1c;
+  font-size: 0.84rem;
+  list-style: none;
+}
+
+.taste-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.level-meter {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.level-meter i {
+  width: 0.32rem;
+  height: 0.7rem;
+  border-radius: 1px;
+  background: #ead7b4;
+}
+
+.level-meter i.is-on {
+  background: #b77932;
+}
+
+.level-text {
+  color: #a16207;
+  font-size: 0.72rem;
+}
+
+.source-text {
+  margin: -0.5rem 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #d6a34b;
+  background: #f8f1e4;
+}
+
+.source-text span {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #8a5b1e;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.source-text p {
+  color: #44403c;
+  font-size: 0.9rem;
 }
 
 .free-text-value {

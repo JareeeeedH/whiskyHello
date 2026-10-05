@@ -70,3 +70,10 @@ export const authRateLimit = rateLimit({
   max: authMax,
   message: 'Too many authentication attempts, please try again later',
 })
+
+/** Sommelier preference endpoint: may call a paid LLM API, so cap per-client usage. */
+export const sommelierRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: env.isProduction ? 30 : 100,
+  message: 'Too many preference requests, please try again later',
+})

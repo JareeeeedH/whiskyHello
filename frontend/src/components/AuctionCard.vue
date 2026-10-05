@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getWhiskyById } from '../services/whiskyService'
 import type { AuctionCardPrice, PublicAuctionDetail } from '../types/auction'
@@ -24,6 +24,23 @@ const isActive = computed(() => props.auction.status === 'active')
 const statusText = computed(() => (isActive.value ? '進行中' : '即將開始'))
 
 const ctaText = computed(() => (isActive.value ? '參與競標 →' : '查看詳情 →'))
+
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+const countdown = computed(() => {
+  const target = new Date(isActive.value ? props.auction.endAt : props.auction.startAt).getTime()
+  const seconds = Math.max(0, Math.floor((target - now.value) / 1000))
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainder = seconds % 60
+  return days > 0
+    ? `${days} 天 ${String(hours).padStart(2, '0')} 小時`
+    : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
+})
+
+onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => { if (clock) clearInterval(clock) })
 
 const priceText = computed(() => {
   if (props.price.status === 'loading') return '—'
@@ -66,6 +83,7 @@ function formatAbsoluteTime(value: string): string {
     </div>
     <div class="body">
       <span class="status-badge" :class="`is-${auction.status}`">
+        <span class="status-dot" aria-hidden="true" />
         {{ statusText }}
       </span>
       <p class="whisky-name">{{ whiskyName }}</p>
@@ -77,6 +95,10 @@ function formatAbsoluteTime(value: string): string {
       <p class="time-line">
         開始
         <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
+      </p>
+      <p class="countdown-line" :class="{ 'is-live': isActive }">
+        <span>{{ isActive ? '距離結標' : '距離開標' }}</span>
+        <strong>{{ countdown }}</strong>
       </p>
       <p class="time-line">
         結束
@@ -214,6 +236,13 @@ function formatAbsoluteTime(value: string): string {
   letter-spacing: 0.04em;
 }
 
+.status-dot { width:.42rem; height:.42rem; margin-right:.35rem; border-radius:50%; background:currentColor; }
+.is-active .status-dot { animation:live-pulse 1.8s ease-out infinite; }
+.countdown-line { display:flex; justify-content:space-between; align-items:baseline; gap:.4rem; margin:.25rem 0 0; padding:.45rem 0 0; border-top:1px solid #f0eeeb; color:#78716c; font-size:.72rem; }
+.countdown-line strong { color:#57534e; font-variant-numeric:tabular-nums; font-size:.82rem; }
+.countdown-line.is-live strong { color:#9a3412; }
+@keyframes live-pulse { 0%{box-shadow:0 0 0 0 rgba(21,128,61,.35)} 100%{box-shadow:0 0 0 5px rgba(21,128,61,0)} }
+
 .status-badge.is-active {
   border-color: rgba(21, 128, 61, 0.3);
   color: #15803d;
@@ -269,5 +298,6 @@ function formatAbsoluteTime(value: string): string {
   .auction-card:hover .image-wrap img {
     transform: none;
   }
+  .is-active .status-dot { animation:none; }
 }
 </style>

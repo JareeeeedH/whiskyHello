@@ -93,10 +93,15 @@ onMounted(() => {
       <div class="discovery-hero-glow" aria-hidden="true" />
       <div class="discovery-hero-inner">
         <header class="page-header">
-          <p class="eyebrow">Whisky Auction</p>
-          <h1 id="auction-list-title">酒款競標</h1>
-          <p class="lead">進行中與即將開始的競標</p>
+          <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · AUCTION HOUSE</p>
+          <h1 id="auction-list-title">珍稀酒款競標</h1>
+          <p class="lead">探索值得典藏的酒款，參與每一場精彩競標。</p>
         </header>
+        <div class="hero-stats" aria-label="拍賣場次">
+          <div><strong>{{ activeAuctions.length.toString().padStart(2, '0') }}</strong><span>LIVE NOW</span></div>
+          <i aria-hidden="true" />
+          <div><strong>{{ scheduledAuctions.length.toString().padStart(2, '0') }}</strong><span>UPCOMING</span></div>
+        </div>
       </div>
     </section>
 
@@ -198,6 +203,13 @@ onMounted(() => {
   max-width: 1120px;
   margin: 0 auto;
 }
+
+.hero-stats { display:flex; align-items:center; gap:1.25rem; margin-top:1.35rem; color:#d6d3d1; }
+.hero-stats div { display:flex; align-items:baseline; gap:.5rem; }
+.hero-stats strong { color:#fbbf24; font-size:1.45rem; font-weight:500; font-variant-numeric:tabular-nums; }
+.hero-stats span { color:#a8a29e; font-size:.65rem; letter-spacing:.13em; }
+.hero-stats i { width:1px; height:1rem; background:rgba(214,211,209,.35); }
+.eyebrow-mark { display:inline-block; width:1.15rem; height:1px; margin:0 .45rem .2rem 0; background:#fbbf24; }
 
 .luxury-rule {
   height: 1px;
@@ -352,6 +364,10 @@ onMounted(() => {
     margin-bottom: 0.25rem;
     font-size: 1.875rem;
   }
+
+  .hero-stats { margin-top:.9rem; gap:.85rem; }
+  .hero-stats strong { font-size:1.2rem; }
+  .hero-stats span { font-size:.58rem; }
 
   .lead {
     font-size: 0.875rem;

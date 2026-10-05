@@ -1,4 +1,4 @@
-import type { RawWhisky, Whisky } from '../types/whisky'
+import type { RawWhisky, Whisky } from '../types/whisky.ts'
 
 /** Legacy CDN root used by whsfun-ui dataMap(). */
 export const WHISKY_IMAGE_SRC_ROOT =
@@ -97,6 +97,7 @@ export function normalizeScore(rawScore: unknown): {
 /**
  * IMAGE_PATH → imageUrl
  * Legacy: ignore Material* folder; use filename[0]/filename under whiskyfun CDN.
+ * The CDN only has uppercase A–Z folders and its paths are case-sensitive.
  * Defensive: malformed / missing path → undefined (do not crash dataset processing).
  */
 export function normalizeImageUrl(rawPath: unknown): string | undefined {
@@ -112,7 +113,7 @@ export function normalizeImageUrl(rawPath: unknown): string | undefined {
       return undefined
     }
 
-    const folderLetter = fileName.charAt(0)
+    const folderLetter = fileName.charAt(0).toUpperCase()
     if (!folderLetter) {
       return undefined
     }

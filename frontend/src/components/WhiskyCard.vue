@@ -1,20 +1,25 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Whisky } from '../types/whisky'
 
-defineProps<{
+const props = defineProps<{
   whisky: Whisky
 }>()
+
+const imageFailed = ref(false)
+watch(() => props.whisky.imageUrl, () => { imageFailed.value = false })
 </script>
 
 <template>
   <RouterLink :to="`/whiskies/${whisky.id}`" class="whisky-card">
     <div class="image-wrap">
       <img
-        v-if="whisky.imageUrl"
+        v-if="whisky.imageUrl && !imageFailed"
         :src="whisky.imageUrl"
         :alt="whisky.name"
         loading="lazy"
+        @error="imageFailed = true"
       />
       <div v-else class="image-fallback" aria-hidden="true">No image</div>
     </div>

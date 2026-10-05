@@ -34,6 +34,9 @@ const whisky = computed(() => {
 
 const whiskyId = computed(() => whisky.value?.id ?? '')
 
+const imageFailed = ref(false)
+watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
+
 const reviews = ref<PublicReview[]>([])
 const listLoading = ref(false)
 const listError = ref('')
@@ -318,10 +321,11 @@ watch(
       <section class="hero">
         <div class="image-wrap">
           <img
-            v-if="whisky.imageUrl"
+            v-if="whisky.imageUrl && !imageFailed"
             :src="whisky.imageUrl"
             :alt="whisky.name"
             class="image"
+            @error="imageFailed = true"
           />
           <div v-else class="image-fallback">No image</div>
         </div>

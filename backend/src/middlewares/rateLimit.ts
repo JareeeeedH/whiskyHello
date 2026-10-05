@@ -77,3 +77,10 @@ export const sommelierRateLimit = rateLimit({
   max: env.isProduction ? 30 : 100,
   message: 'Too many preference requests, please try again later',
 })
+
+/** Critic review translation: cache misses call a paid LLM API, so cap per-client usage. */
+export const translationRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: env.isProduction ? 30 : 100,
+  message: 'Too many translation requests, please try again later',
+})

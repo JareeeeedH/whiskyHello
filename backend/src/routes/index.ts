@@ -5,6 +5,7 @@ import authRoutes from './authRoutes'
 import bidRoutes from './bidRoutes'
 import reviewRoutes from './reviewRoutes'
 import sommelierRoutes from './sommelierRoutes'
+import translationRoutes from './translationRoutes'
 
 const router = Router()
 
@@ -21,5 +22,6 @@ router.use(reviewRoutes)
 router.use(auctionRoutes)
 router.use(bidRoutes)
 router.use(sommelierRoutes)
+router.use(translationRoutes)
 
 export default router

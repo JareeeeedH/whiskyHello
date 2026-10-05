@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
@@ -14,8 +14,16 @@ import {
   ReviewApiError,
   updateReview,
 } from '../services/reviewService'
+import CriticReviewBody from '../components/CriticReviewBody.vue'
+import { fetchWhiskyTranslation } from '../services/translationService'
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
+import {
+  NOTE_TRANSLATION_TEXT,
+  createNoteTranslationController,
+  createNoteTranslationState,
+  isShowingTranslation,
+} from '../utils/noteTranslation'
 
 /** Temporarily hide review edit/delete on the detail page UI. */
 const REVIEW_OWNER_ACTIONS_ENABLED = false
@@ -36,6 +44,22 @@ const whiskyId = computed(() => whisky.value?.id ?? '')
 
 const imageFailed = ref(false)
 watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
+
+const noteTranslation = reactive(createNoteTranslationState())
+const noteTranslator = createNoteTranslationController(noteTranslation, async () => {
+  const current = whisky.value
+  if (!current?.note) {
+    throw new Error(NOTE_TRANSLATION_TEXT.fallbackError)
+  }
+  const translation = await fetchWhiskyTranslation({
+    whiskyId: current.id,
+    language: 'zh-TW',
+    text: current.note,
+  })
+  return translation.translatedText
+})
+const showingNoteTranslation = computed(() => isShowingTranslation(noteTranslation))
+watch(whiskyId, () => noteTranslator.reset())
 
 const reviews = ref<PublicReview[]>([])
 const listLoading = ref(false)
@@ -347,9 +371,52 @@ watch(
         </div>
       </section>
 
-      <section class="block">
-        <h2>知名評論家評論</h2>
-        <div v-if="whisky.note" class="note">{{ whisky.note }}</div>
+      <section class="block critic-review">
+        <div class="section-head critic-head">
+          <h2>知名評論家評論</h2>
+          <button
+            v-if="whisky.note && !showingNoteTranslation && noteTranslation.status !== 'error'"
+            type="button"
+            class="translate-btn"
+            :disabled="noteTranslation.status === 'loading'"
+            :aria-busy="noteTranslation.status === 'loading'"
+            @click="noteTranslator.translate()"
+          >
+            <span
+              v-if="noteTranslation.status === 'loading'"
+              class="translate-pulse"
+              aria-hidden="true"
+            />
+            {{
+              noteTranslation.status === 'loading'
+                ? NOTE_TRANSLATION_TEXT.loading
+                : NOTE_TRANSLATION_TEXT.translate
+            }}
+          </button>
+        </div>
+
+        <template v-if="whisky.note">
+          <p v-if="noteTranslation.status === 'error'" class="translate-error" role="alert">
+            <span>{{ noteTranslation.error }}</span>
+            <button type="button" class="translate-btn" @click="noteTranslator.translate()">
+              {{ NOTE_TRANSLATION_TEXT.retry }}
+            </button>
+          </p>
+
+          <div v-if="showingNoteTranslation" class="note-translation" lang="zh-TW">
+            <p class="translation-label">{{ NOTE_TRANSLATION_TEXT.label }}</p>
+            <CriticReviewBody :text="noteTranslation.translatedText" />
+            <button type="button" class="translate-btn original-btn" @click="noteTranslator.showOriginal()">
+              {{ NOTE_TRANSLATION_TEXT.showOriginal }}
+            </button>
+          </div>
+          <CriticReviewBody
+            v-else
+            lang="en"
+            :class="{ 'is-translating': noteTranslation.status === 'loading' }"
+            :text="whisky.note"
+          />
+        </template>
         <p v-else class="empty">目前沒有知名評論家評論。</p>
       </section>
 
@@ -727,14 +794,109 @@ watch(
   padding: 0 !important;
 }
 
-.note {
-  margin: 0;
+.is-translating {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.critic-head {
+  margin-bottom: 0.75rem;
+}
+
+.translate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.2rem 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: none;
   font-family: var(--font-body);
-  color: #334155;
-  font-size: 1rem;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #b45309;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.translate-btn:hover:not(:disabled),
+.translate-btn:focus-visible {
+  border-bottom-color: currentColor;
+  outline: none;
+}
+
+.translate-btn:disabled {
+  color: #a8a29e;
+  cursor: default;
+}
+
+.translate-pulse {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #d97706;
+  animation: translate-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes translate-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.translate-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: #b91c1c;
+}
+
+.note-translation {
+  animation: translation-in 0.35s ease;
+}
+
+.translation-label {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #a16207;
+}
+
+.original-btn {
+  margin-top: 1rem;
+  font-weight: 500;
+  color: #78716c;
+}
+
+@keyframes translation-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .translate-pulse,
+  .note-translation {
+    animation: none;
+  }
 }
 
 .empty,

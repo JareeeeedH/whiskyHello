@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getWhiskyById } from '../services/whiskyService'
 import type { AuctionCardPrice, PublicAuctionDetail } from '../types/auction'
+import {
+  formatCompactCountdown,
+  formatLotNumber,
+  formatPrice,
+  formatScheduleTime,
+  getCountdownParts,
+  isEndingSoon,
+} from '../utils/auctionDisplay'
 
 const props = defineProps<{
   auction: PublicAuctionDetail
@@ -15,32 +23,16 @@ const whiskyName = computed(
   () => whisky.value?.name?.trim() || `酒款 #${props.auction.whiskyId}`,
 )
 
-const priceLabel = computed(() =>
-  props.price.status === 'starting' ? '起標價' : '目前價格',
-)
+const imageFailed = ref(false)
+watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
 
 const isActive = computed(() => props.auction.status === 'active')
 
-const statusText = computed(() => (isActive.value ? '進行中' : '即將開始'))
-
-const ctaText = computed(() => (isActive.value ? '參與競標 →' : '查看詳情 →'))
-
-const now = ref(Date.now())
-let clock: ReturnType<typeof setInterval> | undefined
-const countdown = computed(() => {
-  const target = new Date(isActive.value ? props.auction.endAt : props.auction.startAt).getTime()
-  const seconds = Math.max(0, Math.floor((target - now.value) / 1000))
-  const days = Math.floor(seconds / 86400)
-  const hours = Math.floor((seconds % 86400) / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const remainder = seconds % 60
-  return days > 0
-    ? `${days} 天 ${String(hours).padStart(2, '0')} 小時`
-    : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
+const priceLabel = computed(() => {
+  if (props.price.status === 'current' && props.price.bidCount > 0) return '目前出價'
+  if (props.price.status === 'loading') return '目前出價'
+  return '起標價'
 })
-
-onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 1000) })
-onUnmounted(() => { if (clock) clearInterval(clock) })
 
 const priceText = computed(() => {
   if (props.price.status === 'loading') return '—'
@@ -48,63 +40,82 @@ const priceText = computed(() => {
   return formatPrice(props.auction.startingPrice)
 })
 
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat('zh-TW').format(value)
-}
-
-function formatAbsoluteTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
+const bidCountText = computed(() => {
+  if (props.price.status === 'loading') return '—'
+  if (props.price.status === 'current') {
+    return props.price.bidCount > 0 ? `${props.price.bidCount} 次出價` : '尚無出價'
   }
-  return date.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+  return ''
+})
+
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+
+const countdownParts = computed(() =>
+  getCountdownParts(
+    new Date(isActive.value ? props.auction.endAt : props.auction.startAt).getTime(),
+    now.value,
+  ),
+)
+
+const countdownText = computed(() => {
+  if (countdownParts.value.totalSeconds === 0) {
+    return isActive.value ? '結標中' : '即將開始'
+  }
+  return formatCompactCountdown(countdownParts.value)
+})
+
+const endingSoon = computed(() => isActive.value && isEndingSoon(countdownParts.value))
+
+onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => { if (clock) clearInterval(clock) })
 </script>
 
 <template>
   <RouterLink
     :to="{ name: 'auction-detail', params: { id: auction.id } }"
     class="auction-card"
+    :class="isActive ? 'is-live' : 'is-upcoming'"
   >
-    <div class="image-wrap">
+    <div class="media">
+      <span class="status-pill">
+        <span class="status-dot" aria-hidden="true" />
+        <span class="status-en">{{ isActive ? 'LIVE' : 'UPCOMING' }}</span>
+        <span class="status-zh">{{ isActive ? '競標中' : '即將開始' }}</span>
+      </span>
       <img
-        v-if="whisky?.imageUrl"
+        v-if="whisky?.imageUrl && !imageFailed"
         :src="whisky.imageUrl"
         :alt="whiskyName"
         loading="lazy"
+        @error="imageFailed = true"
       />
       <div v-else class="image-fallback" aria-hidden="true">No image</div>
     </div>
+
     <div class="body">
-      <span class="status-badge" :class="`is-${auction.status}`">
-        <span class="status-dot" aria-hidden="true" />
-        {{ statusText }}
-      </span>
-      <p class="whisky-name">{{ whiskyName }}</p>
+      <p class="lot">LOT {{ formatLotNumber(auction.id) }}</p>
       <h3 class="title">{{ auction.title }}</h3>
-      <p class="price-line">
-        <span class="price-label">{{ priceLabel }}</span>
-        <span class="price-value">{{ priceText }}</span>
+      <p class="whisky">{{ whiskyName }}</p>
+
+      <dl class="ledger">
+        <div class="ledger-price">
+          <dt>{{ priceLabel }}</dt>
+          <dd><span class="currency">NT$</span>{{ priceText }}</dd>
+        </div>
+        <div v-if="isActive && bidCountText" class="ledger-bids">
+          <dt class="sr-only">出價次數</dt>
+          <dd>{{ bidCountText }}</dd>
+        </div>
+      </dl>
+
+      <p class="time-row" :class="{ 'is-soon': endingSoon }">
+        <span>{{ isActive ? '剩餘時間' : '開標倒數' }}</span>
+        <strong>{{ countdownText }}</strong>
       </p>
-      <p class="time-line">
-        開始
-        <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
+      <p v-if="!isActive" class="schedule">
+        開標 <time :datetime="auction.startAt">{{ formatScheduleTime(auction.startAt) }}</time>
       </p>
-      <p class="countdown-line" :class="{ 'is-live': isActive }">
-        <span>{{ isActive ? '距離結標' : '距離開標' }}</span>
-        <strong>{{ countdown }}</strong>
-      </p>
-      <p class="time-line">
-        結束
-        <time :datetime="auction.endAt">{{ formatAbsoluteTime(auction.endAt) }}</time>
-      </p>
-      <span class="cta">{{ ctaText }}</span>
     </div>
   </RouterLink>
 </template>
@@ -116,49 +127,48 @@ function formatAbsoluteTime(value: string): string {
   height: 100%;
   color: inherit;
   text-decoration: none;
-  border: 1px solid rgba(231, 229, 228, 0.95);
+  border: 1px solid #e7e1d8;
   background: #fff;
   overflow: hidden;
   transition:
-    border-color 0.28s ease,
-    transform 0.28s ease,
-    box-shadow 0.28s ease;
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .auction-card:hover {
-  border-color: rgba(217, 119, 6, 0.45);
-  transform: translateY(-3px);
-  box-shadow:
-    0 0 0 1px rgba(251, 191, 36, 0.12),
-    0 14px 28px rgba(28, 25, 23, 0.08);
+  border-color: #c9a46a;
+  box-shadow: 0 14px 28px -22px rgba(28, 25, 23, 0.35);
 }
 
 .auction-card:focus-visible {
   outline: 2px solid #b45309;
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
-.image-wrap {
+.media {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 180px;
-  flex-shrink: 0;
-  padding: 0.85rem;
-  background:
-    radial-gradient(ellipse at 50% 35%, #fff 0%, #f5f5f4 55%, #ebe8e4 100%);
-  border-bottom: 1px solid rgba(180, 83, 9, 0.08);
+  aspect-ratio: 1 / 1.08;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 42%, #fffdf9 0%, #f3ede3 62%, #e9e1d4 100%);
+  border-bottom: 1px solid #ece5da;
 }
 
-.image-wrap img {
-  width: 100%;
-  height: 100%;
+.media img {
+  position: absolute;
+  top: 2.6rem;
+  left: 1.25rem;
+  width: calc(100% - 2.5rem);
+  height: calc(100% - 3.85rem);
   object-fit: contain;
-  transition: transform 0.35s ease;
+  filter: drop-shadow(0 14px 14px rgba(41, 37, 36, 0.16));
+  transition: transform 0.5s ease;
 }
 
-.auction-card:hover .image-wrap img {
-  transform: scale(1.04);
+.auction-card:hover .media img {
+  transform: scale(1.035);
 }
 
 .image-fallback {
@@ -166,138 +176,270 @@ function formatAbsoluteTime(value: string): string {
   font-size: 0.8125rem;
 }
 
+.status-pill {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.6rem 0.22rem 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.status-en {
+  letter-spacing: 0.16em;
+}
+
+.status-zh {
+  padding-left: 0.4rem;
+  border-left: 1px solid currentColor;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.status-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.is-live .status-pill {
+  color: #f5e6c8;
+  background: rgba(17, 14, 12, 0.88);
+}
+
+.is-live .status-dot {
+  background: #e0a84a;
+  animation: live-pulse 2s ease-out infinite;
+}
+
+.is-upcoming .status-pill {
+  color: #57534e;
+  border: 1px solid #d8cfc2;
+  background: rgba(255, 253, 249, 0.92);
+}
+
+.is-upcoming .status-dot {
+  border: 1px solid #a8a29e;
+}
+
+.lot {
+  margin: 0 0 0.3rem;
+  color: #a8a29e;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+}
+
+.is-upcoming .media {
+  background: radial-gradient(ellipse at 50% 42%, #fbfaf8 0%, #efece7 62%, #e4e0da 100%);
+}
+
+.is-upcoming .media img {
+  filter: saturate(0.82) drop-shadow(0 14px 14px rgba(41, 37, 36, 0.12));
+}
+
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.85rem 0.85rem 0.95rem;
   flex: 1;
-}
-
-.whisky-name {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: #78716c;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
+  padding: 1rem 1.05rem 1.05rem;
 }
 
 .title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.98rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: #1c1917;
   display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #1c1917;
+  font-family: var(--font-display);
+  font-size: 1.04rem;
+  font-weight: 600;
+  line-height: 1.4;
+  transition: color 0.3s ease;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  overflow: hidden;
 }
 
-.price-line {
+.auction-card:hover .title {
+  color: #7c3f16;
+}
+
+.whisky {
+  display: -webkit-box;
+  margin: 0.3rem 0 0;
+  overflow: hidden;
+  color: #8a7f73;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.ledger {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: auto 0 0;
+  padding-top: 1rem;
+}
+
+.ledger dt {
+  margin-bottom: 0.15rem;
+  color: #a8a29e;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ledger dd {
+  margin: 0;
+}
+
+.ledger-price dd {
+  color: #1c1917;
+  font-family: var(--font-body);
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.is-live .ledger-price dd {
+  color: #6f2f12;
+}
+
+.currency {
+  margin-right: 0.25rem;
+  color: #a16207;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.ledger-bids dd {
+  padding-bottom: 0.2rem;
+  color: #78716c;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.time-row {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
-  margin: auto 0 0;
-  padding-top: 0.55rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid #efe9df;
+  color: #8a7f73;
+  font-size: 0.72rem;
 }
 
-.price-label {
-  font-family: var(--font-body);
-  font-size: 0.7rem;
+.time-row strong {
+  color: #44403c;
+  font-size: 0.86rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #a16207;
+  font-variant-numeric: tabular-nums;
 }
 
-.price-value {
-  font-family: var(--font-body);
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #b45309;
+.time-row.is-soon strong {
+  color: #9a3412;
 }
 
-.status-badge {
-  align-self: flex-start;
-  padding: 0.05rem 0.45rem;
-  border: 1px solid #e7e5e4;
-  border-radius: 0.35rem;
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.schedule {
+  margin: 0.3rem 0 0;
+  color: #8a7f73;
+  font-size: 0.72rem;
+  text-align: right;
 }
 
-.status-dot { width:.42rem; height:.42rem; margin-right:.35rem; border-radius:50%; background:currentColor; }
-.is-active .status-dot { animation:live-pulse 1.8s ease-out infinite; }
-.countdown-line { display:flex; justify-content:space-between; align-items:baseline; gap:.4rem; margin:.25rem 0 0; padding:.45rem 0 0; border-top:1px solid #f0eeeb; color:#78716c; font-size:.72rem; }
-.countdown-line strong { color:#57534e; font-variant-numeric:tabular-nums; font-size:.82rem; }
-.countdown-line.is-live strong { color:#9a3412; }
-@keyframes live-pulse { 0%{box-shadow:0 0 0 0 rgba(21,128,61,.35)} 100%{box-shadow:0 0 0 5px rgba(21,128,61,0)} }
-
-.status-badge.is-active {
-  border-color: rgba(21, 128, 61, 0.3);
-  color: #15803d;
-  background: #f0fdf4;
+.schedule time {
+  color: #57534e;
+  font-variant-numeric: tabular-nums;
 }
 
-.status-badge.is-scheduled {
-  border-color: rgba(217, 119, 6, 0.35);
-  color: #b45309;
-  background: #fffbeb;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.time-line {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  color: #78716c;
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(224, 168, 74, 0.55); }
+  100% { box-shadow: 0 0 0 6px rgba(224, 168, 74, 0); }
 }
 
-.cta {
-  margin-top: 0.35rem;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #0f766e;
-}
+@media (max-width: 479px) {
+  .auction-card {
+    flex-direction: row;
+  }
 
-@media (max-width: 640px) {
-  .image-wrap {
-    height: 150px;
-    padding: 0.65rem;
+  .media {
+    flex: 0 0 38%;
+    aspect-ratio: auto;
+    min-height: 11.5rem;
+    border-right: 1px solid #ece5da;
+    border-bottom: 0;
+  }
+
+  .media img {
+    top: 2.3rem;
+    left: 0.6rem;
+    width: calc(100% - 1.2rem);
+    height: calc(100% - 3rem);
+  }
+
+  .status-pill {
+    top: 0.55rem;
+    left: 0.55rem;
+  }
+
+  .status-zh {
+    display: none;
   }
 
   .body {
-    padding: 0.7rem;
+    min-width: 0;
+    padding: 0.85rem 0.9rem;
   }
 
   .title {
-    font-size: 0.9375rem;
+    font-size: 0.98rem;
+  }
+
+  .ledger-price dd {
+    font-size: 1.25rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .auction-card,
-  .image-wrap img {
+  .media img,
+  .title {
     transition: none;
   }
 
-  .auction-card:hover {
+  .auction-card:hover .media img {
     transform: none;
   }
 
-  .auction-card:hover .image-wrap img {
-    transform: none;
+  .is-live .status-dot {
+    animation: none;
   }
-  .is-active .status-dot { animation:none; }
 }
 </style>

@@ -25,7 +25,7 @@ export interface AuctionListResponse {
 /** Price shown on a list card; falls back to startingPrice when bids cannot be loaded. */
 export type AuctionCardPrice =
   | { status: 'loading' }
-  | { status: 'current'; value: number }
+  | { status: 'current'; value: number; bidCount: number }
   | { status: 'starting' }
 
 /** Public bid from /api/v1/auctions/:id/bids. */

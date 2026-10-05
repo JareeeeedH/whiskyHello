@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import AuctionCard from '../components/AuctionCard.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import {
   AuctionApiError,
   fetchAuctionBids,
@@ -31,7 +32,11 @@ async function loadPrices(list: PublicAuctionDetail[], token: number) {
       let price: AuctionCardPrice
       try {
         const result = await fetchAuctionBids(auction.id)
-        price = { status: 'current', value: result.currentPrice }
+        price = {
+          status: 'current',
+          value: result.currentPrice,
+          bidCount: result.bids.length,
+        }
       } catch {
         price = { status: 'starting' }
       }
@@ -90,15 +95,18 @@ onMounted(() => {
 <template>
   <main class="auction-view">
     <section class="discovery-hero" aria-labelledby="auction-list-title">
-      <div class="discovery-hero-glow" aria-hidden="true" />
       <div class="discovery-hero-inner">
         <header class="page-header">
-          <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · AUCTION HOUSE</p>
+          <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true" />WHISKYHELLO · AUCTION HOUSE</p>
           <h1 id="auction-list-title">珍稀酒款競標</h1>
-          <p class="lead">探索值得典藏的酒款，參與每一場精彩競標。</p>
+          <p class="lead">探索值得收藏的酒款，參與每一場競標。</p>
         </header>
-        <div class="hero-stats" aria-label="拍賣場次">
-          <div><strong>{{ activeAuctions.length.toString().padStart(2, '0') }}</strong><span>LIVE NOW</span></div>
+        <div
+          class="hero-stats"
+          :class="{ 'is-pending': loading || errorMessage }"
+          aria-label="拍賣場次"
+        >
+          <div class="is-live"><strong>{{ activeAuctions.length.toString().padStart(2, '0') }}</strong><span>LIVE</span></div>
           <i aria-hidden="true" />
           <div><strong>{{ scheduledAuctions.length.toString().padStart(2, '0') }}</strong><span>UPCOMING</span></div>
         </div>
@@ -118,7 +126,10 @@ onMounted(() => {
       <template v-else>
         <section class="results-section" aria-labelledby="active-auctions-title">
           <div class="section-heading">
-            <h2 id="active-auctions-title">進行中的競標</h2>
+            <div>
+              <p class="section-eyebrow is-live"><span aria-hidden="true" />LIVE AUCTIONS</p>
+              <h2 id="active-auctions-title">進行中的競標</h2>
+            </div>
             <p class="section-desc">共 {{ activeAuctions.length }} 場</p>
           </div>
 
@@ -141,7 +152,10 @@ onMounted(() => {
           aria-labelledby="scheduled-auctions-title"
         >
           <div class="section-heading">
-            <h2 id="scheduled-auctions-title">即將開始</h2>
+            <div>
+              <p class="section-eyebrow"><span aria-hidden="true" />UPCOMING</p>
+              <h2 id="scheduled-auctions-title">即將開始</h2>
+            </div>
             <p class="section-desc">共 {{ scheduledAuctions.length }} 場</p>
           </div>
 
@@ -161,9 +175,7 @@ onMounted(() => {
       </template>
     </div>
 
-    <footer class="page-footer">
-      <p>WhiskyHello · 從一杯酒開始</p>
-    </footer>
+    <SiteFooter />
   </main>
 </template>
 
@@ -176,40 +188,30 @@ onMounted(() => {
 }
 
 .discovery-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 1.85rem 1.5rem 1.65rem;
+  padding: 3.25rem 1.5rem 2.85rem;
   background:
-    radial-gradient(ellipse 70% 90% at 8% 0%, rgba(180, 83, 9, 0.22), transparent 55%),
-    radial-gradient(ellipse 50% 70% at 92% 80%, rgba(146, 64, 14, 0.16), transparent 50%),
-    linear-gradient(160deg, #0c0a09 0%, #1c1917 48%, #292524 100%);
-  color: #fafaf9;
-  box-shadow: inset 0 -1px 0 rgba(251, 191, 36, 0.16);
-}
-
-.discovery-hero-glow {
-  position: absolute;
-  inset: auto -10% -50% auto;
-  width: 42%;
-  height: 90%;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%);
-  pointer-events: none;
+    radial-gradient(ellipse 55% 130% at 100% 0%, rgba(180, 83, 9, 0.18), transparent 60%),
+    #120f0d;
+  color: var(--wh-paper);
 }
 
 .discovery-hero-inner {
-  position: relative;
-  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.4rem;
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
 }
 
-.hero-stats { display:flex; align-items:center; gap:1.25rem; margin-top:1.35rem; color:#d6d3d1; }
-.hero-stats div { display:flex; align-items:baseline; gap:.5rem; }
-.hero-stats strong { color:#fbbf24; font-size:1.45rem; font-weight:500; font-variant-numeric:tabular-nums; }
-.hero-stats span { color:#a8a29e; font-size:.65rem; letter-spacing:.13em; }
-.hero-stats i { width:1px; height:1rem; background:rgba(214,211,209,.35); }
-.eyebrow-mark { display:inline-block; width:1.15rem; height:1px; margin:0 .45rem .2rem 0; background:#fbbf24; }
+.hero-stats { display: flex; align-items: center; gap: 1.1rem; transition: opacity .3s ease; }
+.hero-stats.is-pending { visibility: hidden; opacity: 0; }
+.hero-stats div { display: flex; align-items: baseline; gap: .5rem; }
+.hero-stats strong { color: var(--wh-paper); font-size: 1.5rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.hero-stats .is-live strong { color: #e7bd73; }
+.hero-stats span { color: var(--wh-faint); font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .18em; }
+.hero-stats i { width: 1px; height: 1.1rem; background: rgba(214, 211, 209, .25); }
+.eyebrow-mark { display: inline-block; width: 1.5rem; height: 1px; margin: 0 .6rem .22rem 0; background: var(--wh-gold); }
 
 .luxury-rule {
   height: 1px;
@@ -229,18 +231,6 @@ onMounted(() => {
   padding: 1.75rem 1.5rem 3rem;
 }
 
-.page-footer {
-  padding: 1.75rem 1.5rem;
-  text-align: center;
-  background: #292524;
-  color: #a8a29e;
-}
-
-.page-footer p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
 .page-header {
   margin: 0;
   text-align: left;
@@ -248,44 +238,77 @@ onMounted(() => {
 }
 
 .eyebrow {
-  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  margin: 0 0 0.9rem;
   font-family: var(--font-body);
   font-size: var(--fs-eyebrow);
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: #fbbf24;
+  color: var(--wh-gold);
 }
 
 .page-header h1 {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.5rem;
   font-family: var(--font-display);
   font-size: var(--fs-h1);
-  letter-spacing: normal;
+  letter-spacing: 0.02em;
   line-height: 1.25;
   font-weight: 600;
-  color: #fafaf9;
+  color: var(--wh-paper);
 }
 
 .lead {
   margin: 0;
   font-family: var(--font-body);
-  color: #d6d3d1;
-  font-size: 1.02rem;
+  color: var(--wh-faint);
+  font-size: 0.9375rem;
   line-height: 1.7;
   font-weight: 400;
 }
 
 .results-section + .results-section {
-  margin-top: 2.25rem;
+  margin-top: 3.5rem;
 }
 
 .section-heading {
-  margin-bottom: 1.15rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e7e1d8;
+}
+
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+  color: #8a7f73;
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.section-eyebrow span {
+  width: 1.15rem;
+  height: 1px;
+  background: #a8a29e;
+}
+
+.section-eyebrow.is-live {
+  color: #a16207;
+}
+
+.section-eyebrow.is-live span {
+  background: #d6a34b;
 }
 
 .section-heading h2 {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-h2);
   font-weight: 600;
@@ -296,15 +319,16 @@ onMounted(() => {
 .section-desc {
   margin: 0;
   font-family: var(--font-body);
-  color: #78716c;
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  color: #8a7f73;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .state,
@@ -328,50 +352,73 @@ onMounted(() => {
   margin: 0;
 }
 
+@media (max-width: 479px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
 @media (min-width: 641px) {
   .card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 1.15rem;
+  }
+}
+
+@media (min-width: 801px) {
+  .discovery-hero-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 2rem;
+  }
+
+  .hero-stats {
+    padding-bottom: 0.3rem;
   }
 }
 
 @media (min-width: 1024px) {
   .discovery-hero {
-    padding: 2.15rem 1.5rem 1.85rem;
+    padding: 3.75rem 1.5rem 3.25rem;
   }
 
   .auction-inner {
-    padding: 2rem 1.5rem 3.5rem;
+    padding: 2.75rem 1.5rem 4rem;
   }
 
   .card-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.1rem;
+    gap: 1.25rem;
   }
 }
 
 @media (max-width: 640px) {
   .discovery-hero {
-    padding: 1rem 1rem 0.9rem;
+    padding: 1.9rem 1rem 1.6rem;
+  }
+
+  .discovery-hero-inner {
+    gap: 1.1rem;
   }
 
   .eyebrow {
-    margin-bottom: 0.3rem;
-    font-size: 0.72rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.18em;
   }
 
   .page-header h1 {
-    margin-bottom: 0.25rem;
-    font-size: 1.875rem;
+    margin-bottom: 0.35rem;
+    font-size: 1.75rem;
   }
 
-  .hero-stats { margin-top:.9rem; gap:.85rem; }
-  .hero-stats strong { font-size:1.2rem; }
-  .hero-stats span { font-size:.58rem; }
+  .hero-stats { gap: .85rem; padding-top: 1rem; border-top: 1px solid rgba(214, 211, 209, .14); }
+  .hero-stats strong { font-size: 1.25rem; }
 
   .lead {
-    font-size: 0.875rem;
-    line-height: 1.55;
+    font-size: 0.84rem;
+    line-height: 1.6;
   }
 
   .auction-inner {
@@ -379,7 +426,12 @@ onMounted(() => {
   }
 
   .results-section + .results-section {
-    margin-top: 1.75rem;
+    margin-top: 2.25rem;
+  }
+
+  .section-heading {
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.65rem;
   }
 }
 </style>

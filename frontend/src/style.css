@@ -6,9 +6,9 @@
     'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
 
   /* Scale — refined hierarchy (desktop-first ranges with mobile floors) */
-  --fs-hero: clamp(1.875rem, 4.8vw, 3.5rem); /* ~30–56px */
-  --fs-h1: clamp(1.875rem, 3.2vw, 2.5rem); /* ~30–40px */
-  --fs-h2: clamp(1.375rem, 2.2vw, 1.875rem); /* ~22–30px */
+  --fs-hero: clamp(1.75rem, 3.2vw, 2.25rem); /* ~28–36px */
+  --fs-h1: clamp(1.75rem, 2.4vw, 2rem); /* ~28–32px */
+  --fs-h2: clamp(1.375rem, 2vw, 1.75rem); /* ~22–28px */
   --fs-h3: clamp(1.125rem, 1.5vw, 1.375rem); /* ~18–22px */
   --fs-whisky: clamp(1.1875rem, 1.8vw, 1.5rem); /* ~19–24px */
   --fs-body: 1rem;
@@ -29,9 +29,18 @@
   --fw-emphasis: 600;
   --fw-score: 700;
 
-  /* Colors (unchanged product palette) */
+  /* Brand palette: near-black, off-white, amber/gold */
+  --wh-ink: #1c1917;
+  --wh-ink-soft: #44403c;
+  --wh-muted: #78716c;
+  --wh-faint: #a8a29e;
+  --wh-paper: #fafaf9;
+  --wh-line: rgba(28, 25, 23, 0.08);
+  --wh-gold: #c9a46a;
+  --wh-amber: #a16207;
+
   color: #1f2937;
-  background-color: #f8fafc;
+  background-color: var(--wh-paper);
   font-family: var(--font-body);
   line-height: var(--lh-body);
   font-weight: var(--fw-body);

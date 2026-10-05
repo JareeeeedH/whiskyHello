@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
@@ -11,6 +11,7 @@ const router = useRouter()
 const toast = useToast()
 const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.svg`
 const isMobileNavOpen = ref(false)
+const isAuctionSection = computed(() => route.path.startsWith('/auctions'))
 
 function closeMobileNav() {
   isMobileNavOpen.value = false
@@ -131,40 +132,51 @@ function onLogout() {
       </RouterLink>
 
       <nav class="nav nav--desktop" aria-label="Primary">
-        <RouterLink
-          v-slot="{ href, navigate, isExactActive }"
-          to="/"
-          custom
-        >
-          <a
-            :href="href"
-            :class="{ 'is-active': isExactActive }"
-            @click="navigate"
-          >Home</a>
-        </RouterLink>
-        <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
-        <RouterLink to="/auctions" active-class="is-active">Auction</RouterLink>
-
-        <template v-if="authStore.isAuthenticated">
+        <div class="nav-primary">
           <RouterLink
-            v-if="authStore.isAdmin"
-            to="/admin"
+            v-slot="{ href, navigate, isExactActive }"
+            to="/"
+            custom
+          >
+            <a
+              :href="href"
+              :class="{ 'is-active': isExactActive }"
+              @click="navigate"
+            >Home</a>
+          </RouterLink>
+          <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
+          <RouterLink
+            to="/auctions"
+            class="nav-feature"
+            :class="{ 'is-active': isAuctionSection }"
             active-class="is-active"
           >
-            Admin
+            Auction
           </RouterLink>
-          <RouterLink to="/profile" active-class="is-active">Profile</RouterLink>
-          <button type="button" class="nav-logout" @click="onLogout">
-            Logout
-          </button>
-        </template>
-        <RouterLink
-          v-else
-          to="/login"
-          active-class="is-active"
-        >
-          Login
-        </RouterLink>
+        </div>
+
+        <div class="nav-account">
+          <template v-if="authStore.isAuthenticated">
+            <RouterLink
+              v-if="authStore.isAdmin"
+              to="/admin"
+              active-class="is-active"
+            >
+              Admin
+            </RouterLink>
+            <RouterLink to="/profile" active-class="is-active">Profile</RouterLink>
+            <button type="button" class="nav-logout" @click="onLogout">
+              Logout
+            </button>
+          </template>
+          <RouterLink
+            v-else
+            to="/login"
+            active-class="is-active"
+          >
+            Login
+          </RouterLink>
+        </div>
       </nav>
 
       <button
@@ -224,6 +236,7 @@ function onLogout() {
           <RouterLink
             to="/auctions"
             class="nav-mobile-link"
+            :class="{ 'is-active': isAuctionSection }"
             active-class="is-active"
             :tabindex="isMobileNavOpen ? undefined : -1"
             @click="closeMobileNav"
@@ -318,80 +331,159 @@ function onLogout() {
 }
 
 .site-header {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--wh-line);
   background: #fff;
 }
 
 .site-header-inner {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem 1.25rem;
+  gap: 1.25rem;
   width: 100%;
+  min-height: 3.25rem;
   max-width: 1120px;
   margin: 0 auto;
-  padding: 0.75rem 1.5rem;
+  padding: 0 1.5rem;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 1.125rem;
-  color: #0f172a;
+  font-size: 0.975rem;
+  color: var(--wh-ink);
   text-decoration: none;
   min-width: 0;
 }
 
 .brand-mark {
   flex-shrink: 0;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 0.45rem;
-  box-shadow: 0 0 0 1px rgba(180, 83, 9, 0.22);
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 0.3rem;
 }
 
 .brand-wordmark {
   font-family: var(--font-body);
-  letter-spacing: -0.02em;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+}
+
+.brand:focus-visible {
+  outline: 2px solid #b45309;
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 .nav {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 1rem;
+  gap: 1.75rem;
   font-family: var(--font-body);
+}
+
+.nav-primary,
+.nav-account {
+  display: flex;
+  align-items: center;
+}
+
+.nav-primary {
+  gap: 1.6rem;
+}
+
+.nav-account {
+  gap: 1.15rem;
+  padding-left: 1.75rem;
+  border-left: 1px solid var(--wh-line);
 }
 
 .nav a,
 .nav-logout {
-  color: #334155;
-  text-decoration: none;
-  padding: 0.35rem 0.15rem;
-  font: inherit;
-  background: none;
+  position: relative;
+  padding: 0.3rem 0;
   border: none;
+  background: none;
+  color: var(--wh-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-decoration: none;
   cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.nav a:hover,
+.nav-logout:hover {
+  color: var(--wh-ink);
 }
 
 .nav a.is-active {
-  color: #0f766e;
-  font-weight: 600;
+  color: var(--wh-ink);
+  font-weight: 500;
 }
 
+.nav a.nav-feature {
+  color: var(--wh-ink-soft);
+  font-weight: 500;
+}
+
+.nav a.nav-feature.is-active {
+  color: var(--wh-amber);
+}
+
+.nav-primary a.is-active::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.05rem;
+  left: 0;
+  height: 1px;
+  content: '';
+  background: var(--wh-ink);
+}
+
+.nav-primary a.nav-feature.is-active::after {
+  background: var(--wh-gold);
+}
+
+.nav-account a,
+.nav-logout {
+  color: var(--wh-faint);
+  font-size: 0.8125rem;
+}
+
+.nav-account a:hover,
 .nav-logout:hover {
-  color: #b45309;
+  color: var(--wh-ink-soft);
 }
 
+.nav-account a.is-active {
+  color: var(--wh-ink-soft);
+}
+
+.nav a:focus-visible,
 .nav-logout:focus-visible {
   outline: 2px solid #b45309;
-  outline-offset: 2px;
+  outline-offset: 3px;
   border-radius: 2px;
+}
+
+@media (min-width: 641px) and (max-width: 800px) {
+  .nav {
+    gap: 1.15rem;
+  }
+
+  .nav-primary {
+    gap: 1.1rem;
+  }
+
+  .nav-account {
+    gap: 0.9rem;
+    padding-left: 1.15rem;
+  }
 }
 
 /* Hidden on desktop; shown only in the mobile breakpoint. */
@@ -475,14 +567,14 @@ function onLogout() {
 
 .page {
   position: relative;
-  min-height: calc(100vh - 3.5rem);
+  min-height: calc(100vh - 3.25rem);
   width: 100%;
   overflow-x: clip;
-  background: #f8fafc;
+  background: var(--wh-paper);
 }
 
 .route-shell {
-  min-height: calc(100vh - 3.5rem);
+  min-height: calc(100vh - 3.25rem);
   width: 100%;
 }
 
@@ -509,10 +601,10 @@ function onLogout() {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  min-height: calc(100vh - 3.5rem);
+  min-height: calc(100vh - 3.25rem);
   padding: 2rem 1.25rem;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--wh-paper);
+  color: var(--wh-muted);
 }
 
 .route-loading-skel {
@@ -528,9 +620,9 @@ function onLogout() {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    #e2e8f0 0%,
-    #f1f5f9 50%,
-    #e2e8f0 100%
+    #e7e5e4 0%,
+    #f5f5f4 50%,
+    #e7e5e4 100%
   );
   background-size: 200% 100%;
   animation: skel-shimmer 1.1s ease-in-out infinite;
@@ -574,12 +666,12 @@ function onLogout() {
   }
 
   .site-header-inner {
-    flex-wrap: nowrap;
-    padding: 0.55rem 0.85rem 0.55rem 1rem;
+    min-height: 3rem;
+    padding: 0 0.6rem 0 1rem;
   }
 
   .brand {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
   }
 
   .nav--desktop {
@@ -629,15 +721,15 @@ function onLogout() {
     width: min(17.5rem, 82vw);
     height: 100%;
     max-height: 100dvh;
-    padding: 4.25rem 0 1.25rem;
+    padding: 4rem 0 1.25rem;
     border-left: 1px solid #e7e5e4;
-    background: #fafaf9;
-    box-shadow: -12px 0 32px rgba(28, 25, 23, 0.12);
+    background: var(--wh-paper);
+    box-shadow: -8px 0 24px rgba(28, 25, 23, 0.08);
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform: translate3d(104%, 0, 0);
-    transition: transform 320ms cubic-bezier(0.22, 1.18, 0.36, 1);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
   }
 
@@ -682,13 +774,23 @@ function onLogout() {
   }
 
   .nav-mobile-link.is-active {
-    color: #b45309;
+    color: var(--wh-amber);
     font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--wh-gold);
+  }
+
+  .nav-mobile-logout {
+    margin-top: auto;
+    border-top: 1px solid #e7e5e4;
+    border-bottom: none;
+    color: var(--wh-faint);
+    font-size: 0.875rem;
   }
 
   .nav-mobile-logout:hover,
   .nav-mobile-logout:focus-visible {
-    color: #b45309;
+    color: var(--wh-ink-soft);
+    background: transparent;
   }
 }
 

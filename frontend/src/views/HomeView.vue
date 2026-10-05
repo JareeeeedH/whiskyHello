@@ -4,6 +4,7 @@ import { useRouter, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import NewsCard from '../components/NewsCard.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import { getRandomNews } from '../data/news'
 import { mockFriendReviews } from '../data/mock/friendReviews'
 
@@ -25,7 +26,6 @@ const latestFriendReviews = mockFriendReviews
 /** Duplicate list for seamless CSS marquee loop. */
 const reviewFeedLoops = [0, 1] as const
 const reviewMarqueePaused = ref(false)
-const heroGlassSrc = `${import.meta.env.BASE_URL}hero-glass.svg`
 
 function pauseReviewMarquee() {
   reviewMarqueePaused.value = true
@@ -56,10 +56,6 @@ const capabilities = [
   },
 ]
 
-function goWhiskies() {
-  void router.push('/whiskies')
-}
-
 function goSearchEntry() {
   // Entry only — full search stays on /whiskies
   void router.push('/whiskies')
@@ -68,36 +64,16 @@ function goSearchEntry() {
 
 <template>
   <main class="home">
-    <section class="hero">
-      <div class="hero-atmosphere" aria-hidden="true">
-        <div class="hero-grain" />
-        <div class="hero-glow hero-glow--warm" />
-        <div class="hero-glow hero-glow--edge" />
-        <img
-          class="hero-glass"
-          :src="heroGlassSrc"
-          alt=""
-          width="280"
-          height="420"
-          decoding="async"
-        />
-      </div>
+    <section class="hero" aria-labelledby="home-hero-title">
       <div class="hero-shell">
-        <div class="hero-inner">
-        <p class="brand hero-reveal hero-reveal--1">WhiskyHello</p>
-        <h1 class="hero-reveal hero-reveal--2">
-          從探索開始，<br class="hero-break" />走向你的酒單。
-        </h1>
-        <p class="lead hero-reveal hero-reveal--3">
-          搜尋酒款、閱讀知名評論，也分享你的品飲感受。
-        </p>
-        <Button
-          label="開始探索威士忌"
-          icon="pi pi-search"
-          class="hero-cta hero-reveal hero-reveal--4"
-          @click="goWhiskies"
-        />
+        <div class="hero-copy">
+          <p class="brand"><span class="brand-rule" aria-hidden="true" />WHISKYHELLO</p>
+          <h1 id="home-hero-title">
+            從探索開始，<br />
+            <span class="hero-accent">走向你的酒單。</span>
+          </h1>
         </div>
+        <p class="lead">搜尋酒款、閱讀知名評論，也分享你的品飲感受。</p>
       </div>
     </section>
 
@@ -252,9 +228,7 @@ function goSearchEntry() {
       </div>
     </section>
 
-    <footer class="home-footer">
-      <p>WhiskyHello · 從一杯酒開始</p>
-    </footer>
+    <SiteFooter />
   </main>
 </template>
 
@@ -266,194 +240,62 @@ function goSearchEntry() {
 }
 
 .hero {
-  position: relative;
-  overflow: hidden;
   background:
-    linear-gradient(105deg, rgba(12, 10, 9, 0.92) 0%, rgba(28, 25, 23, 0.72) 48%, rgba(28, 25, 23, 0.55) 100%),
-    radial-gradient(ellipse 70% 80% at 12% 20%, rgba(180, 83, 9, 0.28), transparent 58%),
-    radial-gradient(ellipse 55% 60% at 88% 70%, rgba(146, 64, 14, 0.22), transparent 55%),
-    linear-gradient(165deg, #0c0a09 0%, #1c1917 42%, #292524 72%, #1c1917 100%);
-  color: #fafaf9;
-  padding: 3.75rem 1.5rem 3.5rem;
-  box-shadow: inset 0 -1px 0 rgba(251, 191, 36, 0.18);
-}
-
-.hero-atmosphere {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.hero-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.14;
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(255, 255, 255, 0.015) 2px,
-      rgba(255, 255, 255, 0.015) 3px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.04) 2px,
-      rgba(0, 0, 0, 0.04) 3px
-    );
-  mix-blend-mode: soft-light;
-}
-
-.hero-glow {
-  position: absolute;
-  pointer-events: none;
-}
-
-.hero-glow--warm {
-  inset: auto -8% -40% auto;
-  width: min(52%, 28rem);
-  height: 70%;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.16), transparent 68%);
-}
-
-.hero-glow--edge {
-  inset: -20% auto auto -15%;
-  width: min(48%, 24rem);
-  height: 55%;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.1), transparent 70%);
-}
-
-.hero-glass {
-  position: absolute;
-  right: max(2%, 0.5rem);
-  bottom: -6%;
-  width: min(34vw, 15.5rem);
-  height: auto;
-  opacity: 0.42;
-  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.45));
-  transform: rotate(-4deg);
+    radial-gradient(ellipse 60% 120% at 0% 0%, rgba(180, 83, 9, 0.16), transparent 60%),
+    #161311;
+  color: var(--wh-paper);
+  padding: 2.5rem 1.5rem;
 }
 
 .hero-shell {
-  position: relative;
-  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-.hero-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 34rem;
-  margin: 0;
-  text-align: left;
 }
 
 .brand {
-  margin: 0 0 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.85rem;
   font-family: var(--font-body);
-  font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+  font-size: var(--fs-eyebrow);
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: none;
-  color: #fbbf24;
-  text-shadow: 0 0 24px rgba(251, 191, 36, 0.22);
+  letter-spacing: 0.22em;
+  color: var(--wh-gold);
+}
+
+.brand-rule {
+  width: 1.5rem;
+  height: 1px;
+  background: var(--wh-gold);
 }
 
 .hero h1 {
-  margin: 0 0 0.9rem;
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-hero);
-  line-height: 1.22;
   font-weight: 600;
-  letter-spacing: normal;
-  text-wrap: balance;
-  max-width: 18em;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
 }
 
-/* Mobile-only soft break; desktop keeps single-line flow. */
-.hero-break {
-  display: none;
+.hero-accent {
+  color: #e7bd73;
 }
 
 .lead {
-  margin: 0 0 1.6rem;
-  max-width: 28rem;
+  margin: 0;
+  max-width: 22rem;
   font-family: var(--font-body);
-  font-size: 1.02rem;
-  line-height: 1.75;
+  font-size: 0.9rem;
+  line-height: 1.7;
   font-weight: 400;
-  color: #d6d3d1;
-}
-
-.hero-cta {
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%),
-    linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
-  border: 1px solid rgba(253, 230, 138, 0.55) !important;
-  color: #1c1917 !important;
-  font-family: var(--font-body) !important;
-  font-weight: 600 !important;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 -1px 0 rgba(120, 53, 15, 0.35) inset,
-    0 10px 28px rgba(0, 0, 0, 0.28) !important;
-  transition:
-    box-shadow 0.35s ease,
-    filter 0.35s ease,
-    transform 0.35s ease !important;
-}
-
-.hero-cta:hover {
-  filter: brightness(1.06);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.38) inset,
-    0 -1px 0 rgba(120, 53, 15, 0.3) inset,
-    0 0 0 1px rgba(253, 230, 138, 0.35),
-    0 14px 32px rgba(180, 83, 9, 0.28) !important;
-}
-
-.hero-cta:focus-visible {
-  outline: 2px solid #fde68a;
-  outline-offset: 3px;
-}
-
-.hero-reveal {
-  animation: hero-fade-up 0.9s ease both;
-}
-
-.hero-reveal--1 {
-  animation-delay: 0.05s;
-}
-
-.hero-reveal--2 {
-  animation-delay: 0.16s;
-}
-
-.hero-reveal--3 {
-  animation-delay: 0.28s;
-}
-
-.hero-reveal--4 {
-  animation-delay: 0.4s;
-}
-
-@keyframes hero-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(0.65rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  color: var(--wh-faint);
+  text-wrap: pretty;
 }
 
 .luxury-rule {
@@ -757,14 +599,6 @@ function goSearchEntry() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-reveal {
-    animation: none;
-  }
-
-  .hero-cta {
-    transition: none !important;
-  }
-
   .review-marquee-track {
     animation: none;
   }
@@ -812,90 +646,18 @@ function goSearchEntry() {
   font-weight: 400;
 }
 
-.home-footer {
-  padding: 1.75rem 1.5rem;
-  text-align: center;
-  background: #292524;
-  color: #a8a29e;
-}
-
-.home-footer p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
 @media (max-width: 640px) {
-  /* Compact Hero: keep brand identity, free first screen for Search / Community. */
   .hero {
-    min-height: 0;
-    max-height: none;
-    padding: 1.15rem 1rem 1.1rem;
-  }
-
-  .hero-shell {
-    padding: 0;
-  }
-
-  .hero-inner {
-    max-width: 100%;
-    padding-right: 0;
+    padding: 1.75rem 1rem 1.6rem;
   }
 
   .brand {
-    margin: 0 0 0.4rem;
-    font-size: 0.92rem;
-    letter-spacing: 0.1em;
-  }
-
-  .hero-break {
-    display: block;
-  }
-
-  .hero h1 {
-    margin: 0 0 0.4rem;
-    font-size: 2rem;
-    line-height: 1.3;
-    letter-spacing: normal;
-    max-width: 11.5em;
-    text-wrap: unset;
+    margin-bottom: 0.65rem;
   }
 
   .lead {
-    margin: 0 0 0.85rem;
-    max-width: 20rem;
-    font-size: 0.875rem;
-    line-height: 1.55;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-  }
-
-  .hero-cta {
-    font-size: 0.875rem !important;
-    padding: 0.55rem 0.95rem !important;
-  }
-
-  .hero-glass {
-    width: min(28vw, 5.25rem);
-    opacity: 0.16;
-    right: -0.75rem;
-    bottom: -18%;
-    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
-    transform: rotate(-6deg);
-  }
-
-  .hero-glow--warm {
-    width: min(42%, 14rem);
-    height: 55%;
-    opacity: 0.7;
-  }
-
-  .hero-glow--edge {
-    width: min(40%, 12rem);
-    height: 45%;
-    opacity: 0.65;
+    font-size: 0.84rem;
+    line-height: 1.6;
   }
 
   .section {
@@ -945,6 +707,17 @@ function goSearchEntry() {
 }
 
 @media (min-width: 801px) {
+  .hero-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 23rem);
+    align-items: end;
+    gap: 3rem;
+  }
+
+  .lead {
+    padding-left: 1.25rem;
+    border-left: 1px solid rgba(201, 164, 106, 0.35);
+  }
+
   .explore-grid {
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: 2.5rem 3rem;

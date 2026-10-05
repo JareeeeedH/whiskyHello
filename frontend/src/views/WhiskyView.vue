@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import WhiskyCard from '../components/WhiskyCard.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import type { Whisky } from '../types/whisky'
 import {
   getRandomWhiskies,
@@ -180,9 +181,7 @@ function applyHotSearch(term: string) {
     </section>
     </div>
 
-    <footer class="page-footer">
-      <p>WhiskyHello · 從一杯酒開始</p>
-    </footer>
+    <SiteFooter />
   </main>
 </template>
 
@@ -239,18 +238,6 @@ function applyHotSearch(term: string) {
   max-width: 1120px;
   margin: 0 auto;
   padding: 1.75rem 1.5rem 3rem;
-}
-
-.page-footer {
-  padding: 1.75rem 1.5rem;
-  text-align: center;
-  background: #292524;
-  color: #a8a29e;
-}
-
-.page-footer p {
-  margin: 0;
-  font-size: 0.875rem;
 }
 
 .page-header {

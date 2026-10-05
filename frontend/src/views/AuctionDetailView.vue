@@ -14,6 +14,15 @@ import { getWhiskyById } from '../services/whiskyService'
 import { useAuthStore } from '../stores/auth'
 import type { AuctionStatus } from '../types/admin'
 import type { PublicAuctionDetail, PublicBid } from '../types/auction'
+import {
+  formatAbsoluteTime,
+  formatCompactCountdown,
+  formatLotNumber,
+  formatPrice,
+  formatRelativeTime,
+  getCountdownParts,
+  isEndingSoon,
+} from '../utils/auctionDisplay'
 
 /** Display-only hint; the backend enforces the real minimum bid. */
 const BID_INCREMENT = 100
@@ -39,19 +48,25 @@ const confirmVisible = ref(false)
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 
+const bidPanelRef = ref<HTMLElement | null>(null)
+const bidPanelInView = ref(true)
+
 const auctionId = computed(() => String(route.params.id ?? ''))
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const canBid = computed(() => auction.value?.status === 'active')
 const auctionTarget = computed(() => auction.value ? new Date(auction.value.status === 'scheduled' ? auction.value.startAt : auction.value.endAt).getTime() : 0)
-const countdownParts = computed(() => {
-  const seconds = Math.max(0, Math.floor((auctionTarget.value - now.value) / 1000))
-  return [Math.floor(seconds / 86400), Math.floor((seconds % 86400) / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
-})
+const countdown = computed(() => getCountdownParts(auctionTarget.value, now.value))
+const countdownSegments = computed(() => [
+  { value: countdown.value.days, unit: '天' },
+  { value: countdown.value.hours, unit: '時' },
+  { value: countdown.value.minutes, unit: '分' },
+  { value: countdown.value.seconds, unit: '秒' },
+])
 const countdownLabel = computed(() => auction.value?.status === 'scheduled' ? '距離開標' : '距離結標')
+const endingSoon = computed(() => canBid.value && isEndingSoon(countdown.value))
 const leadingBidder = computed(() => [...bids.value].sort((a, b) => b.amount - a.amount)[0])
-const isLeadingBidder = computed(() => Boolean(authStore.user?.id && leadingBidder.value?.userId === authStore.user.id))
 
 const minimumBid = computed(() => {
   if (!auction.value) {
@@ -60,6 +75,11 @@ const minimumBid = computed(() => {
   return bids.value.length > 0
     ? currentPrice.value + BID_INCREMENT
     : auction.value.startingPrice
+})
+
+const priceLabel = computed(() => {
+  if (bids.value.length === 0) return '起標價'
+  return auction.value?.status === 'ended' ? '成交價' : '目前出價'
 })
 
 const loginRoute = computed(() => ({
@@ -77,6 +97,9 @@ const whiskyName = computed(
     (auction.value ? `酒款 #${auction.value.whiskyId}` : ''),
 )
 
+const imageFailed = ref(false)
+watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
+
 const statusLabel: Record<AuctionStatus, string> = {
   draft: '草稿',
   scheduled: '即將開始',
@@ -85,22 +108,24 @@ const statusLabel: Record<AuctionStatus, string> = {
   cancelled: '已取消',
 }
 
-function formatAbsoluteTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return date.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+const statusCode: Record<AuctionStatus, string> = {
+  draft: 'DRAFT',
+  scheduled: 'UPCOMING',
+  active: 'LIVE',
+  ended: 'CLOSED',
+  cancelled: 'CANCELLED',
 }
 
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat('zh-TW').format(value)
+function bidderLabel(bid: PublicBid): string {
+  return bid.bidderName || '會員'
+}
+
+function useMinimumBid() {
+  bidAmount.value = minimumBid.value
+}
+
+function scrollToBidPanel() {
+  bidPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 function resetBidForm() {
@@ -219,12 +244,22 @@ watch(
   { immediate: true },
 )
 
+watch(bidPanelRef, (panel, _previous, onCleanup) => {
+  bidPanelInView.value = true
+  if (!panel || typeof IntersectionObserver === 'undefined') return
+  const observer = new IntersectionObserver(([entry]) => {
+    bidPanelInView.value = Boolean(entry?.isIntersecting)
+  })
+  observer.observe(panel)
+  onCleanup(() => observer.disconnect())
+})
+
 clock = setInterval(() => { now.value = Date.now() }, 1000)
 onUnmounted(() => { if (clock) clearInterval(clock) })
 </script>
 
 <template>
-  <main class="detail">
+  <main class="detail" :class="{ 'has-bid-bar': canBid }">
     <p v-if="!notFound" class="back">
       <RouterLink to="/auctions">← 返回競標列表</RouterLink>
     </p>
@@ -248,125 +283,199 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 
     <template v-else-if="auction">
       <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">WHISKYHELLO · AUCTION HOUSE</p>
-          <div class="hero-title-row">
-            <span class="status-badge" :class="`is-${auction.status}`"><span class="status-dot" />{{ statusLabel[auction.status] }}</span>
-            <span class="lot-number">LOT {{ auction.id.slice(-6).toUpperCase() }}</span>
+        <header class="hero-copy">
+          <div class="lot-meta">
+            <span class="status-pill" :class="`is-${auction.status}`">
+              <span class="status-dot" aria-hidden="true" />
+              <span class="status-code">{{ statusCode[auction.status] }}</span>
+              <span class="status-label">{{ statusLabel[auction.status] }}</span>
+            </span>
+            <span class="lot-number">LOT <b>{{ formatLotNumber(auction.id) }}</b></span>
           </div>
           <h1>{{ auction.title }}</h1>
-          <p class="whisky-line"><RouterLink v-if="whisky" :to="{ name: 'whisky-detail', params: { id: whisky.id } }">{{ whiskyName }}</RouterLink><span v-else>{{ whiskyName }}</span></p>
+          <p class="whisky-line">
+            <RouterLink v-if="whisky" :to="{ name: 'whisky-detail', params: { id: whisky.id } }">{{ whiskyName }}</RouterLink>
+            <span v-else>{{ whiskyName }}</span>
+          </p>
           <p v-if="whisky?.subtitle" class="subtitle">{{ whisky.subtitle }}</p>
-        </div>
-        <div class="image-wrap">
+        </header>
+
+        <figure class="image-stage">
           <img
-            v-if="whisky?.imageUrl"
+            v-if="whisky?.imageUrl && !imageFailed"
             :src="whisky.imageUrl"
             :alt="whiskyName"
             class="image"
+            @error="imageFailed = true"
           />
           <div v-else class="image-fallback">No image</div>
-        </div>
-
+        </figure>
       </section>
 
       <div class="auction-layout">
-      <section class="bid-panel">
-        <div class="panel-topline"><span>{{ auction.status === 'ended' ? 'FINAL PRICE' : 'CURRENT BID' }}</span><span class="currency">NTD</span></div>
-
-        <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
-
-        <div v-else-if="bidsError" class="error-state" role="alert">
-          <p>{{ bidsError }}</p>
-          <Button
-            label="重新載入"
-            severity="secondary"
-            @click="loadBids(auction.id)"
-          />
-        </div>
-
-        <template v-else>
-          <div class="price-block current-price">
-            <span class="currency-symbol">NT$</span><span class="price-value">{{ formatPrice(currentPrice) }}</span>
-            <span class="price-note">
-              {{ bids.length > 0 ? `共 ${bids.length} 筆出價` : '尚無出價，以起標價計' }}
+        <section
+          ref="bidPanelRef"
+          class="bid-panel"
+          :class="{ 'is-live': canBid }"
+          aria-labelledby="bid-panel-title"
+        >
+          <div class="panel-head">
+            <p id="bid-panel-title" class="panel-label">{{ priceLabel }}</p>
+            <span v-if="!bidsLoading && !bidsError" class="bid-count">
+              {{ bids.length > 0 ? `${bids.length} 次出價` : '尚無出價' }}
             </span>
           </div>
-          <div v-if="isLeadingBidder && auction.status === 'active'" class="leading-note" role="status">目前由您領先</div>
-          <div v-if="auction.status === 'ended' && bids.length > 0" class="winner-card"><span>WINNING BIDDER</span><strong>{{ leadingBidder?.bidderName || '會員' }}</strong><small>本場競標已結束</small></div>
 
-          <template v-if="canBid">
-            <form
-              v-if="isAuthenticated"
-              class="bid-form"
-              @submit.prevent="requestBidConfirmation"
-            >
-              <label class="field-label" for="bid-amount">出價金額</label>
-              <p class="bid-hint">目前最低可出價：<strong>NT$ {{ formatPrice(minimumBid) }}</strong></p>
-              <div class="bid-row">
-                <InputNumber
-                  v-model="bidAmount"
-                  input-id="bid-amount"
-                  class="bid-input"
-                  :min="0"
-                  :disabled="bidSubmitting"
-                />
-                <Button
-                  type="submit"
-                  :label="bidSubmitting ? '出價中…' : '出價'"
-                  :loading="bidSubmitting"
-                  class="submit-btn"
-                />
-              </div>
-              <p v-if="bidError" class="form-error" role="alert">{{ bidError }}</p>
-              <p v-if="bidSuccess" class="form-success" role="status">{{ bidSuccess }}</p>
-            </form>
+          <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
 
-            <p v-else class="login-hint">
-              <RouterLink :to="loginRoute">登入</RouterLink>後即可參與出價。
+          <div v-else-if="bidsError" class="error-state" role="alert">
+            <p>{{ bidsError }}</p>
+            <Button
+              label="重新載入"
+              severity="secondary"
+              @click="loadBids(auction.id)"
+            />
+          </div>
+
+          <template v-else>
+            <p class="price">
+              <span class="currency">NT$</span>
+              <span class="price-value">{{ formatPrice(currentPrice) }}</span>
             </p>
+            <div v-if="auction.status === 'ended' && bids.length > 0 && leadingBidder" class="winner-card">
+              <span>WINNING BIDDER</span>
+              <strong>{{ bidderLabel(leadingBidder) }}</strong>
+              <small>本場競標已結束</small>
+            </div>
           </template>
 
-          <p v-else-if="auction.status === 'scheduled'" class="empty">
-            競標尚未開始，將於
-            <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
-            開放出價。
-          </p>
+          <div
+            v-if="auction.status === 'active' || auction.status === 'scheduled'"
+            class="countdown"
+            :class="{ 'is-soon': endingSoon }"
+            :title="canBid ? `結標時間 ${formatAbsoluteTime(auction.endAt)}` : undefined"
+          >
+            <span class="countdown-label">{{ countdownLabel }}</span>
+            <span class="countdown-values" role="timer" :aria-label="`${countdownLabel} ${formatCompactCountdown(countdown)}`">
+              <span v-for="segment in countdownSegments" :key="segment.unit" class="segment">
+                <b>{{ String(segment.value).padStart(2, '0') }}</b><i>{{ segment.unit }}</i>
+              </span>
+            </span>
+          </div>
 
-          <p v-else class="empty">此競標目前不開放出價。</p>
-        </template>
-        <div class="time-strip">
-          <div class="countdown-block" :class="{ 'is-live': canBid }"><span>{{ countdownLabel }}</span><strong v-if="auction.status === 'active' || auction.status === 'scheduled'" class="countdown-values"><b>{{ String(countdownParts[0]).padStart(2, '0') }}</b><i>天</i><b>{{ String(countdownParts[1]).padStart(2, '0') }}</b><i>時</i><b>{{ String(countdownParts[2]).padStart(2, '0') }}</b><i>分</i><b>{{ String(countdownParts[3]).padStart(2, '0') }}</b><i>秒</i></strong><strong v-else class="ended-caption">{{ statusLabel[auction.status] }}</strong></div>
-          <p><span>起標價</span><strong>NT$ {{ formatPrice(auction.startingPrice) }}</strong></p>
-        </div>
-      </section>
+          <template v-if="!bidsLoading && !bidsError">
+            <template v-if="canBid">
+              <form
+                v-if="isAuthenticated"
+                class="bid-form"
+                @submit.prevent="requestBidConfirmation"
+              >
+                <div class="bid-row">
+                  <InputNumber
+                    v-model="bidAmount"
+                    input-id="bid-amount"
+                    aria-label="出價金額"
+                    class="bid-input"
+                    prefix="NT$ "
+                    :min="0"
+                    :disabled="bidSubmitting"
+                  />
+                  <Button
+                    type="submit"
+                    :label="bidSubmitting ? '出價中…' : '出價'"
+                    :loading="bidSubmitting"
+                    class="submit-btn"
+                  />
+                </div>
+                <div v-if="bidAmount !== minimumBid" class="form-meta">
+                  <button
+                    type="button"
+                    class="link-btn"
+                    :disabled="bidSubmitting"
+                    @click="useMinimumBid"
+                  >
+                    填入最低出價
+                  </button>
+                </div>
+                <p v-if="bidError" class="form-error" role="alert">{{ bidError }}</p>
+                <p v-if="bidSuccess" class="form-success" role="status">{{ bidSuccess }}</p>
+              </form>
 
-      <section class="block activity-block">
-        <div class="section-heading"><div><p class="eyebrow">BIDDING ACTIVITY</p><h2>出價紀錄</h2></div><span v-if="!bidsLoading && !bidsError" class="activity-count">{{ bids.length }} 筆出價</span></div>
-        <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
-        <div v-else-if="bidsError" class="error-state" role="alert"><p>{{ bidsError }}</p><Button label="重新載入" severity="secondary" @click="loadBids(auction.id)" /></div>
-        <p v-if="!bidsLoading && !bidsError && bids.length === 0" class="empty">目前還沒有人出價。</p>
-        <ul v-else-if="!bidsLoading && !bidsError" class="bid-list">
-          <li v-for="bid in bids" :key="bid.id" class="bid-item">
-            <span class="bid-name">{{ bid.bidderName || '會員' }}</span>
-            <span class="bid-amount">{{ formatPrice(bid.amount) }}</span>
-            <time class="bid-time" :datetime="bid.createdAt">
-              {{ formatAbsoluteTime(bid.createdAt) }}
-            </time>
-          </li>
-        </ul>
-      </section>
-      <section class="block date-block" aria-label="競標時間">
-        <p><span>開始時間</span><time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time></p>
-        <p><span>結束時間</span><time :datetime="auction.endAt">{{ formatAbsoluteTime(auction.endAt) }}</time></p>
-      </section>
+              <div v-else class="login-panel">
+                <p>登入後即可參與出價。</p>
+                <RouterLink :to="loginRoute" class="login-link">登入出價</RouterLink>
+              </div>
+            </template>
+
+            <p v-else-if="auction.status === 'scheduled'" class="panel-note">
+              競標尚未開始，將於
+              <time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time>
+              開放出價。
+            </p>
+
+            <p v-else class="panel-note">此競標目前不開放出價。</p>
+          </template>
+
+          <dl class="panel-foot">
+            <div><dt>起標價</dt><dd>NT$ {{ formatPrice(auction.startingPrice) }}</dd></div>
+            <div><dt>加價級距</dt><dd>NT$ {{ formatPrice(BID_INCREMENT) }}</dd></div>
+            <div v-if="canBid && !bidsLoading && !bidsError" class="is-key">
+              <dt>最低可出價</dt><dd>NT$ {{ formatPrice(minimumBid) }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="block activity-block" aria-labelledby="activity-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">BIDDING ACTIVITY</p>
+              <h2 id="activity-title">出價紀錄</h2>
+            </div>
+            <span v-if="!bidsLoading && !bidsError" class="activity-count">{{ bids.length }} 筆出價</span>
+          </div>
+          <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
+          <div v-else-if="bidsError" class="error-state" role="alert"><p>{{ bidsError }}</p><Button label="重新載入" severity="secondary" @click="loadBids(auction.id)" /></div>
+          <p v-else-if="bids.length === 0" class="empty">目前還沒有人出價，成為第一位出價者。</p>
+          <ol v-else class="bid-list">
+            <li
+              v-for="bid in bids"
+              :key="bid.id"
+              class="bid-item"
+              :class="{ 'is-top': bid.id === leadingBidder?.id }"
+            >
+              <span class="bid-name">{{ bidderLabel(bid) }}</span>
+              <span class="bid-amount"><small>NT$</small>{{ formatPrice(bid.amount) }}</span>
+              <time class="bid-time" :datetime="bid.createdAt" :title="formatAbsoluteTime(bid.createdAt)">
+                {{ formatRelativeTime(bid.createdAt, now) }}
+              </time>
+            </li>
+          </ol>
+        </section>
+
+        <section v-if="auction.status !== 'active'" class="block schedule-block" aria-label="競標時間">
+          <p><span>開始時間</span><time :datetime="auction.startAt">{{ formatAbsoluteTime(auction.startAt) }}</time></p>
+          <p><span>結束時間</span><time :datetime="auction.endAt">{{ formatAbsoluteTime(auction.endAt) }}</time></p>
+        </section>
       </div>
 
-      <section class="block">
-        <h2>說明</h2>
+      <section class="block notes-block">
+        <p class="eyebrow">LOT NOTES</p>
+        <h2>拍品說明</h2>
         <div v-if="auction.description" class="note">{{ auction.description }}</div>
         <p v-else class="empty">目前沒有說明。</p>
       </section>
+
+      <div v-if="canBid && !bidPanelInView" class="mobile-bid-bar">
+        <div class="bar-price">
+          <span>{{ priceLabel }}</span>
+          <strong>NT$ {{ formatPrice(currentPrice) }}</strong>
+        </div>
+        <div class="bar-time" :class="{ 'is-soon': endingSoon }">
+          <span>剩餘</span>
+          <strong>{{ formatCompactCountdown(countdown) }}</strong>
+        </div>
+        <Button :label="isAuthenticated ? '出價' : '登入出價'" class="submit-btn bar-btn" @click="scrollToBidPanel" />
+      </div>
     </template>
     <Dialog v-model:visible="confirmVisible" modal header="確認出價" :style="{ width: 'min(92vw, 28rem)' }" :draggable="false">
       <div class="confirm-content"><p>您即將為 <strong>{{ auction?.title }}</strong> 提交出價。</p><div><span>您的出價</span><strong>NT$ {{ formatPrice(bidAmount ?? 0) }}</strong></div><small>出價送出後將依競標規則處理，請確認金額正確。</small></div>
@@ -376,96 +485,153 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 </template>
 
 <style scoped>
-.detail { max-width: 1100px; margin: 0 auto; padding: 1.15rem 1.5rem 3rem; color: #292524; }
-.back { margin: 0 0 1.2rem; }
+.detail { max-width: 1120px; margin: 0 auto; padding: 1.15rem 1.5rem 3rem; color: #292524; }
+.back { margin: 0 0 1.2rem; font-size: .875rem; }
 .back a, .not-found a, .whisky-line a { color: #9a5b1b; text-decoration: none; }
 .back a:hover, .not-found a:hover, .whisky-line a:hover { text-decoration: underline; }
-.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 2.25rem; align-items: center; min-height: 300px; margin-bottom: 1.5rem; padding: 2rem 2.25rem; overflow: hidden; color: #fafaf9; background: radial-gradient(ellipse at 88% 12%, rgba(180,83,9,.22), transparent 46%), linear-gradient(145deg,#1c1917,#292524 68%,#3b2b20); }
-.hero::after { position:absolute; inset:auto 0 0; height:1px; content:''; background:linear-gradient(90deg,transparent,#d6a34b,transparent); }
-.hero-copy { position:relative; z-index:1; }
-.eyebrow { margin:0 0 .8rem; color:#b77932; font-size:.68rem; font-weight:700; letter-spacing:.16em; }
-.hero .eyebrow { color:#e7bd73; }
-.hero-title-row { display:flex; align-items:center; gap:.85rem; margin-bottom:.55rem; }
-.lot-number { color:#a8a29e; font-size:.68rem; letter-spacing:.13em; }
-.hero h1 { margin:0 0 .65rem; color:#fafaf9; font-family:var(--font-display); font-size:clamp(1.7rem,3vw,2.35rem); line-height:1.25; }
-.hero .whisky-line { color:#e7e5e4; }
-.hero .whisky-line a { color:#f5ce8a; }
-.whisky-line { margin:0 0 .35rem; font-weight:600; line-height:1.45; }
-.subtitle { margin:0; color:#c8c2bb; line-height:1.55; }
-.image-wrap { display:flex; align-items:center; justify-content:center; height:250px; padding:1rem; border:1px solid rgba(231,229,228,.18); background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.14),rgba(255,255,255,.025) 70%); }
-.image { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 16px 16px rgba(0,0,0,.25)); }
-.image-fallback { color:#a8a29e; font-size:.875rem; }
-.status-badge { display:inline-flex; align-items:center; padding:.2rem .55rem; border:1px solid rgba(231,229,228,.3); border-radius:99px; color:#d6d3d1; font-size:.72rem; font-weight:600; }
-.status-dot { width:.42rem; height:.42rem; margin-right:.4rem; border-radius:50%; background:currentColor; }
-.status-badge.is-active { border-color:rgba(74,222,128,.35); color:#86efac; background:rgba(20,83,45,.28); }
-.status-badge.is-active .status-dot { animation:live-pulse 1.8s ease-out infinite; }
-.status-badge.is-scheduled { border-color:rgba(251,191,36,.35); color:#fcd34d; background:rgba(120,53,15,.25); }
-.status-badge.is-ended { border-color:rgba(214,211,209,.3); color:#e7e5e4; }
-.status-badge.is-cancelled, .status-badge.is-draft { color:#d6d3d1; }
-.auction-layout { display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr); gap:1rem; align-items:start; }
-.bid-panel { padding:1.35rem 1.5rem 1.1rem; border:1px solid #e7dfd3; background:linear-gradient(150deg,#fffefa,#faf7f1); box-shadow:0 12px 35px rgba(41,37,36,.045); }
-.panel-topline { display:flex; justify-content:space-between; align-items:center; color:#78716c; font-size:.68rem; font-weight:700; letter-spacing:.15em; }
-.currency { color:#a8a29e; }
-.price-block { display:flex; flex-wrap:wrap; align-items:baseline; gap:.1rem .55rem; margin:.5rem 0 1rem; }
-.currency-symbol { color:#a16207; font-size:.9rem; font-weight:700; }
-.price-value { color:#873d1e; font-family:var(--font-body); font-size:clamp(2.5rem,5vw,3.75rem); font-variant-numeric:tabular-nums; font-weight:700; line-height:1.08; }
-.price-note { flex-basis:100%; margin-top:.25rem; color:#78716c; font-size:.82rem; }
-.leading-note { margin:-.35rem 0 .9rem; color:#166534; font-size:.82rem; font-weight:600; }
-.winner-card { display:flex; flex-direction:column; gap:.15rem; margin:.1rem 0 1rem; padding:.8rem 1rem; border-left:3px solid #a16207; background:#f5ebd6; }
-.winner-card span { color:#8a5b1e; font-size:.62rem; font-weight:700; letter-spacing:.14em; }
-.winner-card strong { color:#292524; font-size:1.1rem; }
-.winner-card small { color:#78716c; }
-.bid-form { display:flex; flex-direction:column; gap:.5rem; padding:1rem; border:1px solid #e9dfd1; background:#fff; }
-.field-label { color:#44403c; font-size:.9rem; font-weight:600; }
-.bid-hint { color:#78716c; font-size:.8rem; }
-.bid-hint strong { color:#6f381c; }
-.bid-row { display:flex; gap:.55rem; align-items:stretch; }
-.bid-input { flex:1; min-width:0; }
-.bid-input :deep(.p-inputtext) { width:100%; min-height:2.9rem; border-color:#d6d3d1; }
-.submit-btn { border:none !important; background:linear-gradient(135deg,#d6a34b,#b77932) !important; color:#21180d !important; font-weight:700 !important; }
-.submit-btn:hover { filter:brightness(1.04); }
-.form-error, .form-success { margin:0; font-size:.84rem; }
-.form-error { color:#b91c1c; }
-.form-success { color:#15803d; }
-.login-hint, .empty, .state { color:#78716c; line-height:1.65; }
-.login-hint a { color:#8a4b21; font-weight:700; }
-.time-strip { display:grid; grid-template-columns:1fr auto; gap:.8rem; align-items:center; margin-top:1rem; padding-top:.9rem; border-top:1px solid #e7dfd3; }
-.countdown-block { display:flex; flex-direction:column; gap:.2rem; color:#78716c; font-size:.72rem; }
-.countdown-values { display:flex; align-items:baseline; gap:.18rem; color:#44403c; font-variant-numeric:tabular-nums; }
-.countdown-values b { font-size:1.05rem; }
-.countdown-values i { color:#a8a29e; font-size:.65rem; font-style:normal; }
-.countdown-block.is-live .countdown-values b { color:#9a3412; }
-.ended-caption { color:#78716c; }
-.time-strip p { display:flex; flex-direction:column; gap:.15rem; margin:0; color:#78716c; font-size:.7rem; text-align:right; }
-.time-strip p strong { color:#44403c; font-size:.85rem; }
-.block { min-width:0; margin:0; padding:1.25rem; border:1px solid #e7e5e4; background:#fff; }
-.activity-block { grid-column:2; grid-row:1; }
-.date-block { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:1.5rem 3rem; }
-.date-block p { display:flex; flex-direction:column; gap:.2rem; margin:0; }
-.date-block p span { color:#78716c; font-size:.72rem; }
-.date-block p time { color:#44403c; font-size:.88rem; }
-.section-heading { display:flex; justify-content:space-between; align-items:end; gap:.5rem; margin-bottom:.8rem; }
-.section-heading .eyebrow { margin-bottom:.18rem; }
-.block h2 { color:#292524; font-family:var(--font-display); font-size:1.25rem; }
-.activity-count { color:#78716c; font-size:.75rem; white-space:nowrap; }
-.bid-list { max-height:390px; margin:0; padding:0; overflow:auto; list-style:none; }
-.bid-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.15rem .75rem; align-items:baseline; padding:.78rem 0; border-bottom:1px solid #f0eeeb; }
-.bid-item:last-child { border-bottom:0; }
-.bid-name { overflow:hidden; color:#44403c; font-size:.86rem; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
-.bid-amount { color:#873d1e; font-weight:700; font-variant-numeric:tabular-nums; }
-.bid-time { grid-column:1/-1; color:#a8a29e; font-size:.73rem; }
-.note { color:#57534e; font-size:.95rem; line-height:1.8; white-space:pre-wrap; word-break:break-word; }
-.error-state { display:flex; flex-direction:column; align-items:flex-start; gap:.75rem; color:#b91c1c; }
-.error-state p { margin:0; }
-.confirm-content { display:flex; flex-direction:column; gap:.85rem; color:#57534e; }
-.confirm-content p { margin:0; line-height:1.6; }
-.confirm-content > div { display:flex; justify-content:space-between; align-items:baseline; padding:.8rem 0; border-top:1px solid #e7e5e4; border-bottom:1px solid #e7e5e4; }
-.confirm-content > div strong { color:#873d1e; font-size:1.5rem; font-variant-numeric:tabular-nums; }
-.confirm-content small { color:#78716c; line-height:1.5; }
-.not-found h1 { margin:0 0 .75rem; }
-.not-found p { margin:0 0 1rem; color:#64748b; }
-@keyframes live-pulse { 0%{box-shadow:0 0 0 0 rgba(74,222,128,.4)} 100%{box-shadow:0 0 0 6px rgba(74,222,128,0)} }
-@media (max-width:800px) { .detail{padding:1rem 1rem 2rem}.hero{grid-template-columns:minmax(0,1fr) 220px;gap:1.2rem;padding:1.5rem}.image-wrap{height:220px}.auction-layout{grid-template-columns:1fr}.activity-block{grid-column:auto;grid-row:auto}.bid-list{max-height:unset} }
-@media (max-width:560px) { .hero{grid-template-columns:1fr;gap:1rem;padding:1.2rem}.hero-copy{order:0}.image-wrap{order:1;height:210px}.hero h1{font-size:1.65rem}.bid-panel{padding:1rem}.price-value{font-size:2.75rem}.time-strip{grid-template-columns:1fr}.time-strip p{flex-direction:row;justify-content:space-between;text-align:left}.countdown-values{gap:.16rem}.countdown-values b{font-size:.98rem}.block{padding:1rem}.bid-row{flex-wrap:wrap}.submit-btn{min-height:2.8rem} }
-@media (prefers-reduced-motion: reduce) { .status-badge.is-active .status-dot{animation:none} }
+
+/* Hero */
+.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 2.25rem; align-items: center; margin-bottom: 1.25rem; padding: 1.75rem 2.25rem; overflow: hidden; color: #fafaf9; background: radial-gradient(ellipse at 88% 12%, rgba(180,83,9,.22), transparent 46%), linear-gradient(145deg, #1c1917, #292524 68%, #3b2b20); }
+.hero::after { position: absolute; inset: auto 0 0; height: 1px; content: ''; background: linear-gradient(90deg, transparent, rgba(214,163,75,.6), transparent); }
+.hero-copy { position: relative; z-index: 1; min-width: 0; }
+.lot-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-bottom: .9rem; }
+.status-pill { display: inline-flex; align-items: center; gap: .45rem; padding: .25rem .7rem .25rem .6rem; border: 1px solid rgba(214,211,209,.3); color: #d6d3d1; font-size: .7rem; font-weight: 600; line-height: 1.4; }
+.status-code { letter-spacing: .16em; }
+.status-label { padding-left: .45rem; border-left: 1px solid currentColor; font-weight: 500; opacity: .8; }
+.status-dot { width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; }
+.status-pill.is-active { border-color: rgba(224,168,74,.5); color: #f5e6c8; background: rgba(224,168,74,.1); }
+.status-pill.is-active .status-dot { background: #e0a84a; animation: live-pulse 2s ease-out infinite; }
+.status-pill.is-scheduled .status-dot { border: 1px solid currentColor; background: transparent; }
+.status-pill.is-ended, .status-pill.is-cancelled, .status-pill.is-draft { color: #a8a29e; }
+.lot-number { color: #a8a29e; font-size: .7rem; letter-spacing: .16em; }
+.lot-number b { color: #e7e5e4; font-weight: 600; }
+.hero-copy h1 { margin: 0 0 .6rem; color: #fafaf9; font-family: var(--font-display); font-size: var(--fs-h1); line-height: 1.25; }
+.whisky-line { margin: 0 0 .35rem; color: #e7e5e4; font-weight: 500; line-height: 1.5; }
+.hero .whisky-line a { color: #e7bd73; }
+.subtitle { margin: 0; color: #a8a29e; font-size: .9rem; line-height: 1.6; }
+.image-stage { display: flex; align-items: center; justify-content: center; height: 220px; margin: 0; padding: .9rem; overflow: hidden; border: 1px solid rgba(231,229,228,.16); background: radial-gradient(ellipse at 50% 40%, rgba(255,247,230,.14), rgba(255,255,255,.025) 70%); }
+.image { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 14px rgba(0,0,0,.3)); }
+.image-fallback { color: #a8a29e; font-size: .875rem; }
+
+/* Bid panel */
+.bid-panel { padding: 1.35rem 1.5rem 1.1rem; border: 1px solid #e7dfd3; border-top: 2px solid #b77932; color: #292524; background: #fbf8f2; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
+.panel-label { margin: 0; color: #8a7f73; font-size: .6875rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.bid-count { color: #a8a29e; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.price { display: flex; align-items: baseline; gap: .4rem; margin: .35rem 0 .2rem; }
+.currency { color: #a16207; font-size: .8125rem; font-weight: 600; letter-spacing: .06em; }
+.price-value { color: #5c260e; font-family: var(--font-body); font-size: clamp(2rem, 3.4vw, 2.5rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.015em; line-height: 1.1; }
+.winner-card { display: flex; flex-direction: column; gap: .15rem; margin: .75rem 0 0; padding: .8rem 1rem; border-left: 3px solid #a16207; background: #f3e7cf; }
+.winner-card span { color: #8a5b1e; font-size: .62rem; font-weight: 700; letter-spacing: .14em; }
+.winner-card strong { color: #292524; font-size: 1.1rem; }
+.winner-card small { color: #78716c; }
+.countdown { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 1.1rem; padding: .8rem 0; border-top: 1px solid #e7dfd3; border-bottom: 1px solid #e7dfd3; }
+.countdown-label { color: #78716c; font-size: .78rem; }
+.countdown-values { display: flex; gap: .55rem; font-variant-numeric: tabular-nums; }
+.segment { display: inline-flex; align-items: baseline; gap: .12rem; }
+.segment b { color: #292524; font-size: 1.25rem; font-weight: 600; }
+.segment i { color: #a8a29e; font-size: .68rem; font-style: normal; }
+.countdown.is-soon .segment b, .countdown.is-soon .countdown-label { color: #9a3412; }
+.bid-form { display: flex; flex-direction: column; gap: .5rem; margin-top: 1.1rem; }
+.bid-row { display: flex; gap: .55rem; align-items: stretch; }
+.bid-input { flex: 1; min-width: 0; }
+.bid-input :deep(.p-inputtext) { width: 100%; min-height: 3rem; border-color: #d6cfc4; border-radius: 0; background: #fff; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.bid-input :deep(.p-inputtext:enabled:focus) { border-color: #b77932; box-shadow: 0 0 0 3px rgba(183,121,50,.15); }
+.submit-btn { min-width: 6.5rem; border: none !important; border-radius: 0 !important; background: #1c1917 !important; color: #f5e6c8 !important; font-weight: 600 !important; letter-spacing: .08em !important; transition: background .2s ease; }
+.submit-btn:hover { background: #3a2a1d !important; }
+.form-meta { display: flex; justify-content: flex-end; line-height: 1.5; }
+.link-btn { padding: 0; border: 0; background: none; color: #8a4b21; font-size: .76rem; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:disabled { opacity: .5; cursor: default; }
+.form-error, .form-success { margin: 0; font-size: .84rem; }
+.form-error { color: #b91c1c; }
+.form-success { color: #3f6212; }
+.login-panel { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.1rem; color: #57534e; font-size: .88rem; line-height: 1.6; }
+.login-link { align-self: flex-start; padding: .65rem 1.4rem; background: #1c1917; color: #f5e6c8; font-weight: 600; letter-spacing: .08em; text-decoration: none; transition: background .2s ease; }
+.login-link:hover { background: #3a2a1d; }
+.login-link:focus-visible, .link-btn:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; }
+.panel-note { margin: 1rem 0 0; color: #78716c; font-size: .88rem; line-height: 1.65; }
+.panel-foot { display: flex; flex-wrap: wrap; gap: .6rem 2rem; margin: 1.1rem 0 0; padding-top: .8rem; border-top: 1px solid #e7dfd3; }
+.panel-foot div { display: flex; flex-direction: column; gap: .1rem; }
+.panel-foot dt { color: #a8a29e; font-size: .7rem; }
+.panel-foot dd { margin: 0; color: #57534e; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.panel-foot .is-key dd { color: #5c260e; font-weight: 600; }
+.state { color: #78716c; line-height: 1.65; }
+.empty { color: #78716c; line-height: 1.65; }
+
+/* Body */
+.auction-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); gap: 1.25rem; align-items: start; }
+.block { min-width: 0; margin: 0; padding: 1.4rem 1.5rem; border: 1px solid #e7e1d8; background: #fff; }
+.eyebrow { margin: 0 0 .25rem; color: #a16207; font-size: .66rem; font-weight: 700; letter-spacing: .16em; }
+.block h2 { margin: 0 0 .9rem; color: #1c1917; font-family: var(--font-display); font-size: 1.3rem; }
+.section-heading { display: flex; justify-content: space-between; align-items: end; gap: .5rem; margin-bottom: .5rem; padding-bottom: .75rem; border-bottom: 1px solid #e7e1d8; }
+.section-heading h2 { margin: 0; }
+.activity-count { color: #8a7f73; font-size: .78rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bid-list { max-height: 460px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.bid-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .1rem 1rem; align-items: baseline; padding: .8rem .85rem; border-bottom: 1px solid #f0ebe3; border-left: 2px solid transparent; }
+.bid-item:last-child { border-bottom: 0; }
+.bid-name { overflow: hidden; color: #57534e; font-size: .86rem; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.bid-amount { color: #57534e; font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.bid-amount small { margin-right: .2rem; color: #a8a29e; font-size: .66rem; font-weight: 500; }
+.bid-time { grid-column: 1 / -1; color: #a8a29e; font-size: .72rem; }
+.bid-item.is-top { border-left-color: #c9a46a; background: linear-gradient(90deg, rgba(214,163,75,.12), rgba(214,163,75,0) 80%); }
+.bid-item.is-top .bid-name { color: #292524; font-weight: 600; }
+.bid-item.is-top .bid-amount { color: #5c260e; font-size: 1.05rem; font-weight: 700; }
+.note { color: #57534e; font-size: .95rem; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+.notes-block { margin-top: 1.25rem; }
+.schedule-block { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 1rem 3rem; }
+.schedule-block p { display: flex; flex-direction: column; gap: .2rem; margin: 0; }
+.schedule-block span { color: #8a7f73; font-size: .78rem; }
+.schedule-block time { color: #44403c; font-size: .86rem; font-variant-numeric: tabular-nums; }
+.error-state { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; margin-top: .75rem; color: #b91c1c; }
+.error-state p { margin: 0; }
+
+/* Mobile quick-bid bar */
+.mobile-bid-bar { display: none; }
+
+.confirm-content { display: flex; flex-direction: column; gap: .85rem; color: #57534e; }
+.confirm-content p { margin: 0; line-height: 1.6; }
+.confirm-content > div { display: flex; justify-content: space-between; align-items: baseline; padding: .8rem 0; border-top: 1px solid #e7e5e4; border-bottom: 1px solid #e7e5e4; }
+.confirm-content > div strong { color: #873d1e; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.confirm-content small { color: #78716c; line-height: 1.5; }
+.not-found h1 { margin: 0 0 .75rem; }
+.not-found p { margin: 0 0 1rem; color: #64748b; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(224,168,74,.55); } 100% { box-shadow: 0 0 0 6px rgba(224,168,74,0); } }
+
+@media (max-width: 800px) {
+  .detail { padding: 1rem 1rem 2rem; }
+  .hero { grid-template-columns: minmax(0, 1fr) 200px; gap: 1.25rem; padding: 1.5rem; }
+  .image-stage { height: 200px; }
+  .auction-layout { grid-template-columns: minmax(0, 1fr); }
+  .bid-list { max-height: none; }
+  .detail.has-bid-bar { padding-bottom: 4.75rem; }
+  .mobile-bid-bar { position: fixed; inset: auto 0 0; z-index: 20; display: flex; align-items: center; gap: 1rem; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); border-top: 1px solid rgba(214,163,75,.35); color: #fafaf9; background: rgba(17,14,12,.96); backdrop-filter: blur(8px); }
+  .bar-price, .bar-time { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
+  .bar-price { flex: 1; }
+  .bar-price span, .bar-time span { color: #a8a29e; font-size: .66rem; letter-spacing: .06em; }
+  .bar-price strong { color: #f5e6c8; font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bar-time strong { color: #e7e5e4; font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar-time.is-soon strong { color: #f0a36b; }
+  .bar-btn { min-height: 2.6rem; background: #d6a34b !important; color: #1c1917 !important; }
+  .bar-btn:hover { background: #e0b45f !important; }
+}
+
+@media (max-width: 560px) {
+  .hero { grid-template-columns: minmax(0, 1fr) 88px; gap: 1rem; align-items: start; padding: 1.15rem 1rem; }
+  .lot-meta { gap: .4rem .75rem; margin-bottom: .65rem; }
+  .image-stage { height: 120px; padding: .4rem; }
+  .hero-copy h1 { margin-bottom: .4rem; font-size: 1.375rem; }
+  .whisky-line { font-size: .875rem; }
+  .subtitle { font-size: .78rem; line-height: 1.5; }
+  .bid-panel { padding: 1.15rem 1rem 1rem; }
+  .price-value { font-size: 2rem; }
+  .countdown { flex-direction: column; align-items: flex-start; gap: .35rem; }
+  .segment b { font-size: 1.15rem; }
+  .block { padding: 1.1rem 1rem; }
+  .submit-btn { min-height: 3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pill.is-active .status-dot { animation: none; }
+  .submit-btn, .login-link { transition: none; }
+}
 </style>

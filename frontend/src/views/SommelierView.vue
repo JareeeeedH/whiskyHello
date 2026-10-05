@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
+import SiteFooter from '../components/SiteFooter.vue'
 import { SommelierApiError, fetchPreference } from '../services/sommelierService'
 import type {
   Preference,
@@ -464,9 +465,7 @@ function formatBudget(budget: SommelierBudget): string {
       </section>
     </div>
 
-    <footer class="page-footer">
-      <p>WhiskyHello · 從一杯酒開始</p>
-    </footer>
+    <SiteFooter />
   </main>
 </template>
 
@@ -956,17 +955,6 @@ legend.section-title + .section-hint {
 
 .muted {
   color: #a8a29e;
-}
-
-.page-footer {
-  padding: 1.75rem 1.5rem;
-  text-align: center;
-  background: #292524;
-  color: #a8a29e;
-}
-
-.page-footer p {
-  font-size: 0.875rem;
 }
 
 @media (max-width: 640px) {

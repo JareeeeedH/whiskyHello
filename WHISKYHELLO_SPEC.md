@@ -686,7 +686,7 @@ DELETE /api/v1/admin/auctions/:id          永久刪除 Auction 及其所有 Bid
 
 路由：`/admin/auctions`（需登入且為 admin，入口在 `/admin`）
 
-- 顯示 Auction 列表
+- 顯示 Auction 列表；上方可依狀態篩選（All 與各狀態，顯示數量），列表不顯示描述（編輯時查看）
 - 建立 Auction
 - `draft` 顯示 Edit / Start / Cancel Auction
 - `scheduled`、`active` 顯示 Cancel Auction；`ended`、`cancelled` 不顯示 Cancel

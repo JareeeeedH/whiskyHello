@@ -24,9 +24,22 @@ import type {
 } from '../types/admin'
 
 const CANCELLABLE_STATUSES: AuctionStatus[] = ['draft', 'scheduled', 'active']
+const STATUS_FILTERS: Array<AuctionStatus | 'all'> = ['all', 'draft', 'scheduled', 'active', 'ended', 'cancelled']
 
 const router = useRouter()
 const auctions = ref<AdminAuction[]>([])
+const statusFilter = ref<AuctionStatus | 'all'>('all')
+const filteredAuctions = computed(() =>
+  statusFilter.value === 'all'
+    ? auctions.value
+    : auctions.value.filter((auction) => auction.status === statusFilter.value),
+)
+
+function countByStatus(status: AuctionStatus | 'all'): number {
+  return status === 'all'
+    ? auctions.value.length
+    : auctions.value.filter((auction) => auction.status === status).length
+}
 const loading = ref(true)
 const errorMessage = ref('')
 const actionError = ref('')
@@ -365,8 +378,28 @@ onMounted(() => {
             {{ actionError }}
           </p>
 
-          <ul class="auction-list" aria-label="Auctions">
-            <li v-for="auction in auctions" :key="auction.id" class="auction-row">
+          <div class="status-tabs" role="tablist" aria-label="Filter by status">
+            <button
+              v-for="status in STATUS_FILTERS"
+              :key="status"
+              type="button"
+              role="tab"
+              class="status-tab"
+              :class="{ 'is-selected': statusFilter === status }"
+              :aria-selected="statusFilter === status"
+              @click="statusFilter = status"
+            >
+              {{ status }}
+              <span class="status-tab-count">{{ countByStatus(status) }}</span>
+            </button>
+          </div>
+
+          <p v-if="filteredAuctions.length === 0" class="state">
+            No {{ statusFilter }} auctions.
+          </p>
+
+          <ul v-else class="auction-list" aria-label="Auctions">
+            <li v-for="auction in filteredAuctions" :key="auction.id" class="auction-row">
               <div class="auction-meta">
                 <div class="auction-top">
                   <span class="auction-title">{{ auction.title }}</span>
@@ -379,16 +412,15 @@ onMounted(() => {
                 </div>
                 <p class="auction-line">
                   Whisky {{ auction.whiskyId }} · Starting
-                  {{ formatPrice(auction.startingPrice) }}
-                </p>
-                <p class="auction-time">
+                  {{ formatPrice(auction.startingPrice) }} ·
                   {{ formatDateTime(auction.startAt) }} →
                   {{ formatDateTime(auction.endAt) }}
                 </p>
-                <p v-if="auction.description" class="auction-description">
-                  {{ auction.description }}
-                </p>
-                <p v-if="lastStatusChange(auction)" class="status-change">
+                <p
+                  v-if="lastStatusChange(auction)"
+                  class="status-change"
+                  :title="lastStatusChange(auction)!.message"
+                >
                   Last status change ·
                   <span class="status-change-status">
                     {{ lastStatusChange(auction)!.status }}
@@ -664,27 +696,67 @@ h1 {
   line-height: 1.45;
 }
 
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #f0eeeb;
+}
+
+.status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: #78716c;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.status-tab:hover {
+  color: #292524;
+  background: #fafaf9;
+}
+
+.status-tab.is-selected {
+  border-color: #d6d3d1;
+  color: #1c1917;
+  background: #f5f5f4;
+}
+
+.status-tab-count {
+  color: #a8a29e;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .auction-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
 }
 
 .auction-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.95rem;
-  padding: 0.85rem 0.15rem;
+  padding: 0.6rem 0.15rem;
   border-bottom: 1px solid #f5f5f4;
 }
 
 .auction-row:last-child {
   border-bottom: none;
-  padding-bottom: 0.25rem;
 }
 
 .auction-meta {
@@ -743,11 +815,13 @@ h1 {
 }
 
 .status-change {
-  margin: 0.35rem 0 0;
+  margin: 0.15rem 0 0;
+  overflow: hidden;
   color: #78716c;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  word-break: break-word;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .status-change-status {
@@ -757,7 +831,6 @@ h1 {
 }
 
 .status-change-message {
-  display: block;
   color: #44403c;
 }
 
@@ -768,22 +841,12 @@ h1 {
   line-height: 1.5;
 }
 
-.auction-line,
-.auction-time,
-.auction-description {
-  margin: 0.2rem 0 0;
+.auction-line {
+  margin: 0.15rem 0 0;
   color: #a8a29e;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   line-height: 1.4;
   word-break: break-word;
-}
-
-.auction-time {
-  font-size: 0.82rem;
-}
-
-.auction-description {
-  color: #78716c;
 }
 
 .auction-actions {

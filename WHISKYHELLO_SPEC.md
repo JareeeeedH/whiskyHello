@@ -587,7 +587,7 @@ Auction
 | `draft` | Admin 建立後的初始狀態；可編輯、可 Start | 不公開（List 不顯示，Detail／Bid History 回傳 404） | 不可 |
 | `scheduled` | Admin 已 Start，`startAt` 尚未到達 | List「即將開始」；可看 Detail | 不可 |
 | `active` | `startAt` 已到達；`endAt` 到達後轉為 `ended` | List「進行中的競標」；可看 Detail | 可以 |
-| `ended` | `endAt` 已到達 | List 不顯示；可看 Detail | 不可 |
+| `ended` | `endAt` 已到達 | List「已結束」（有出價顯示「有成交」與最高出價；無出價顯示「未達底價」與起標價）；可看 Detail | 不可 |
 | `cancelled` | Admin 手動取消，保留取消訊息紀錄 | List 不顯示；Detail 維持既有行為（非 `draft` 皆可查看） | 不可 |
 
 #### startAt／endAt
@@ -696,9 +696,9 @@ GET /api/v1/auctions/:id   Public Auction Detail（公開）
 Public Auction List：
 
 - Response 200：`{ "auctions": PublicAuctionDetail[] }`
-- 只回傳 `active` 與 `scheduled`，且 `endAt > now`
-- `draft`、`ended`、`cancelled` 不回傳
-- 排序：先 `active`（依 `endAt` 早到晚），再 `scheduled`（依 `startAt` 早到晚）
+- 回傳 `endAt > now` 的 `active` 與 `scheduled`，以及全部 `ended`
+- `draft`、`cancelled` 不回傳
+- 排序：先 `active`（依 `endAt` 早到晚），再 `scheduled`（依 `startAt` 早到晚），最後 `ended`（依 `endAt` 新到舊）
 - 前台依 `status` 分組
 
 Public Auction Detail：

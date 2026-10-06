@@ -29,11 +29,14 @@ function toPublicAuctionDetail(auction: AuctionDocument): PublicAuctionDetail {
   return detail
 }
 
-/** Active auctions (soonest endAt first), then scheduled auctions (soonest startAt first). */
+/**
+ * Active auctions (soonest endAt first), then scheduled auctions (soonest startAt first),
+ * then ended auctions (most recent endAt first).
+ */
 export async function listPublicAuctions(
   now = new Date(),
 ): Promise<PublicAuctionDetail[]> {
-  const [active, scheduled] = await Promise.all([
+  const [active, scheduled, ended] = await Promise.all([
     Auction.find({ status: 'active', endAt: { $gt: now } }).sort({
       endAt: 1,
       _id: 1,
@@ -42,9 +45,13 @@ export async function listPublicAuctions(
       startAt: 1,
       _id: 1,
     }),
+    Auction.find({ status: 'ended' }).sort({
+      endAt: -1,
+      _id: -1,
+    }),
   ])
 
-  return [...active, ...scheduled].map((auction) =>
+  return [...active, ...scheduled, ...ended].map((auction) =>
     toPublicAuctionDetail(auction),
   )
 }

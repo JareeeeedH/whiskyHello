@@ -76,7 +76,7 @@ async function fetchList(): Promise<{ status: number; body: ListResponse }> {
 }
 
 describe('GET /api/v1/auctions', () => {
-  it('lists open active and scheduled auctions without logging in', async () => {
+  it('lists open active, scheduled and ended auctions without logging in', async () => {
     const now = Date.now()
     const future = new Date(now + DAY_MS)
     const past = new Date(now - 60_000)
@@ -86,9 +86,9 @@ describe('GET /api/v1/auctions', () => {
       new Date(now + 3 * DAY_MS),
       new Date(now + 2 * DAY_MS),
     )
+    const endedId = await createAuction('ended', past)
     const hiddenIds = {
       draft: await createAuction('draft', future),
-      ended: await createAuction('ended', future),
       cancelled: await createAuction('cancelled', future),
       expiredActive: await createAuction('active', past),
       expiredScheduled: await createAuction('scheduled', past),
@@ -100,15 +100,20 @@ describe('GET /api/v1/auctions', () => {
     const ids = body.auctions.map((auction) => auction.id)
     assert.ok(ids.includes(activeId), 'active auction missing')
     assert.ok(ids.includes(scheduledId), 'scheduled auction missing')
+    assert.ok(ids.includes(endedId), 'ended auction missing')
     for (const [label, hiddenId] of Object.entries(hiddenIds)) {
       assert.ok(!ids.includes(hiddenId), `unexpected ${label} auction ${hiddenId}`)
     }
     for (const auction of body.auctions) {
       assert.ok(
-        auction.status === 'active' || auction.status === 'scheduled',
+        auction.status === 'active' ||
+          auction.status === 'scheduled' ||
+          auction.status === 'ended',
         `unexpected status ${String(auction.status)}`,
       )
-      assert.ok(new Date(String(auction.endAt)).getTime() > Date.now() - 5000)
+      if (auction.status !== 'ended') {
+        assert.ok(new Date(String(auction.endAt)).getTime() > Date.now() - 5000)
+      }
     }
   })
 
@@ -169,7 +174,9 @@ describe('GET /api/v1/auctions', () => {
     const active = await createAuction('active', new Date(now + 6 * DAY_MS))
 
     const { body } = await fetchList()
-    const statuses = body.auctions.map((auction) => auction.status)
+    const statuses = body.auctions
+      .map((auction) => auction.status)
+      .filter((status) => status !== 'ended')
     const firstScheduled = statuses.indexOf('scheduled')
     assert.ok(firstScheduled >= 0)
     assert.ok(statuses.slice(firstScheduled).every((status) => status === 'scheduled'))
@@ -186,10 +193,39 @@ describe('GET /api/v1/auctions', () => {
     assert.deepEqual(startTimes, [...startTimes].sort((a, b) => a - b))
   })
 
-  it('returns an empty list when no auction is open', async () => {
+  it('lists ended auctions last, most recent endAt first', async () => {
+    const now = Date.now()
+    const endedOlder = await createAuction('ended', new Date(now - 3 * DAY_MS))
+    const endedRecent = await createAuction('ended', new Date(now - DAY_MS))
+    const scheduled = await createAuction(
+      'scheduled',
+      new Date(now + 3 * DAY_MS),
+      new Date(now + 2 * DAY_MS),
+    )
+    const active = await createAuction('active', new Date(now + DAY_MS))
+
+    const { body } = await fetchList()
+    const statuses = body.auctions.map((auction) => auction.status)
+    const firstEnded = statuses.indexOf('ended')
+    assert.ok(firstEnded >= 0)
+    assert.ok(statuses.slice(firstEnded).every((status) => status === 'ended'))
+
+    const ids = body.auctions.map((auction) => String(auction.id))
+    const ours = ids.filter((id) =>
+      [endedOlder, endedRecent, scheduled, active].includes(id),
+    )
+    assert.deepEqual(ours, [active, scheduled, endedRecent, endedOlder])
+
+    const endTimes = body.auctions
+      .filter((auction) => auction.status === 'ended')
+      .map((auction) => new Date(String(auction.endAt)).getTime())
+    assert.deepEqual(endTimes, [...endTimes].sort((a, b) => b - a))
+  })
+
+  it('returns an empty list when no auction is listed', async () => {
+    await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     assert.deepEqual(await listPublicAuctions(new Date('9999-12-31T00:00:00.000Z')), [])
 
-    await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     const { status, body } = await fetchList()
     assert.equal(status, 200)
     assert.deepEqual(body, { auctions: [] })

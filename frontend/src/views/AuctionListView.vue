@@ -23,9 +23,17 @@ const scheduledAuctions = computed(() =>
   auctions.value.filter((auction) => auction.status === 'scheduled'),
 )
 
+const endedAuctions = computed(() =>
+  auctions.value.filter((auction) => auction.status === 'ended'),
+)
+
 let loadToken = 0
 
-/** Scheduled auctions cannot have bids yet, so only active ones need a bids request. */
+function hasBidPrice(auction: PublicAuctionDetail): boolean {
+  return auction.status === 'active' || auction.status === 'ended'
+}
+
+/** Scheduled auctions cannot have bids yet, so only active and ended ones need a bids request. */
 async function loadPrices(list: PublicAuctionDetail[], token: number) {
   await Promise.all(
     list.map(async (auction) => {
@@ -63,15 +71,12 @@ async function loadAuctions() {
     prices.value = Object.fromEntries(
       list.map((auction) => [
         auction.id,
-        (auction.status === 'active'
+        (hasBidPrice(auction)
           ? { status: 'loading' }
           : { status: 'starting' }) as AuctionCardPrice,
       ]),
     )
-    void loadPrices(
-      list.filter((auction) => auction.status === 'active'),
-      token,
-    )
+    void loadPrices(list.filter(hasBidPrice), token)
   } catch (error) {
     if (token !== loadToken) {
       return
@@ -169,6 +174,32 @@ onMounted(() => {
               :key="auction.id"
               :auction="auction"
               :price="prices[auction.id] ?? { status: 'starting' }"
+            />
+          </div>
+        </section>
+
+        <section
+          class="results-section"
+          aria-labelledby="ended-auctions-title"
+        >
+          <div class="section-heading">
+            <div>
+              <p class="section-eyebrow"><span aria-hidden="true" />CLOSED</p>
+              <h2 id="ended-auctions-title">已結束</h2>
+            </div>
+            <p class="section-desc">共 {{ endedAuctions.length }} 場</p>
+          </div>
+
+          <p v-if="endedAuctions.length === 0" class="empty">
+            目前沒有已結束的競標。
+          </p>
+
+          <div v-else class="card-grid">
+            <AuctionCard
+              v-for="auction in endedAuctions"
+              :key="auction.id"
+              :auction="auction"
+              :price="prices[auction.id] ?? { status: 'loading' }"
             />
           </div>
         </section>

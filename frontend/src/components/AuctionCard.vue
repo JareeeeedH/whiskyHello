@@ -27,8 +27,33 @@ const imageFailed = ref(false)
 watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
 
 const isActive = computed(() => props.auction.status === 'active')
+const isEnded = computed(() => props.auction.status === 'ended')
+
+const statusClass = computed(() => {
+  if (isActive.value) return 'is-live'
+  return isEnded.value ? 'is-ended' : 'is-upcoming'
+})
+
+const statusEn = computed(() => {
+  if (isActive.value) return 'LIVE'
+  return isEnded.value ? 'ENDED' : 'UPCOMING'
+})
+
+const statusZh = computed(() => {
+  if (isActive.value) return '競標中'
+  return isEnded.value ? '已結束' : '即將開始'
+})
+
+const endedHasBids = computed(
+  () => props.price.status === 'current' && props.price.bidCount > 0,
+)
 
 const priceLabel = computed(() => {
+  if (isEnded.value) {
+    if (props.price.status === 'loading') return '結標結果'
+    if (props.price.status === 'current') return endedHasBids.value ? '有成交' : '未達底價'
+    return '起標價'
+  }
   if (props.price.status === 'current' && props.price.bidCount > 0) return '目前出價'
   if (props.price.status === 'loading') return '目前出價'
   return '起標價'
@@ -36,6 +61,7 @@ const priceLabel = computed(() => {
 
 const priceText = computed(() => {
   if (props.price.status === 'loading') return '—'
+  if (isEnded.value && !endedHasBids.value) return formatPrice(props.auction.startingPrice)
   if (props.price.status === 'current') return formatPrice(props.price.value)
   return formatPrice(props.auction.startingPrice)
 })
@@ -75,13 +101,13 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
   <RouterLink
     :to="{ name: 'auction-detail', params: { id: auction.id } }"
     class="auction-card"
-    :class="isActive ? 'is-live' : 'is-upcoming'"
+    :class="statusClass"
   >
     <div class="media">
       <span class="status-pill">
         <span class="status-dot" aria-hidden="true" />
-        <span class="status-en">{{ isActive ? 'LIVE' : 'UPCOMING' }}</span>
-        <span class="status-zh">{{ isActive ? '競標中' : '即將開始' }}</span>
+        <span class="status-en">{{ statusEn }}</span>
+        <span class="status-zh">{{ statusZh }}</span>
       </span>
       <img
         v-if="whisky?.imageUrl && !imageFailed"
@@ -109,11 +135,15 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
         </div>
       </dl>
 
-      <p class="time-row" :class="{ 'is-soon': endingSoon }">
+      <p v-if="isEnded" class="time-row">
+        <span>結標時間</span>
+        <strong><time :datetime="auction.endAt">{{ formatScheduleTime(auction.endAt) }}</time></strong>
+      </p>
+      <p v-else class="time-row" :class="{ 'is-soon': endingSoon }">
         <span>{{ isActive ? '剩餘時間' : '開標倒數' }}</span>
         <strong>{{ countdownText }}</strong>
       </p>
-      <p v-if="!isActive" class="schedule">
+      <p v-if="!isActive && !isEnded" class="schedule">
         開標 <time :datetime="auction.startAt">{{ formatScheduleTime(auction.startAt) }}</time>
       </p>
     </div>
@@ -243,6 +273,24 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 
 .is-upcoming .media img {
   filter: saturate(0.82) drop-shadow(0 14px 14px rgba(41, 37, 36, 0.12));
+}
+
+.is-ended .status-pill {
+  color: #78716c;
+  border: 1px solid #d6d3d1;
+  background: rgba(250, 250, 249, 0.92);
+}
+
+.is-ended .status-dot {
+  background: #a8a29e;
+}
+
+.is-ended .media {
+  background: radial-gradient(ellipse at 50% 42%, #fafaf9 0%, #eeedeb 62%, #e2e0dd 100%);
+}
+
+.is-ended .media img {
+  filter: grayscale(0.4) drop-shadow(0 14px 14px rgba(41, 37, 36, 0.1));
 }
 
 .body {

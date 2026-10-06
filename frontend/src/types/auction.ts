@@ -51,4 +51,5 @@ export interface CreateBidPayload {
 export interface CreateBidResponse {
   bid: PublicBid
   currentPrice: number
+  endAt: string
 }

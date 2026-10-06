@@ -5,12 +5,13 @@
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { after, before, describe, it } from 'node:test'
+import { after, before, describe, it, mock } from 'node:test'
 import mongoose from 'mongoose'
 import app from '../app'
 import { Auction } from '../models/Auction'
 import { Bid } from '../models/Bid'
 import { User } from '../models/User'
+import { DUPLICATE_BID_AMOUNT_MESSAGE } from './bidService'
 import {
   connectTestDatabase,
   disconnectTestDatabase,
@@ -30,6 +31,7 @@ type AuctionStatus = 'draft' | 'scheduled' | 'active' | 'ended' | 'cancelled'
 type BidResponse = {
   bid: Record<string, unknown>
   currentPrice: number
+  endAt: string
 }
 
 type HistoryResponse = {
@@ -39,6 +41,7 @@ type HistoryResponse = {
 
 before(async () => {
   await connectTestDatabase()
+  await Bid.init()
 
   server = http.createServer(app)
   await new Promise<void>((resolve) => {
@@ -184,6 +187,36 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.equal(await Bid.countDocuments({ auctionId }), 2)
   })
 
+  it('extends endAt to bid time + 2 minutes when bidding in the last minute', async () => {
+    const bidder = await createUser()
+    const auctionId = await createAuction('active', new Date(Date.now() + 30 * 1000))
+
+    const before = Date.now()
+    const res = await postBid(auctionId, 1000, bidder.token)
+    const after = Date.now()
+    assert.equal(res.status, 201)
+    const body = (await res.json()) as BidResponse
+
+    const endAt = new Date(body.endAt).getTime()
+    assert.ok(endAt >= before + 2 * 60 * 1000 && endAt <= after + 2 * 60 * 1000)
+    const stored = await Auction.findById(auctionId)
+    assert.equal(stored?.endAt.getTime(), endAt)
+  })
+
+  it('keeps endAt unchanged when bidding before the last minute', async () => {
+    const bidder = await createUser()
+    const originalEndAt = new Date(Date.now() + 2 * 60 * 1000)
+    const auctionId = await createAuction('active', originalEndAt)
+
+    const res = await postBid(auctionId, 1000, bidder.token)
+    assert.equal(res.status, 201)
+    const body = (await res.json()) as BidResponse
+    assert.equal(new Date(body.endAt).getTime(), originalEndAt.getTime())
+
+    const stored = await Auction.findById(auctionId)
+    assert.equal(stored?.endAt.getTime(), originalEndAt.getTime())
+  })
+
   it('rejects a non-integer amount', async () => {
     const { token } = await createUser()
     const auctionId = await createAuction('active')
@@ -205,6 +238,86 @@ describe('POST /api/v1/auctions/:id/bids', () => {
     assert.equal(invalid.status, 400)
     const body = (await invalid.json()) as { message: string; details: string[] }
     assert.ok(body.details.includes('Auction id must be a valid id'))
+  })
+})
+
+describe('Bid unique (auctionId, amount)', () => {
+  function isDuplicateKeyError(error: unknown): boolean {
+    assert.equal((error as { code?: number }).code, 11000)
+    return true
+  }
+
+  it('rejects a second bid with the same amount on the same auction', async () => {
+    const bidder = await createUser()
+    const auctionId = await createAuction('active')
+    await Bid.create({ auctionId, userId: bidder.id, amount: 1100 })
+
+    await assert.rejects(
+      Bid.create({ auctionId, userId: bidder.id, amount: 1100 }),
+      isDuplicateKeyError,
+    )
+    assert.equal(await Bid.countDocuments({ auctionId }), 1)
+  })
+
+  it('allows the same amount on different auctions', async () => {
+    const bidder = await createUser()
+    const firstAuctionId = await createAuction('active')
+    const secondAuctionId = await createAuction('active')
+
+    await Bid.create({ auctionId: firstAuctionId, userId: bidder.id, amount: 1100 })
+    await Bid.create({ auctionId: secondAuctionId, userId: bidder.id, amount: 1100 })
+
+    assert.equal(await Bid.countDocuments({ auctionId: firstAuctionId }), 1)
+    assert.equal(await Bid.countDocuments({ auctionId: secondAuctionId }), 1)
+  })
+
+  it('allows different amounts on the same auction', async () => {
+    const bidder = await createUser()
+    const auctionId = await createAuction('active')
+
+    await Bid.create({ auctionId, userId: bidder.id, amount: 1100 })
+    await Bid.create({ auctionId, userId: bidder.id, amount: 1200 })
+
+    assert.equal(await Bid.countDocuments({ auctionId }), 2)
+  })
+
+  it('maps a duplicate key error to 400 with a friendly message', async () => {
+    const first = await createUser()
+    const second = await createUser()
+    const auctionId = await createAuction('active')
+    await Bid.create({ auctionId, userId: first.id, amount: 1000 })
+
+    const findOne = mock.method(Bid, 'findOne', () => ({ sort: async () => null }))
+    try {
+      const res = await postBid(auctionId, 1000, second.token)
+      assert.equal(res.status, 400)
+      assert.deepEqual(await res.json(), { message: DUPLICATE_BID_AMOUNT_MESSAGE })
+    } finally {
+      findOne.mock.restore()
+    }
+
+    assert.equal(await Bid.countDocuments({ auctionId }), 1)
+  })
+
+  it('lets only one of two simultaneous same-amount bids succeed', async () => {
+    const first = await createUser()
+    const second = await createUser()
+    const auctionId = await createAuction('active')
+
+    const responses = await Promise.all([
+      postBid(auctionId, 1000, first.token),
+      postBid(auctionId, 1000, second.token),
+    ])
+    const statuses = responses.map((res) => res.status).sort()
+    assert.deepEqual(statuses, [201, 400])
+
+    const rejected = responses.find((res) => res.status === 400)!
+    const body = (await rejected.json()) as { message: string }
+    assert.ok(
+      [DUPLICATE_BID_AMOUNT_MESSAGE, 'Bid amount must be at least 1100'].includes(body.message),
+      body.message,
+    )
+    assert.equal(await Bid.countDocuments({ auctionId }), 1)
   })
 })
 

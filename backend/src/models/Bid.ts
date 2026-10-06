@@ -30,6 +30,7 @@ const bidSchema = new Schema(
 
 bidSchema.index({ auctionId: 1, createdAt: -1 })
 bidSchema.index({ auctionId: 1, amount: -1 })
+bidSchema.index({ auctionId: 1, amount: 1 }, { unique: true })
 
 export type BidSchemaFields = InferSchemaType<typeof bidSchema>
 

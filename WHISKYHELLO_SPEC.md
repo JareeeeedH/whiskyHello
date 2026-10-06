@@ -588,13 +588,13 @@ Auction
 | `draft` | Admin 建立後的初始狀態；可編輯、可 Start | 不公開（List 不顯示，Detail／Bid History 回傳 404） | 不可 |
 | `scheduled` | Admin 已 Start，`startAt` 尚未到達 | List「即將開始」；可看 Detail | 不可 |
 | `active` | `startAt` 已到達；`endAt` 到達後轉為 `ended` | List「進行中的競標」；可看 Detail | 可以 |
-| `ended` | `endAt` 已到達 | List「已結束」（有出價顯示「有成交」與最高出價；無出價顯示「未達底價」與起標價）；可看 Detail | 不可 |
+| `ended` | `endAt` 已到達 | List「已結束」（有出價顯示「有成交」與最高出價；無出價顯示「無人出價」與起標價）；可看 Detail | 不可 |
 | `cancelled` | Admin 手動取消，保留取消訊息紀錄 | List 不顯示；Detail 維持既有行為（非 `draft` 皆可查看） | 不可 |
 
 #### startAt／endAt
 
 - `startAt`：Auction 正式開始、開放接受出價的時間
-- `endAt`：Auction 停止接受出價的時間
+- `endAt`：Auction 停止接受出價的時間；可因延長結標而延後（見 Bid 規則）
 - `endAt` 必須嚴格晚於 `startAt`：建立、編輯（含只修改其中一個欄位，與既有值比較）與 Start 時皆檢查，違反時回傳 400
 
 #### 已確認規則
@@ -763,6 +763,8 @@ Bid
 - 目前時間到達 `endAt`（含）後禁止新出價（即使 Lifecycle Job 尚未將狀態轉為 `ended`）
 - 第一筆出價：最低出價 = `startingPrice`
 - 後續出價：必須 >= 目前最高出價 + 100（同價或低於最低加價皆不允許）
+- 同一 Auction 的相同出價金額不得重複建立，透過 MongoDB unique compound index (auctionId, amount) 保證
+- 延長結標：距離 `endAt` 1 分鐘內（含）成功出價時，`endAt` 改為「出價時間 + 2 分鐘」；不限延長次數，只會延後不會提前
 - 目前最高出價（`currentPrice`）由 Bid 資料計算，不寫入 Auction Schema
 - 沒有任何 Bid 時，`currentPrice = startingPrice`
 - 出價時不另外檢查 `startAt`：只有 Start 或 Lifecycle Job 在 `now >= startAt` 時才會將狀態設為 `active`
@@ -779,12 +781,13 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 建立出價：
 
 - Request：`{ "amount": number }`（整數）
-- Response 201：`{ "bid": PublicBid, "currentPrice": number }`
+- Response 201：`{ "bid": PublicBid, "currentPrice": number, "endAt": string }`（`endAt` 為出價後最新的結標時間）
 - Auction id 格式錯誤、`amount` 驗證失敗：400
 - Auction 不存在或為 `draft`：404
 - Auction 非 `active`：400
 - 已到達 `endAt`：400
 - 低於最低出價：400
+- 同一 Auction 相同金額已被其他出價搶先建立：400，`{ "message": "此價格已被其他競標者搶先出價，請重新出價。" }`
 
 取得 Bid History：
 
@@ -804,7 +807,7 @@ GET  /api/v1/auctions/:id/bids   取得 Bid History（公開）
 
 以下細節尚未討論，不在本規格定義，留待後續 Feature 規格討論：
 
-- 結標規則
+- 結標規則（延長結標除外，見 Bid 規則）
 - 得標規則
 - 即時更新
 - 完整交易流程

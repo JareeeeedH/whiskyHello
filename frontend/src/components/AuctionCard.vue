@@ -51,7 +51,7 @@ const endedHasBids = computed(
 const priceLabel = computed(() => {
   if (isEnded.value) {
     if (props.price.status === 'loading') return '結標結果'
-    if (props.price.status === 'current') return endedHasBids.value ? '有成交' : '未達底價'
+    if (props.price.status === 'current') return endedHasBids.value ? '有成交' : '無人出價'
     return '起標價'
   }
   if (props.price.status === 'current' && props.price.bidCount > 0) return '目前出價'

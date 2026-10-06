@@ -45,6 +45,8 @@ const bidSubmitting = ref(false)
 const bidError = ref('')
 const bidSuccess = ref('')
 const confirmVisible = ref(false)
+const extended = ref(false)
+let refreshedEndAt = ''
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 
@@ -156,6 +158,29 @@ async function loadBids(id: string) {
   }
 }
 
+function applyLatestAuction(latest: PublicAuctionDetail) {
+  if (!auction.value || auction.value.id !== latest.id) return
+  if (new Date(latest.endAt).getTime() > new Date(auction.value.endAt).getTime()) {
+    extended.value = true
+  }
+  auction.value = latest
+}
+
+async function refreshAfterCountdown() {
+  const current = auction.value
+  if (!current || refreshedEndAt === current.endAt) return
+  refreshedEndAt = current.endAt
+
+  let latest: PublicAuctionDetail
+  try {
+    latest = await fetchAuctionById(current.id)
+  } catch {
+    return
+  }
+  applyLatestAuction(latest)
+  void loadBids(latest.id)
+}
+
 function requestBidConfirmation() {
   if (bidSubmitting.value || !auction.value) {
     return
@@ -183,6 +208,7 @@ async function submitBid() {
     const result = await createAuctionBid(auction.value.id, { amount })
     bids.value = [result.bid, ...bids.value.filter((bid) => bid.id !== result.bid.id)]
     currentPrice.value = result.currentPrice
+    applyLatestAuction({ ...auction.value, endAt: result.endAt })
     resetBidForm()
     bidSuccess.value = '出價成功'
   } catch (error) {
@@ -207,6 +233,8 @@ async function loadAuction(id: string) {
   notFound.value = false
   errorMessage.value = ''
   auction.value = null
+  extended.value = false
+  refreshedEndAt = ''
   bids.value = []
   currentPrice.value = 0
   bidsError.value = ''
@@ -255,6 +283,12 @@ watch(bidPanelRef, (panel, _previous, onCleanup) => {
   })
   observer.observe(panel)
   onCleanup(() => observer.disconnect())
+})
+
+watch(now, (time) => {
+  if (canBid.value && auction.value && time >= new Date(auction.value.endAt).getTime()) {
+    void refreshAfterCountdown()
+  }
 })
 
 clock = setInterval(() => { now.value = Date.now() }, 1000)
@@ -338,7 +372,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
           </div>
 
           <template v-else>
-            <p v-if="isEnded && !leadingBidder" class="unsold">未達底價</p>
+            <p v-if="isEnded && !leadingBidder" class="unsold">無人出價</p>
             <p v-else class="price">
               <span class="currency">NT$</span>
               <span class="price-value">{{ formatPrice(currentPrice) }}</span>
@@ -355,7 +389,9 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
             :class="{ 'is-soon': endingSoon }"
             :title="canBid ? `結標時間 ${formatAbsoluteTime(auction.endAt)}` : undefined"
           >
-            <span class="countdown-label">{{ countdownLabel }}</span>
+            <span class="countdown-label">
+              {{ countdownLabel }}<span v-if="extended && canBid" class="extended-tag">已延長</span>
+            </span>
             <span class="countdown-values" role="timer" :aria-label="`${countdownLabel} ${formatCompactCountdown(countdown)}`">
               <span v-for="segment in countdownSegments" :key="segment.unit" class="segment">
                 <b>{{ String(segment.value).padStart(2, '0') }}</b><i>{{ segment.unit }}</i>
@@ -520,6 +556,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .unsold { margin: .5rem 0 0; color: #57534e; font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
 .countdown { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 1.1rem; padding: .8rem 0; border-top: 1px solid #e7dfd3; border-bottom: 1px solid #e7dfd3; }
 .countdown-label { color: #78716c; font-size: .78rem; }
+.extended-tag { margin-left: .45rem; padding: .05rem .4rem; border: 1px solid currentColor; border-radius: 2px; font-size: .68rem; }
 .countdown-values { display: flex; gap: .55rem; font-variant-numeric: tabular-nums; }
 .segment { display: inline-flex; align-items: baseline; gap: .12rem; }
 .segment b { color: #292524; font-size: 1.25rem; font-weight: 600; }

@@ -535,8 +535,10 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .bid-form { display: flex; flex-direction: column; gap: .5rem; margin-top: 1.1rem; }
 .bid-row { display: flex; gap: .55rem; align-items: stretch; }
 .bid-input { flex: 1; min-width: 0; }
-.bid-input :deep(.p-inputtext) { width: 100%; min-height: 3rem; border-color: #d6cfc4; border-radius: 0; background: #fff; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.bid-input :deep(.p-inputtext) { width: 100%; min-height: 3rem; border-color: #d6cfc4; border-radius: 0; background: #fff; color: var(--wh-ink); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.bid-input :deep(.p-inputtext::placeholder) { color: var(--wh-muted); opacity: 1; }
 .bid-input :deep(.p-inputtext:enabled:focus) { border-color: #b77932; box-shadow: 0 0 0 3px rgba(183,121,50,.15); }
+.bid-input :deep(.p-inputtext:disabled) { background: #f5f5f4; color: var(--wh-muted); }
 .submit-btn { min-width: 6.5rem; border: none !important; border-radius: 0 !important; background: #1c1917 !important; color: #f5e6c8 !important; font-weight: 600 !important; letter-spacing: .08em !important; transition: background .2s ease; }
 .submit-btn:hover { background: #3a2a1d !important; }
 .form-meta { display: flex; justify-content: flex-end; line-height: 1.5; }

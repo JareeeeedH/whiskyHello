@@ -311,6 +311,30 @@ function applyHotSearch(term: string) {
   min-width: 0;
 }
 
+/* InputText renders the <input> itself; InputNumber wraps an inner .p-inputnumber-input. */
+.search-input.p-inputtext,
+.points-input :deep(.p-inputnumber-input) {
+  background: #fff;
+  color: var(--wh-ink);
+  border-color: var(--p-inputtext-border-color);
+}
+
+.search-input.p-inputtext::placeholder,
+.points-input :deep(.p-inputnumber-input::placeholder) {
+  color: var(--wh-muted);
+  opacity: 1;
+}
+
+.search-input.p-inputtext:enabled:hover,
+.points-input :deep(.p-inputnumber-input:enabled:hover) {
+  border-color: var(--p-inputtext-hover-border-color);
+}
+
+.search-input.p-inputtext:enabled:focus,
+.points-input :deep(.p-inputnumber-input:enabled:focus) {
+  border-color: var(--p-inputtext-focus-border-color);
+}
+
 .search-submit {
   flex: 0 0 auto;
   background:

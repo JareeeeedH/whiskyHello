@@ -19,6 +19,10 @@ app.use(router)
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
+    options: {
+      // Light-only site: Aura's default 'system' turns inputs dark on dark-mode devices (e.g. iOS).
+      darkModeSelector: false,
+    },
   },
 })
 app.use(ToastService)

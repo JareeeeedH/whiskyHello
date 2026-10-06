@@ -382,6 +382,26 @@ function goSearchEntry() {
   width: 100%;
 }
 
+/* InputText renders the <input> itself, so the class lands on the input element. */
+.search-input.p-inputtext {
+  background: #fff;
+  color: var(--wh-ink);
+  border-color: var(--p-inputtext-border-color);
+}
+
+.search-input.p-inputtext::placeholder {
+  color: var(--wh-muted);
+  opacity: 1;
+}
+
+.search-input.p-inputtext:enabled:hover {
+  border-color: var(--p-inputtext-hover-border-color);
+}
+
+.search-input.p-inputtext:enabled:focus {
+  border-color: var(--p-inputtext-focus-border-color);
+}
+
 .search-panel .section-desc {
   margin-bottom: 1.1rem;
 }

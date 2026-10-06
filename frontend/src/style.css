@@ -39,6 +39,8 @@
   --wh-gold: #c9a46a;
   --wh-amber: #a16207;
 
+  /* Light-only design: keep native form controls light under device dark mode */
+  color-scheme: light;
   color: #1f2937;
   background-color: var(--wh-paper);
   font-family: var(--font-body);

@@ -115,3 +115,11 @@ export async function cancelAdminAuction(
     throw toAdminApiError(error, 'Unable to cancel auction.')
   }
 }
+
+export async function deleteAdminAuction(id: string): Promise<void> {
+  try {
+    await apiClient.delete(`/admin/auctions/${encodeURIComponent(id)}`)
+  } catch (error) {
+    throw toAdminApiError(error, 'Unable to delete auction.')
+  }
+}

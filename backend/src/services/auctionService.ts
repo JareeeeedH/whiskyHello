@@ -1,5 +1,6 @@
 import { Types } from 'mongoose'
 import { Auction, type AuctionDocument } from '../models/Auction'
+import { Bid } from '../models/Bid'
 import type {
   AuctionStatus,
   PublicAuction,
@@ -226,4 +227,18 @@ export async function cancelAuction(
     400,
     'Only draft, scheduled or active auctions can be cancelled',
   )
+}
+
+/** Permanently deletes an auction in any status, together with all of its bids. */
+export async function deleteAuction(auctionId: string): Promise<void> {
+  if (!isObjectIdString(auctionId)) {
+    throw new AppError(400, 'Invalid auction id')
+  }
+
+  const deleted = await Auction.findByIdAndDelete(auctionId)
+  if (!deleted) {
+    throw new AppError(404, 'Auction not found')
+  }
+
+  await Bid.deleteMany({ auctionId: deleted._id })
 }

@@ -128,3 +128,21 @@ export async function cancel(
     next(error)
   }
 }
+
+export async function remove(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: 'Unauthorized' })
+      return
+    }
+
+    await auctionService.deleteAuction(String(req.params.id))
+    res.status(204).send()
+  } catch (error) {
+    next(error)
+  }
+}

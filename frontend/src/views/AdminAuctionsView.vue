@@ -11,6 +11,7 @@ import {
   AdminApiError,
   cancelAdminAuction,
   createAdminAuction,
+  deleteAdminAuction,
   fetchAdminAuctions,
   startAdminAuction,
   updateAdminAuction,
@@ -30,6 +31,8 @@ const loading = ref(true)
 const errorMessage = ref('')
 const actionError = ref('')
 const startingId = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
+const rowBusy = computed(() => startingId.value !== null || deletingId.value !== null)
 
 const cancelTarget = ref<AdminAuction | null>(null)
 const cancelVisible = ref(false)
@@ -227,6 +230,33 @@ async function onStart(auction: AdminAuction) {
   }
 }
 
+async function onDelete(auction: AdminAuction) {
+  if (rowBusy.value) {
+    return
+  }
+  if (
+    !window.confirm(
+      `Delete "${auction.title}" (${auction.status})? The auction and all of its bids will be permanently deleted. This cannot be undone.`,
+    )
+  ) {
+    return
+  }
+
+  actionError.value = ''
+  deletingId.value = auction.id
+  try {
+    await deleteAdminAuction(auction.id)
+    auctions.value = auctions.value.filter((item) => item.id !== auction.id)
+  } catch (error) {
+    actionError.value =
+      error instanceof AdminApiError
+        ? [error.message, ...error.details].join(': ')
+        : 'Unable to delete auction. Please try again.'
+  } finally {
+    deletingId.value = null
+  }
+}
+
 function canCancel(auction: AdminAuction): boolean {
   return CANCELLABLE_STATUSES.includes(auction.status)
 }
@@ -302,7 +332,7 @@ onMounted(() => {
         <div>
           <h1>Auction Management</h1>
           <p class="page-sub">
-            Create drafts, edit drafts, start and cancel auctions.
+            Create drafts, edit drafts, start, cancel and delete auctions.
           </p>
         </div>
         <div class="intro-actions">
@@ -370,31 +400,42 @@ onMounted(() => {
                 </p>
               </div>
 
-              <div v-if="canCancel(auction)" class="auction-actions">
+              <div class="auction-actions">
                 <template v-if="auction.status === 'draft'">
                   <Button
                     label="Edit"
                     severity="secondary"
                     text
                     size="small"
-                    :disabled="startingId !== null"
+                    :disabled="rowBusy"
                     @click="openEdit(auction)"
                   />
                   <Button
                     label="Start"
                     size="small"
                     :loading="startingId === auction.id"
-                    :disabled="startingId !== null && startingId !== auction.id"
+                    :disabled="rowBusy && startingId !== auction.id"
                     @click="onStart(auction)"
                   />
                 </template>
                 <Button
+                  v-if="canCancel(auction)"
                   label="Cancel Auction"
                   severity="danger"
                   text
                   size="small"
-                  :disabled="startingId !== null"
+                  :disabled="rowBusy"
                   @click="openCancel(auction)"
+                />
+                <Button
+                  label="Delete"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  size="small"
+                  :loading="deletingId === auction.id"
+                  :disabled="rowBusy && deletingId !== auction.id"
+                  @click="onDelete(auction)"
                 />
               </div>
             </li>

@@ -401,6 +401,7 @@ POST   /api/v1/admin/auctions
 PATCH  /api/v1/admin/auctions/:id
 POST   /api/v1/admin/auctions/:id/start
 POST   /api/v1/admin/auctions/:id/cancel
+DELETE /api/v1/admin/auctions/:id
 ```
 
 - `GET /api/v1/admin/users`：唯讀使用者列表（名稱、Email、頭像、角色、加入日期），不回傳密碼或 Google ID
@@ -623,6 +624,11 @@ Admin 對 `draft` 執行 Start，依目前時間（`now`）決定結果：
 - 以「目前狀態仍可取消」為條件的單次更新寫入，避免與 Lifecycle Job 同時更新時覆蓋對方
 - 已存在的 Bid 保留，不刪除
 
+#### Admin Delete
+
+- Admin 可刪除任何狀態（`draft`、`scheduled`、`active`、`ended`、`cancelled`）的 Auction
+- 永久刪除，無法復原；同時刪除該 Auction 的所有 Bid
+
 #### 狀態流程
 
 ```text
@@ -662,6 +668,7 @@ POST   /api/v1/admin/auctions              建立 Auction（status = draft）
 PATCH  /api/v1/admin/auctions/:id          編輯 draft Auction
 POST   /api/v1/admin/auctions/:id/start    Start draft（→ scheduled 或 active）
 POST   /api/v1/admin/auctions/:id/cancel   取消 Auction（→ cancelled）
+DELETE /api/v1/admin/auctions/:id          永久刪除 Auction 及其所有 Bid
 ```
 
 - 建立：`whiskyId`、`title`、`startingPrice`、`startAt`、`endAt` 必填，`description` 選填
@@ -671,6 +678,7 @@ POST   /api/v1/admin/auctions/:id/cancel   取消 Auction（→ cancelled）
 - Start 時已到達 `endAt`：回傳 400
 - Cancel：Request `{ "message": string }`（必填，去除前後空白後不可為空，最多 500 字）；Response 200 `{ "auction": ... }`
 - Cancel `ended` / `cancelled`：回傳 400
+- Delete：任何狀態皆可；Response 204（無 body）
 - Auction 不存在：回傳 404
 - Admin API 回傳的 Auction 包含 `createdBy` 與 `statusHistory`
 
@@ -681,7 +689,8 @@ POST   /api/v1/admin/auctions/:id/cancel   取消 Auction（→ cancelled）
 - 顯示 Auction 列表
 - 建立 Auction
 - `draft` 顯示 Edit / Start / Cancel Auction
-- `scheduled`、`active` 顯示 Cancel Auction；`ended`、`cancelled` 不顯示操作
+- `scheduled`、`active` 顯示 Cancel Auction；`ended`、`cancelled` 不顯示 Cancel
+- 所有狀態皆顯示 Delete；刪除前需確認，成功後從列表移除
 - Cancel 前需在對話框輸入狀態變更訊息，成功後列表顯示 `cancelled`
 - 有 `statusHistory` 時顯示最後一次狀態變更（狀態、時間、訊息）
 - 建立與編輯欄位：`whiskyId`、`title`、`description`、`startingPrice`、`startAt`、`endAt`

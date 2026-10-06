@@ -9,6 +9,7 @@ import { after, before, describe, it } from 'node:test'
 import mongoose from 'mongoose'
 import app from '../app'
 import { Auction } from '../models/Auction'
+import { Bid } from '../models/Bid'
 import { User } from '../models/User'
 import {
   connectTestDatabase,
@@ -55,6 +56,7 @@ after(async () => {
   }
   if (mongoose.connection.readyState === 1) {
     if (createdAuctionIds.length > 0) {
+      await Bid.deleteMany({ auctionId: { $in: createdAuctionIds } })
       await Auction.deleteMany({ _id: { $in: createdAuctionIds } })
     }
     if (createdUserIds.length > 0) {
@@ -433,5 +435,67 @@ describe('Admin auction Cancel', () => {
       message: 'Missing',
     })
     assert.equal(res.status, 404)
+  })
+})
+
+describe('Admin auction Delete', () => {
+  function adminDelete(id: string, userId?: string) {
+    return fetch(`${baseUrl}/api/v1/admin/auctions/${id}`, {
+      method: 'DELETE',
+      headers: userId
+        ? { Authorization: `Bearer ${signAccessToken({ userId })}` }
+        : {},
+    })
+  }
+
+  for (const status of ['draft', 'scheduled', 'active', 'ended', 'cancelled'] as const) {
+    it(`deletes a ${status} auction`, async () => {
+      const adminId = await createUser('admin')
+      const auction = await createDraft(adminId, DAY_MS, 2 * DAY_MS)
+      if (status !== 'draft') {
+        auction.status = status
+        await auction.save()
+      }
+
+      const res = await adminDelete(auction.id, adminId)
+      assert.equal(res.status, 204)
+      assert.equal(await Auction.exists({ _id: auction._id }), null)
+    })
+  }
+
+  it('deletes all bids of the auction and keeps bids of other auctions', async () => {
+    const adminId = await createUser('admin')
+    const bidderId = await createUser('user')
+    const target = await createDraft(adminId, -DAY_MS, DAY_MS)
+    const other = await createDraft(adminId, -DAY_MS, DAY_MS)
+    await Bid.create([
+      { auctionId: target._id, userId: bidderId, amount: 200 },
+      { auctionId: target._id, userId: bidderId, amount: 300 },
+      { auctionId: other._id, userId: bidderId, amount: 250 },
+    ])
+
+    const res = await adminDelete(target.id, adminId)
+    assert.equal(res.status, 204)
+    assert.equal(await Bid.countDocuments({ auctionId: target._id }), 0)
+    assert.equal(await Bid.countDocuments({ auctionId: other._id }), 1)
+    assert.ok(await Auction.exists({ _id: other._id }))
+  })
+
+  it('returns 401 without a token and 403 for a non-admin', async () => {
+    const adminId = await createUser('admin')
+    const auction = await createDraft(adminId, DAY_MS, 2 * DAY_MS)
+
+    assert.equal((await adminDelete(auction.id)).status, 401)
+
+    const userId = await createUser('user')
+    assert.equal((await adminDelete(auction.id, userId)).status, 403)
+    assert.ok(await Auction.exists({ _id: auction._id }))
+  })
+
+  it('returns 404 for a missing auction and 400 for an invalid id', async () => {
+    const adminId = await createUser('admin')
+    const missingId = new mongoose.Types.ObjectId().toString()
+    assert.equal((await adminDelete(missingId, adminId)).status, 404)
+    assert.equal((await adminDelete('not-an-id', adminId)).status, 400)
   })
 })

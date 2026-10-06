@@ -4,6 +4,7 @@ import {
   cancel,
   create,
   list,
+  remove,
   start,
   update,
 } from '../controllers/auctionController'
@@ -55,6 +56,14 @@ router.post(
   validate(auctionIdParamsSchema, 'params'),
   validate(cancelAuctionSchema),
   cancel,
+)
+
+router.delete(
+  '/auctions/:id',
+  authenticate,
+  requireAdmin,
+  validate(auctionIdParamsSchema, 'params'),
+  remove,
 )
 
 export default router

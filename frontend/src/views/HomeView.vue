@@ -405,7 +405,6 @@ function goAuctions() {
     color 0.25s ease;
 }
 
-.hero :deep(.p-button:not(:disabled):hover),
 .auction :deep(.p-button:not(:disabled):hover),
 .sommelier :deep(.p-button:not(:disabled):hover),
 .search-box :deep(.p-button:not(:disabled):hover) {
@@ -418,6 +417,52 @@ function goAuctions() {
 .auction :deep(.p-button-icon),
 .search-box :deep(.p-button-icon) {
   color: var(--wh-gold-bright);
+}
+
+/* Hero: whisky rises from the bottom of the glass on hover */
+.hero :deep(.p-button) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgba(220, 184, 120, 0.03);
+  transition:
+    border-color 0.7s ease,
+    color 0.45s ease 0.25s,
+    letter-spacing 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero :deep(.p-button)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-top: 1px solid rgba(255, 240, 210, 0.75);
+  background: linear-gradient(to top, #a8792c 0%, #d4ae6a 55%, #ecd29c 100%);
+  transform: translateY(102%);
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.hero :deep(.p-button:not(:disabled):hover) {
+  border-color: #ecd29c;
+  background: rgba(220, 184, 120, 0.03);
+  color: #1a1216;
+  letter-spacing: 0.12em !important;
+}
+
+.hero :deep(.p-button:not(:disabled):hover)::before {
+  transform: translateY(0);
+}
+
+.hero :deep(.p-button-icon) {
+  transition:
+    color 0.45s ease 0.25s,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero :deep(.p-button:not(:disabled):hover .p-button-icon) {
+  color: #1a1216;
+  transform: translateX(4px);
 }
 
 .luxury-rule {
@@ -554,22 +599,59 @@ function goAuctions() {
   margin-top: 2.75rem;
 }
 
+/* Sommelier: brushed champagne-gold with a single sheen pass on hover */
 .taste-cta :deep(.p-button) {
+  position: relative;
+  overflow: hidden;
   padding: 0.85rem 1.75rem;
-  border: 1px solid var(--wh-gold-bright);
+  border: 1px solid #e8c98f;
   border-radius: 2px;
-  background: var(--wh-gold-bright);
+  background: linear-gradient(135deg, #f3dfb0 0%, #dcb878 40%, #c9a46a 65%, #e6c88e 100%);
   color: #1a1216;
   letter-spacing: 0.08em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(26, 18, 22, 0.15);
   transition:
-    background 0.25s ease,
-    border-color 0.25s ease;
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.15s ease;
+}
+
+.taste-cta :deep(.p-button)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
 }
 
 .taste-cta :deep(.p-button:not(:disabled):hover) {
-  border-color: #e8c98f;
-  background: #e8c98f;
+  border-color: #f3dfb0;
+  background: linear-gradient(135deg, #f3dfb0 0%, #dcb878 40%, #c9a46a 65%, #e6c88e 100%);
   color: #1a1216;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(26, 18, 22, 0.15),
+    0 0 0 3px rgba(220, 184, 120, 0.12);
+}
+
+.taste-cta :deep(.p-button:not(:disabled):hover)::after {
+  transform: translateX(120%);
+  transition: transform 0.9s ease;
+}
+
+.taste-cta :deep(.p-button:not(:disabled):active) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 2px rgba(26, 18, 22, 0.2),
+    0 0 0 3px rgba(220, 184, 120, 0.12);
 }
 
 .taste-cta :deep(.p-button-icon) {
@@ -855,7 +937,16 @@ function goAuctions() {
   .search-box :deep(.p-button),
   .taste-cta :deep(.p-button),
   .taste-cta :deep(.p-button-icon),
+  .hero :deep(.p-button-icon),
   .review-title {
+    transition: none;
+  }
+
+  .taste-cta :deep(.p-button)::after {
+    display: none;
+  }
+
+  .hero :deep(.p-button)::before {
     transition: none;
   }
 

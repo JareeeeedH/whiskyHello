@@ -27,6 +27,32 @@ const endedAuctions = computed(() =>
   auctions.value.filter((auction) => auction.status === 'ended'),
 )
 
+type AuctionTab = 'active' | 'scheduled' | 'ended'
+
+/** Mobile shows one status tab at a time, previewing this many cards until expanded. */
+const MOBILE_PREVIEW_LIMIT = 3
+
+const activeTab = ref<AuctionTab>('active')
+const expandedTabs = ref<Record<AuctionTab, boolean>>({
+  active: false,
+  scheduled: false,
+  ended: false,
+})
+
+const statusTabs = computed<{ key: AuctionTab; label: string; count: number }[]>(() => [
+  { key: 'active', label: '進行中', count: activeAuctions.value.length },
+  { key: 'scheduled', label: '即將開始', count: scheduledAuctions.value.length },
+  { key: 'ended', label: '已結束', count: endedAuctions.value.length },
+])
+
+function canExpand(tab: AuctionTab, count: number): boolean {
+  return count > MOBILE_PREVIEW_LIMIT && !expandedTabs.value[tab]
+}
+
+function expandTab(tab: AuctionTab) {
+  expandedTabs.value = { ...expandedTabs.value, [tab]: true }
+}
+
 let loadToken = 0
 
 function hasBidPrice(auction: PublicAuctionDetail): boolean {
@@ -103,8 +129,8 @@ onMounted(() => {
       <div class="discovery-hero-inner">
         <header class="page-header">
           <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true" />WHISKYHELLO · AUCTION HOUSE</p>
-          <h1 id="auction-list-title">珍稀酒款競標</h1>
-          <p class="lead">探索值得收藏的酒款，參與每一場競標。</p>
+          <h1 id="auction-list-title">發現稀有與收藏酒款</h1>
+          <p class="lead">探索限量、收藏與稀有酒款競標，看見即時價格、出價與結標結果。</p>
         </header>
         <div
           class="hero-stats"
@@ -129,7 +155,25 @@ onMounted(() => {
       </div>
 
       <template v-else>
-        <section class="results-section" aria-labelledby="active-auctions-title">
+        <div class="status-tabs" role="group" aria-label="競標狀態">
+          <button
+            v-for="tab in statusTabs"
+            :key="tab.key"
+            type="button"
+            class="status-tab"
+            :class="{ 'is-selected': activeTab === tab.key }"
+            :aria-pressed="activeTab === tab.key"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}<span class="status-tab-count">{{ tab.count }}</span>
+          </button>
+        </div>
+
+        <section
+          class="results-section"
+          :class="{ 'is-tab-hidden': activeTab !== 'active' }"
+          aria-labelledby="active-auctions-title"
+        >
           <div class="section-heading">
             <div>
               <p class="section-eyebrow is-live"><span aria-hidden="true" />LIVE AUCTIONS</p>
@@ -142,7 +186,11 @@ onMounted(() => {
             目前沒有進行中的競標，晚點再來看看。
           </p>
 
-          <div v-else class="card-grid">
+          <div
+            v-else
+            class="card-grid"
+            :class="{ 'is-collapsed': !expandedTabs.active }"
+          >
             <AuctionCard
               v-for="auction in activeAuctions"
               :key="auction.id"
@@ -150,10 +198,19 @@ onMounted(() => {
               :price="prices[auction.id] ?? { status: 'loading' }"
             />
           </div>
+          <button
+            v-if="canExpand('active', activeAuctions.length)"
+            type="button"
+            class="show-all"
+            @click="expandTab('active')"
+          >
+            查看全部 {{ activeAuctions.length }} 場 →
+          </button>
         </section>
 
         <section
           class="results-section"
+          :class="{ 'is-tab-hidden': activeTab !== 'scheduled' }"
           aria-labelledby="scheduled-auctions-title"
         >
           <div class="section-heading">
@@ -168,7 +225,11 @@ onMounted(() => {
             目前沒有即將開始的競標。
           </p>
 
-          <div v-else class="card-grid">
+          <div
+            v-else
+            class="card-grid"
+            :class="{ 'is-collapsed': !expandedTabs.scheduled }"
+          >
             <AuctionCard
               v-for="auction in scheduledAuctions"
               :key="auction.id"
@@ -176,10 +237,19 @@ onMounted(() => {
               :price="prices[auction.id] ?? { status: 'starting' }"
             />
           </div>
+          <button
+            v-if="canExpand('scheduled', scheduledAuctions.length)"
+            type="button"
+            class="show-all"
+            @click="expandTab('scheduled')"
+          >
+            查看全部 {{ scheduledAuctions.length }} 場 →
+          </button>
         </section>
 
         <section
           class="results-section"
+          :class="{ 'is-tab-hidden': activeTab !== 'ended' }"
           aria-labelledby="ended-auctions-title"
         >
           <div class="section-heading">
@@ -194,7 +264,11 @@ onMounted(() => {
             目前沒有已結束的競標。
           </p>
 
-          <div v-else class="card-grid">
+          <div
+            v-else
+            class="card-grid"
+            :class="{ 'is-collapsed': !expandedTabs.ended }"
+          >
             <AuctionCard
               v-for="auction in endedAuctions"
               :key="auction.id"
@@ -202,6 +276,14 @@ onMounted(() => {
               :price="prices[auction.id] ?? { status: 'loading' }"
             />
           </div>
+          <button
+            v-if="canExpand('ended', endedAuctions.length)"
+            type="button"
+            class="show-all"
+            @click="expandTab('ended')"
+          >
+            查看全部 {{ endedAuctions.length }} 場 →
+          </button>
         </section>
       </template>
     </div>
@@ -383,6 +465,11 @@ onMounted(() => {
   margin: 0;
 }
 
+.status-tabs,
+.show-all {
+  display: none;
+}
+
 @media (max-width: 479px) {
   .card-grid {
     grid-template-columns: 1fr;
@@ -457,12 +544,96 @@ onMounted(() => {
   }
 
   .results-section + .results-section {
-    margin-top: 2.25rem;
+    margin-top: 0;
   }
 
+  .results-section.is-tab-hidden,
   .section-heading {
+    display: none;
+  }
+
+  .status-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
     margin-bottom: 0.9rem;
-    padding-bottom: 0.65rem;
+    padding: 0.25rem;
+    border: 1px solid #e7e1d8;
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  .status-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.5rem;
+    padding: 0 0.4rem;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #78716c;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .status-tab-count {
+    color: #a8a29e;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .status-tab.is-selected {
+    background: #1c1917;
+    color: #fafaf9;
+  }
+
+  .status-tab.is-selected .status-tab-count {
+    color: #e7bd73;
+  }
+
+  .status-tab:focus-visible,
+  .show-all:focus-visible {
+    outline: 2px solid #b45309;
+    outline-offset: 2px;
+  }
+
+  .card-grid.is-collapsed > :nth-child(n + 4) {
+    display: none;
+  }
+
+  .show-all {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.85rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(161, 98, 7, 0.45);
+    border-radius: 4px;
+    background: #fff;
+    color: #7a4310;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+
+  .show-all:hover {
+    border-color: #a16207;
+    background: #fbf3e4;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .status-tab {
+    transition: none;
   }
 }
 </style>

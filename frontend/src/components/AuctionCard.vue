@@ -440,7 +440,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
   .media {
     flex: 0 0 38%;
     aspect-ratio: auto;
-    min-height: 11.5rem;
+    min-height: 10rem;
     border-right: 1px solid #ece5da;
     border-bottom: 0;
   }
@@ -472,6 +472,21 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 
   .ledger-price dd {
     font-size: 1.25rem;
+  }
+
+  .ledger {
+    padding-top: 0.7rem;
+  }
+
+  .time-row {
+    margin-top: 0.55rem;
+    padding-top: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .lot {
+    display: none;
   }
 }
 

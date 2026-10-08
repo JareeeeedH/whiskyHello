@@ -1,87 +1,84 @@
-/** Allowed values from WHISKYHELLO_AI_SOMMELIER_SPEC.md (§2.1, §2.2, §4.3–§4.6). */
-export const FLAVOR_TAGS = [
+/** Taste dimensions rated by the user, in the order the UI asks them. */
+export const TASTE_KEYS = [
   'sweet',
-  'fruity',
+  'fruit',
+  'driedFruit',
+  'citrus',
   'floral',
-  'vanilla',
-  'woody',
-  'spicy',
-  'smoky',
-  'peaty',
-  'maritime',
+  'vanillaCaramel',
+  'nutty',
+  'chocolateCoffee',
+  'spice',
+  'oak',
+  'peat',
+  'smoke',
 ] as const
 
-export const TASTE_LEVELS = ['low', 'medium', 'high'] as const
+/** The UI shows the taste keys in two groups of six; the user picks and rates 3 from each. */
+export const TASTE_GROUPS = [TASTE_KEYS.slice(0, 6), TASTE_KEYS.slice(6)] as const
+export const TASTE_PICKS_PER_GROUP = 3
 
-export const STEP1_OCCASIONS = [
+/** Drinking-style dimensions rated by the user. */
+export const STYLE_KEYS = ['body', 'intensity', 'smoothness'] as const
+
+/** Every taste and style rating is an integer on this scale (1 = least, 10 = most). */
+export const PREFERENCE_SCALE_MIN = 1
+export const PREFERENCE_SCALE_MAX = 10
+
+export const OCCASIONS = [
   'relaxing',
   'social',
   'meal',
   'gift',
   'beginner',
   'premium',
+  'date',
 ] as const
-
-/** `date` can only come from freeText extraction, never from the Step 1 form. */
-export const PREFERENCE_OCCASIONS = [...STEP1_OCCASIONS, 'date'] as const
 
 export const MOODS = ['positive', 'neutral', 'low', 'stressed'] as const
 
 export const COMPANIONS = ['alone', 'friend', 'date', 'partner', 'family'] as const
 
-export type FlavorTag = (typeof FLAVOR_TAGS)[number]
-export type TasteLevel = (typeof TASTE_LEVELS)[number]
-export type Step1Occasion = (typeof STEP1_OCCASIONS)[number]
-export type PreferenceOccasion = (typeof PREFERENCE_OCCASIONS)[number]
+export type TasteKey = (typeof TASTE_KEYS)[number]
+export type StyleKey = (typeof STYLE_KEYS)[number]
+export type Occasion = (typeof OCCASIONS)[number]
 export type Mood = (typeof MOODS)[number]
 export type Companion = (typeof COMPANIONS)[number]
+
+/**
+ * Only the tastes the user picked and rated. A missing key means "not provided":
+ * it is never a low (1) or neutral (5) rating.
+ */
+export type TasteProfile = Partial<Record<TasteKey, number>>
+export type StyleProfile = Record<StyleKey, number>
 
 export interface PreferenceBudget {
   min?: number
   max?: number
 }
 
-export const INTENSITY_MIN = 0
-export const INTENSITY_MAX = 100
-
-/** Peat and smoke intensity on a 0–100 scale (§2.5). */
-export interface PreferenceIntensity {
-  peaty?: number
-  smoky?: number
-}
-
-/** Validated Step 1 input (§3.2); validation defaults a missing `dislikes` to []. */
+/** Validated request body for POST /api/v1/sommelier/preference. */
 export interface SommelierInput {
-  taste: FlavorTag[]
-  dislikes: FlavorTag[]
-  intensity?: PreferenceIntensity
+  taste: TasteProfile
+  style: StyleProfile
   budget?: PreferenceBudget
-  occasion?: Step1Occasion
   freeText?: string
 }
 
-export interface PreferenceTaste {
-  tag: FlavorTag
-  level: TasteLevel
-}
-
-/** LLM extraction after backend validation; invalid values have already been dropped (§4.7). */
+/** Context the LLM extracted from freeText, after backend validation dropped invalid values. */
 export interface PreferenceExtraction {
-  taste: PreferenceTaste[]
-  dislikes: FlavorTag[]
   budget?: PreferenceBudget
-  occasion?: PreferenceOccasion
+  occasion?: Occasion
   mood?: Mood
   companion?: Companion
 }
 
-/** Step 2 output (§4.9). */
+/** Final Preference: ratings as entered (unpicked tastes stay absent), plus budget and freeText context. */
 export interface Preference {
-  taste: PreferenceTaste[]
-  dislikes: FlavorTag[]
-  intensity?: PreferenceIntensity
+  taste: TasteProfile
+  style: StyleProfile
   budget?: PreferenceBudget
-  occasion?: PreferenceOccasion
+  occasion?: Occasion
   mood?: Mood
   companion?: Companion
 }

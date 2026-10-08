@@ -1,27 +1,59 @@
 import Joi from 'joi'
-import { FLAVOR_TAGS, INTENSITY_MAX, INTENSITY_MIN, STEP1_OCCASIONS } from '../types/sommelier'
+import {
+  PREFERENCE_SCALE_MAX,
+  PREFERENCE_SCALE_MIN,
+  STYLE_KEYS,
+  TASTE_GROUPS,
+  TASTE_KEYS,
+  TASTE_PICKS_PER_GROUP,
+} from '../types/sommelier'
 import type { SommelierInput } from '../types/sommelier'
 
 /** Upper bound on text forwarded to the LLM. */
 export const FREE_TEXT_MAX_LENGTH = 1000
 
-function flavorTagList(label: string) {
-  return Joi.array()
-    .items(
-      Joi.string()
-        .valid(...FLAVOR_TAGS)
-        .messages({
-          'string.base': `${label} contains an unsupported flavor tag`,
-          'any.only': `${label} contains an unsupported flavor tag`,
-        }),
-    )
-    .unique()
+const ratingValue = (label: string) =>
+  Joi.number()
+    .strict()
+    .integer()
+    .min(PREFERENCE_SCALE_MIN)
+    .max(PREFERENCE_SCALE_MAX)
     .messages({
-      'array.base': `${label} must be an array`,
-      'array.unique': `${label} must not contain duplicate tags`,
+      'number.base': `${label} must be a number`,
+      'number.integer': `${label} must be an integer`,
+      'number.min': `${label} must be at least ${PREFERENCE_SCALE_MIN}`,
+      'number.max': `${label} must be at most ${PREFERENCE_SCALE_MAX}`,
+      'number.infinity': `${label} must be a number`,
       'any.required': `${label} is required`,
     })
-}
+
+/** Taste holds only the picked tastes: exactly 3 from each group of six. */
+const tasteSchema = Joi.object(
+  Object.fromEntries(TASTE_KEYS.map((key) => [key, ratingValue(`Taste ${key}`)])),
+)
+  .required()
+  .custom((taste: Record<string, unknown>, helpers) => {
+    const picksPerGroup = TASTE_GROUPS.map(
+      (group) => group.filter((key) => taste[key] !== undefined).length,
+    )
+    return picksPerGroup.every((count) => count === TASTE_PICKS_PER_GROUP)
+      ? taste
+      : helpers.error('taste.picks')
+  })
+  .messages({
+    'object.base': 'Taste must be an object',
+    'any.required': 'Taste is required',
+    'taste.picks': `Taste must rate exactly ${TASTE_PICKS_PER_GROUP} flavors from each group`,
+  })
+
+const styleSchema = Joi.object(
+  Object.fromEntries(STYLE_KEYS.map((key) => [key, ratingValue(`Style ${key}`).required()])),
+)
+  .required()
+  .messages({
+    'object.base': 'Style must be an object',
+    'any.required': 'Style is required',
+  })
 
 const budgetValue = (label: string) =>
   Joi.number()
@@ -32,40 +64,15 @@ const budgetValue = (label: string) =>
       'number.infinity': `Budget ${label} must be a number`,
     })
 
-const intensityValue = (label: string) =>
-  Joi.number()
-    .integer()
-    .min(INTENSITY_MIN)
-    .max(INTENSITY_MAX)
-    .messages({
-      'number.base': `Intensity ${label} must be a number`,
-      'number.integer': `Intensity ${label} must be an integer`,
-      'number.min': `Intensity ${label} must be at least ${INTENSITY_MIN}`,
-      'number.max': `Intensity ${label} must be at most ${INTENSITY_MAX}`,
-      'number.infinity': `Intensity ${label} must be a number`,
-    })
-
 export const preferenceRequestSchema = Joi.object({
-  taste: flavorTagList('Taste').required(),
-  dislikes: flavorTagList('Dislikes').default([]),
-  intensity: Joi.object({
-    peaty: intensityValue('peaty'),
-    smoky: intensityValue('smoky'),
-  }).messages({
-    'object.base': 'Intensity must be an object',
-  }),
+  taste: tasteSchema,
+  style: styleSchema,
   budget: Joi.object({
     min: budgetValue('min'),
     max: budgetValue('max'),
   }).messages({
     'object.base': 'Budget must be an object',
   }),
-  occasion: Joi.string()
-    .valid(...STEP1_OCCASIONS)
-    .messages({
-      'string.base': 'Occasion is not supported',
-      'any.only': 'Occasion is not supported',
-    }),
   freeText: Joi.string()
     .trim()
     .allow('')

@@ -1,20 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Preference } from '../types/sommelier'
-import { FLAVOR_TAG_LABELS } from '../utils/sommelierInput'
+import { STYLE_KEYS, STYLE_LABELS, TASTE_KEYS, TASTE_LABELS } from '../utils/sommelierInput'
 import { formatBudget } from '../utils/sommelierConversation'
 import {
   COMPANION_LABELS,
   MOOD_LABELS,
   PREFERENCE_OCCASION_LABELS,
-  TASTE_LEVEL_LABELS,
-  TASTE_LEVEL_STEPS,
 } from '../utils/sommelierPreference'
 
-defineProps<{
+const props = defineProps<{
   preference: Preference
 }>()
 
-const LEVEL_SEGMENTS = 3
+/** Only the tastes the user picked and rated; the rest are unknown, not low. */
+const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.taste[key] !== undefined))
 </script>
 
 <template>
@@ -23,34 +23,19 @@ const LEVEL_SEGMENTS = 3
 
     <dl class="profile-list">
       <div>
-        <dt>想喝到的風味</dt>
+        <dt>風味</dt>
         <dd>
-          <span v-if="preference.taste.length === 0" class="muted">未指定</span>
-          <span v-for="item in preference.taste" :key="item.tag" class="profile-tag is-taste">
-            {{ FLAVOR_TAG_LABELS[item.tag] }}
-            <span class="level-meter" aria-hidden="true">
-              <i
-                v-for="n in LEVEL_SEGMENTS"
-                :key="n"
-                :class="{ 'is-on': n <= TASTE_LEVEL_STEPS[item.level] }"
-              />
-            </span>
-            <span class="level-text">{{ TASTE_LEVEL_LABELS[item.level] }}</span>
+          <span v-for="key in ratedTastes" :key="key" class="profile-tag is-taste">
+            {{ TASTE_LABELS[key] }} <strong>{{ preference.taste[key] }}</strong>
           </span>
         </dd>
       </div>
       <div>
-        <dt>泥煤與煙燻</dt>
+        <dt>喝感</dt>
         <dd>
-          <template v-if="preference.intensity">
-            <span v-if="preference.intensity.peaty !== undefined" class="intensity-item">
-              泥煤 <strong>{{ preference.intensity.peaty }}</strong>
-            </span>
-            <span v-if="preference.intensity.smoky !== undefined" class="intensity-item">
-              煙燻 <strong>{{ preference.intensity.smoky }}</strong>
-            </span>
-          </template>
-          <span v-else class="muted">未指定</span>
+          <span v-for="key in STYLE_KEYS" :key="key" class="rating-item">
+            {{ STYLE_LABELS[key] }} <strong>{{ preference.style[key] }}</strong>
+          </span>
         </dd>
       </div>
       <div>
@@ -58,14 +43,6 @@ const LEVEL_SEGMENTS = 3
         <dd>
           <span v-if="preference.budget">{{ formatBudget(preference.budget) }}</span>
           <span v-else class="muted">未指定</span>
-        </dd>
-      </div>
-      <div v-if="preference.dislikes.length > 0">
-        <dt>不想要的風味</dt>
-        <dd>
-          <span v-for="tag in preference.dislikes" :key="tag" class="profile-tag is-dislike">
-            {{ FLAVOR_TAG_LABELS[tag] }}
-          </span>
         </dd>
       </div>
       <div>
@@ -157,33 +134,8 @@ const LEVEL_SEGMENTS = 3
   color: #6f381c;
 }
 
-.profile-tag.is-dislike {
-  background: #292524;
-  color: #fafaf9;
-}
-
-.level-meter {
-  display: inline-flex;
-  gap: 2px;
-}
-
-.level-meter i {
-  width: 0.32rem;
-  height: 0.7rem;
-  border-radius: 1px;
-  background: #ead7b4;
-}
-
-.level-meter i.is-on {
-  background: #b77932;
-}
-
-.level-text {
-  color: var(--wh-amber);
-  font-size: 0.72rem;
-}
-
-.intensity-item strong {
+.profile-tag strong,
+.rating-item strong {
   font-variant-numeric: tabular-nums;
 }
 

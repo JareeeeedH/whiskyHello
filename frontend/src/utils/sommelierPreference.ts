@@ -2,24 +2,15 @@ import type {
   PreferenceOccasion,
   SommelierCompanion,
   SommelierMood,
-  TasteLevel,
 } from '../types/sommelier.ts'
-import { OCCASION_LABELS } from './sommelierInput.ts'
-
-export const TASTE_LEVEL_LABELS: Record<TasteLevel, string> = {
-  low: '輕微',
-  medium: '適中',
-  high: '強烈',
-}
-
-export const TASTE_LEVEL_STEPS: Record<TasteLevel, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-}
 
 export const PREFERENCE_OCCASION_LABELS: Record<PreferenceOccasion, string> = {
-  ...OCCASION_LABELS,
+  relaxing: '放鬆、獨飲',
+  social: '聚會、朋友小酌',
+  meal: '搭配餐點',
+  gift: '送禮',
+  beginner: '入門、第一次嘗試',
+  premium: '特別場合、想喝好一點',
   date: '約會',
 }
 

@@ -7,22 +7,30 @@ import SommelierAvatar from '../components/SommelierAvatar.vue'
 import SommelierPreferenceProfile from '../components/SommelierPreferenceProfile.vue'
 import { SommelierApiError, fetchPreference } from '../services/sommelierService'
 import type {
-  FlavorTag,
   Preference,
   SommelierInput,
   SommelierInputDraft,
   SommelierInputErrors,
   SommelierInputField,
+  TasteKey,
 } from '../types/sommelier'
 import {
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
-  FLAVOR_TAG_LABELS,
-  INTENSITY_MAX,
-  INTENSITY_MIN,
-  TASTE_CHOICES,
+  RATING_DEFAULT,
+  RATING_MAX,
+  RATING_MIN,
+  STYLE_LABELS,
+  STYLE_SCALE_HINTS,
+  TASTE_GROUPS,
+  TASTE_LABELS,
+  TASTE_PICKS_PER_GROUP,
   createEmptySommelierDraft,
+  describeStyleRating,
+  describeTasteRating,
+  pickedTastes,
+  toggleTastePick,
   validateSommelierInput,
 } from '../utils/sommelierInput'
 import {
@@ -33,27 +41,29 @@ import {
   QUESTION_TO_INPUT_MS,
   SOMMELIER_ARRIVAL_MS,
   SOMMELIER_ARRIVAL_TEXT,
-  SOMMELIER_GREETING,
   SOMMELIER_QUESTIONS,
+  STEP_KINDS,
   USER_TO_THINKING_MS,
   composeClosingMessage,
   describeBudgetAnswer,
   describeFreeTextAnswer,
-  describeIntensityAnswer,
-  describeTasteAnswer,
+  describeStyleAnswer,
+  describeTastePicks,
+  describeTasteRatings,
   formatAmount,
   formatPrice,
+  MAX_ACKNOWLEDGEMENTS,
+  getAcknowledgement,
+  getSommelierGreeting,
   getThinkingCue,
-  respondToBudget,
-  respondToIntensity,
-  respondToTaste,
+  getThinkingDurationMs,
   type ConversationStep,
   type ThinkingMoment,
 } from '../utils/sommelierConversation'
 
 /**
  * opening → answering ⇄ responding → closing → done. `error` replaces
- * `closing` when Step 2 fails; `responding` covers every Sommelier turn.
+ * `closing` when the Preference API fails; `responding` covers every Sommelier turn.
  */
 type Phase = 'opening' | 'answering' | 'responding' | 'closing' | 'error' | 'done'
 
@@ -61,10 +71,12 @@ interface SommelierMessage {
   id: number
   type: 'sommelier'
   lines: string[]
-  /** Set when the message asks one of the four questions. */
+  /** Set when the message asks one of the questions. */
   question?: ConversationStep
   /** Questions, the closing summary and errors become the auto-scroll reading position. */
   anchor?: boolean
+  /** A short reaction to the previous answer. */
+  acknowledgement?: boolean
   tone?: 'error'
   details?: string[]
 }
@@ -112,15 +124,11 @@ const PREFERENCE_ERROR_INTRO = '抱歉，剛剛整理的時候出了點問題。
 
 const FIELD_STEPS: Record<SommelierInputField, ConversationStep> = {
   taste: 1,
-  intensity: 2,
-  budget: 3,
-  freeText: 4,
+  style: 5,
+  budget: 8,
+  freeText: 9,
 }
-
-const INTENSITY_SLIDERS = [
-  { key: 'peaty', label: '泥煤' },
-  { key: 'smoky', label: '煙燻' },
-] as const
+const FREE_TEXT_STEP: ConversationStep = 9
 
 const draft = ref<SommelierInputDraft>(createEmptySommelierDraft())
 const messages = ref<ChatMessage[]>([])
@@ -153,7 +161,17 @@ const progressLabel = computed(
   () => `${padStep(progressStep.value)} / ${padStep(CONVERSATION_STEPS)}`,
 )
 const progressWidth = computed(() => `${(progressStep.value / CONVERSATION_STEPS) * 100}%`)
-const canContinueTaste = computed(() => draft.value.taste.length > 0)
+const activeKind = computed(() => STEP_KINDS[activeStep.value])
+/** The six tastes offered, or the three picked, in the current taste step. */
+const activeTasteGroup = computed<readonly TasteKey[]>(() => {
+  const kind = activeKind.value
+  return kind.type === 'pickTaste' || kind.type === 'rateTaste' ? (TASTE_GROUPS[kind.group] ?? []) : []
+})
+const activePicks = computed(() => pickedTastes(draft.value.taste, activeTasteGroup.value))
+const activeStyleKey = computed(() => (activeKind.value.type === 'style' ? activeKind.value.key : null))
+const canContinue = computed(
+  () => activeKind.value.type !== 'pickTaste' || activePicks.value.length === TASTE_PICKS_PER_GROUP,
+)
 const canModify = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
 const replyVisible = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
 const replyKey = computed(() =>
@@ -292,12 +310,14 @@ async function beginTurn(): Promise<number | null> {
 
 /**
  * Shows the thinking state after a short pause and keeps it up for at least
- * the cue duration, or until `work` settles if that takes longer.
+ * the cue duration (longer for a longer `upcomingText`), or until `work`
+ * settles if that takes longer.
  */
 async function thinkWhile<T>(
   moment: ThinkingMoment,
   token: number,
   work: Promise<T>,
+  upcomingText = '',
 ): Promise<{ id: number; result: T } | null> {
   await wait(USER_TO_THINKING_MS)
   if (token !== flowToken) {
@@ -308,7 +328,7 @@ async function thinkWhile<T>(
   const id = addMessage({ type: 'thinking', text: cue.text })
   const longWait = setTimeout(() => setThinkingText(id, LONG_WAIT_TEXT), LONG_WAIT_MS)
   timers.push(longWait)
-  const [result] = await Promise.all([work, wait(cue.durationMs)])
+  const [result] = await Promise.all([work, wait(getThinkingDurationMs(moment, upcomingText))])
   clearTimeout(longWait)
   return token === flowToken ? { id, result } : null
 }
@@ -340,70 +360,87 @@ async function openConversation() {
     return
   }
   arriving.value = false
-  const thought = await thinkWhile('opening', token, Promise.resolve())
+  const greeting = getSommelierGreeting(new Date().getHours())
+  const thought = await thinkWhile('opening', token, Promise.resolve(), greeting)
   if (!thought) {
     return
   }
-  replaceMessage(thought.id, { type: 'sommelier', lines: [SOMMELIER_GREETING] })
+  replaceMessage(thought.id, { type: 'sommelier', lines: [greeting] })
   await askQuestion(1, token, false)
 }
 
-/** User message → thinking → Sommelier response → next question. */
-async function sendAnswer(
-  step: ConversationStep,
-  answerLines: string[],
-  responseLines: string[],
-  next: ConversationStep,
-) {
+/** Reactions stay rare: capped per conversation and never on two answers in a row. */
+function canAcknowledge(step: ConversationStep): boolean {
+  const reactions = messages.value.filter((message) => message.type === 'sommelier' && message.acknowledgement)
+  if (reactions.length >= MAX_ACKNOWLEDGEMENTS) {
+    return false
+  }
+  const questionIndex = messages.value.findIndex(
+    (message) => message.type === 'sommelier' && message.question === step,
+  )
+  const previous = messages.value[questionIndex - 1]
+  return !(previous?.type === 'sommelier' && previous.acknowledgement)
+}
+
+/**
+ * User message → thinking → either the next question takes the thinking
+ * state's place, or a short reaction does and the question follows.
+ */
+async function sendAnswer(step: ConversationStep, answerLines: string[]) {
   const token = await beginTurn()
   if (token === null) {
     return
   }
+  const next = (step + 1) as ConversationStep
+  const reaction = canAcknowledge(step) ? getAcknowledgement(step, draft.value) : null
   addMessage({ type: 'user', step, lines: answerLines })
-  const thought = await thinkWhile(step, token, Promise.resolve())
+  const thought = await thinkWhile(step, token, Promise.resolve(), reaction ?? SOMMELIER_QUESTIONS[next].title)
   if (!thought) {
     return
   }
-  replaceMessage(thought.id, { type: 'sommelier', lines: responseLines })
-  await askQuestion(next, token)
+  if (reaction) {
+    replaceMessage(thought.id, { type: 'sommelier', lines: [reaction], acknowledgement: true })
+    await askQuestion(next, token)
+    return
+  }
+  activeStep.value = next
+  replaceMessage(thought.id, { type: 'sommelier', lines: [], question: next, anchor: true })
+  await showReply('answering', token)
 }
 
-function onAnswerTaste() {
-  if (phase.value !== 'answering') {
-    return
+function describeAnswer(): string[] | null {
+  const kind = activeKind.value
+  const { taste, style, budget } = draft.value
+  switch (kind.type) {
+    case 'pickTaste':
+      return canContinue.value ? describeTastePicks(activePicks.value) : null
+    case 'rateTaste':
+      return describeTasteRatings(taste, activePicks.value)
+    case 'style':
+      return describeStyleAnswer(style, kind.key)
+    case 'budget':
+      return describeBudgetAnswer(budget)
+    default:
+      return null
   }
-  if (!canContinueTaste.value) {
-    errors.value = { taste: '請至少選擇一種風味' }
-    return
-  }
-  errors.value = {}
-  const taste = TASTE_CHOICES.filter((tag) => draft.value.taste.includes(tag))
-  void sendAnswer(1, describeTasteAnswer(taste), respondToTaste(taste), 2)
-}
-
-function onAnswerIntensity() {
-  if (phase.value !== 'answering') {
-    return
-  }
-  const { peaty, smoky } = draft.value
-  void sendAnswer(2, describeIntensityAnswer(peaty, smoky), respondToIntensity(peaty, smoky), 3)
-}
-
-function onAnswerBudget() {
-  if (phase.value !== 'answering') {
-    return
-  }
-  const { budget } = draft.value
-  void sendAnswer(3, describeBudgetAnswer(budget), respondToBudget(budget), 4)
 }
 
 function onContinue() {
-  if (activeStep.value === 1) {
-    onAnswerTaste()
-  } else if (activeStep.value === 2) {
-    onAnswerIntensity()
-  } else {
-    onAnswerBudget()
+  if (phase.value !== 'answering') {
+    return
+  }
+  const answer = describeAnswer()
+  if (!answer) {
+    return
+  }
+  errors.value = {}
+  void sendAnswer(activeStep.value, answer)
+}
+
+function onToggleTaste(key: TasteKey) {
+  draft.value.taste = toggleTastePick(draft.value.taste, activeTasteGroup.value, key)
+  if (errors.value.taste) {
+    errors.value = {}
   }
 }
 
@@ -427,9 +464,9 @@ async function onAnswerFreeText(includeFreeText: boolean) {
   if (token === null) {
     return
   }
-  addMessage({ type: 'user', step: 4, lines: describeFreeTextAnswer(input.freeText) })
+  addMessage({ type: 'user', step: FREE_TEXT_STEP, lines: describeFreeTextAnswer(input.freeText) })
   submittedInput.value = input
-  await deliverPreference(4, input, token)
+  await deliverPreference(FREE_TEXT_STEP, input, token)
 }
 
 async function requestPreference(input: SommelierInput): Promise<PreferenceOutcome> {
@@ -443,7 +480,7 @@ async function requestPreference(input: SommelierInput): Promise<PreferenceOutco
   }
 }
 
-/** Calls Step 2 while the Sommelier is thinking, then closes with a summary or an error. */
+/** Calls the Preference API while the Sommelier is thinking, then closes with a summary or an error. */
 async function deliverPreference(moment: ThinkingMoment, input: SommelierInput, token: number) {
   const thought = await thinkWhile(moment, token, requestPreference(input))
   if (!thought) {
@@ -521,14 +558,6 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   focusReplyOnEnter = true
   phase.value = 'answering'
   void revealLatest()
-}
-
-function toggleTaste(tag: FlavorTag) {
-  const taste = draft.value.taste
-  draft.value.taste = taste.includes(tag) ? taste.filter((item) => item !== tag) : [...taste, tag]
-  if (errors.value.taste && draft.value.taste.length > 0) {
-    errors.value = {}
-  }
 }
 </script>
 
@@ -661,57 +690,79 @@ function toggleTaste(tag: FlavorTag) {
           :aria-label="replyLabel"
         >
           <template v-if="phase === 'answering'">
-            <div v-if="activeStep === 1">
-              <div
-                class="chip-list"
-                role="group"
-                aria-label="想喝到的風味"
-                :aria-describedby="errors.taste ? 'taste-error' : undefined"
-              >
+            <div v-if="activeKind.type === 'pickTaste'">
+              <div class="chip-list" role="group" :aria-label="SOMMELIER_QUESTIONS[activeStep].title">
                 <button
-                  v-for="tag in TASTE_CHOICES"
-                  :key="tag"
+                  v-for="key in activeTasteGroup"
+                  :key="key"
                   type="button"
                   class="chip"
-                  :class="{ 'is-selected': draft.taste.includes(tag) }"
-                  :aria-pressed="draft.taste.includes(tag)"
-                  @click="toggleTaste(tag)"
+                  :class="{ 'is-selected': draft.taste[key] !== undefined }"
+                  :aria-pressed="draft.taste[key] !== undefined"
+                  :disabled="draft.taste[key] === undefined && activePicks.length >= TASTE_PICKS_PER_GROUP"
+                  @click="onToggleTaste(key)"
                 >
-                  {{ FLAVOR_TAG_LABELS[tag] }}
+                  {{ TASTE_LABELS[key] }}
                 </button>
               </div>
-              <p v-if="errors.taste" id="taste-error" class="field-error" role="alert">
-                {{ errors.taste }}
-              </p>
+              <p class="pick-count" aria-live="polite">已選 {{ activePicks.length }} / {{ TASTE_PICKS_PER_GROUP }}</p>
+              <p v-if="errors.taste" class="field-error" role="alert">{{ errors.taste }}</p>
             </div>
 
-            <div v-else-if="activeStep === 2" class="slider-stack">
-              <div v-for="slider in INTENSITY_SLIDERS" :key="slider.key">
+            <div v-else-if="activeKind.type === 'rateTaste'" class="slider-stack">
+              <div v-for="key in activePicks" :key="key">
                 <div class="slider-head">
-                  <label :for="`intensity-${slider.key}`" class="slider-label">{{ slider.label }}</label>
-                  <output :for="`intensity-${slider.key}`" class="slider-value">
-                    {{ draft[slider.key] }}
+                  <label :for="`taste-${key}`" class="slider-label">{{ TASTE_LABELS[key] }}</label>
+                  <output :for="`taste-${key}`" class="slider-value">
+                    <span class="slider-word">{{ describeTasteRating(draft.taste[key] ?? RATING_DEFAULT) }}</span>
+                    {{ draft.taste[key] }}
                   </output>
                 </div>
                 <input
-                  :id="`intensity-${slider.key}`"
-                  v-model.number="draft[slider.key]"
+                  :id="`taste-${key}`"
+                  v-model.number="draft.taste[key]"
                   class="range"
                   type="range"
-                  :min="INTENSITY_MIN"
-                  :max="INTENSITY_MAX"
+                  :min="RATING_MIN"
+                  :max="RATING_MAX"
                   step="1"
-                  :style="{ '--fill': fillPercent(draft[slider.key], INTENSITY_MIN, INTENSITY_MAX) }"
+                  :aria-valuetext="`${draft.taste[key]} ${describeTasteRating(draft.taste[key] ?? RATING_DEFAULT)}`"
+                  :style="{ '--fill': fillPercent(draft.taste[key] ?? RATING_DEFAULT, RATING_MIN, RATING_MAX) }"
                 />
                 <div class="slider-hints" aria-hidden="true">
-                  <span>幾乎沒有</span>
-                  <span>濃郁</span>
+                  <span>{{ RATING_MIN }}</span>
+                  <span>{{ RATING_MAX }}</span>
                 </div>
               </div>
-              <p v-if="errors.intensity" class="field-error" role="alert">{{ errors.intensity }}</p>
             </div>
 
-            <div v-else-if="activeStep === 3">
+            <div v-else-if="activeStyleKey">
+              <div class="slider-head">
+                <label for="style-rating" class="slider-label">{{ STYLE_LABELS[activeStyleKey] }}</label>
+                <output for="style-rating" class="slider-value">
+                  <span class="slider-word">{{ describeStyleRating(activeStyleKey, draft.style[activeStyleKey]) }}</span>
+                  {{ draft.style[activeStyleKey] }}
+                </output>
+              </div>
+              <input
+                id="style-rating"
+                v-model.number="draft.style[activeStyleKey]"
+                class="range"
+                type="range"
+                :min="RATING_MIN"
+                :max="RATING_MAX"
+                step="1"
+                :aria-valuetext="`${draft.style[activeStyleKey]} ${describeStyleRating(activeStyleKey, draft.style[activeStyleKey])}`"
+                :style="{ '--fill': fillPercent(draft.style[activeStyleKey], RATING_MIN, RATING_MAX) }"
+              />
+              <div class="slider-hints" aria-hidden="true">
+                <span>{{ RATING_MIN }} {{ STYLE_SCALE_HINTS[activeStyleKey].min }}</span>
+                <span>{{ RATING_MAX }} {{ STYLE_SCALE_HINTS[activeStyleKey].max }}</span>
+              </div>
+              <p v-if="errors.style" class="field-error" role="alert">{{ errors.style }}</p>
+            </div>
+
+            <div v-else-if="activeKind.type === 'budget'">
               <label for="budget" class="budget-display">
                 <span class="budget-currency">NT$</span>
                 <span class="budget-amount">{{ formatAmount(draft.budget) }}</span>
@@ -753,7 +804,7 @@ function toggleTaste(tag: FlavorTag) {
             </div>
 
             <div class="reply-actions">
-              <template v-if="activeStep === 4">
+              <template v-if="activeKind.type === 'freeText'">
                 <Button
                   type="button"
                   label="跳過"
@@ -778,7 +829,7 @@ function toggleTaste(tag: FlavorTag) {
                 icon="pi pi-arrow-right"
                 icon-pos="right"
                 class="primary-btn"
-                :disabled="activeStep === 1 && !canContinueTaste"
+                :disabled="!canContinue"
                 @click="onContinue"
               />
             </div>
@@ -802,7 +853,7 @@ function toggleTaste(tag: FlavorTag) {
               severity="secondary"
               text
               class="quiet-btn"
-              @click="rewindTo(4)"
+              @click="rewindTo(FREE_TEXT_STEP)"
             />
             <Button
               type="button"
@@ -822,7 +873,7 @@ function toggleTaste(tag: FlavorTag) {
               severity="secondary"
               text
               class="quiet-btn"
-              @click="rewindTo(4)"
+              @click="rewindTo(FREE_TEXT_STEP)"
             />
           </div>
         </div>
@@ -1357,10 +1408,11 @@ function toggleTaste(tag: FlavorTag) {
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
-.chip:hover {
+.chip:not(:disabled):hover {
   border-color: var(--wh-gold);
 }
 
@@ -1373,6 +1425,18 @@ function toggleTaste(tag: FlavorTag) {
   border-color: #b77932;
   background: #f6e7c8;
   color: #6f381c;
+}
+
+.chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pick-count {
+  margin: 0.75rem 0 0;
+  color: var(--wh-muted);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .slider-stack {
@@ -1402,6 +1466,16 @@ function toggleTaste(tag: FlavorTag) {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
+}
+
+.slider-word {
+  margin-right: 0.5rem;
+  color: #8f5a22;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .range {
@@ -1630,10 +1704,10 @@ function toggleTaste(tag: FlavorTag) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chip,
   .progress-line span,
   .modify-link,
   .reply,
+  .chip,
   .range::-webkit-slider-thumb {
     transition: none;
   }

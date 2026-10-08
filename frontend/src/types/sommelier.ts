@@ -1,56 +1,52 @@
-/** Flavor tags shared by Step 1 `taste` and `dislikes` (WHISKYHELLO_AI_SOMMELIER_SPEC.md §2.1). */
-export type FlavorTag =
+/** Taste dimensions; the user picks 3 of each group of six and rates them 1–10. */
+export type TasteKey =
   | 'sweet'
-  | 'fruity'
+  | 'fruit'
+  | 'driedFruit'
+  | 'citrus'
   | 'floral'
-  | 'vanilla'
-  | 'woody'
-  | 'spicy'
-  | 'smoky'
-  | 'peaty'
-  | 'maritime'
+  | 'vanillaCaramel'
+  | 'nutty'
+  | 'chocolateCoffee'
+  | 'spice'
+  | 'oak'
+  | 'peat'
+  | 'smoke'
 
-/** Step 1 occasions (§2.2). `date` is extraction-only in Step 2 and not offered here. */
-export type SommelierOccasion =
-  | 'relaxing'
-  | 'social'
-  | 'meal'
-  | 'gift'
-  | 'beginner'
-  | 'premium'
+/** Drinking-style dimensions, each asked and rated 1–10 on its own. */
+export type StyleKey = 'body' | 'intensity' | 'smoothness'
+
+/**
+ * Only the picked tastes, rated 1 = 幾乎不喜歡 … 10 = 非常喜歡 (integers).
+ * A missing key means "not provided": it is never a low (1) or neutral (5) rating.
+ */
+export type TasteProfile = Partial<Record<TasteKey, number>>
+
+/** body 1 輕盈–10 厚重, intensity 1 柔和–10 強烈, smoothness 1 粗獷–10 圓潤; always an integer. */
+export type StyleProfile = Record<StyleKey, number>
 
 export interface SommelierBudget {
   min?: number
   max?: number
 }
 
-/** Peat and smoke intensity on a 0–100 scale (§2.5), as returned in a Preference. */
-export interface SommelierIntensity {
-  peaty?: number
-  smoky?: number
-}
-
-/** Normalized Step 1 output (§3.1); the input for Step 2 Preference Extraction. */
+/** Validated conversation output; the body of POST /api/v1/sommelier/preference. */
 export interface SommelierInput {
-  taste: FlavorTag[]
-  intensity: {
-    peaty: number
-    smoky: number
-  }
+  taste: TasteProfile
+  style: StyleProfile
   budget?: Pick<SommelierBudget, 'max'>
   freeText?: string
 }
 
-/** Raw values from the conversational Step 1 (§2.6) before validation and normalization. */
+/** Raw values from the conversation; a taste key is present once picked and starts at 5. */
 export interface SommelierInputDraft {
-  taste: readonly string[]
-  peaty: number
-  smoky: number
+  taste: TasteProfile
+  style: StyleProfile
   budget: number
   freeText: string
 }
 
-export type SommelierInputField = 'taste' | 'intensity' | 'budget' | 'freeText'
+export type SommelierInputField = 'taste' | 'style' | 'budget' | 'freeText'
 
 export type SommelierInputErrors = Partial<Record<SommelierInputField, string>>
 
@@ -58,25 +54,24 @@ export type SommelierInputResult =
   | { ok: true; value: SommelierInput }
   | { ok: false; errors: SommelierInputErrors }
 
-export type TasteLevel = 'low' | 'medium' | 'high'
-
-/** Step 2 occasions (§4.4): Step 1 occasions plus `date`, which only comes from freeText. */
-export type PreferenceOccasion = SommelierOccasion | 'date'
+/** Context the backend extracts from freeText. */
+export type PreferenceOccasion =
+  | 'relaxing'
+  | 'social'
+  | 'meal'
+  | 'gift'
+  | 'beginner'
+  | 'premium'
+  | 'date'
 
 export type SommelierMood = 'positive' | 'neutral' | 'low' | 'stressed'
 
 export type SommelierCompanion = 'alone' | 'friend' | 'date' | 'partner' | 'family'
 
-export interface PreferenceTaste {
-  tag: FlavorTag
-  level: TasteLevel
-}
-
-/** Step 2 output from POST /api/v1/sommelier/preference (§4.9). */
+/** Output of POST /api/v1/sommelier/preference: ratings as entered, plus budget and context. */
 export interface Preference {
-  taste: PreferenceTaste[]
-  dislikes: FlavorTag[]
-  intensity?: SommelierIntensity
+  taste: TasteProfile
+  style: StyleProfile
   budget?: SommelierBudget
   occasion?: PreferenceOccasion
   mood?: SommelierMood

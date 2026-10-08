@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
 import WhiskyCard from '../components/WhiskyCard.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import type { Whisky } from '../types/whisky'
@@ -11,10 +10,7 @@ import {
   searchWhiskies,
 } from '../services/whiskyService'
 
-/** Score defaults preserve legacy search behavior; query starts empty like homepage. */
 const searchQuery = ref('')
-const searchPoints = ref<number | null>(80)
-const pointGreaterThan = ref(true)
 
 const displayList = ref<Whisky[]>(getRandomWhiskies(10))
 const isSearch = ref(false)
@@ -23,31 +19,13 @@ const warningMessage = ref('')
 const hotSearches = ['Macallan12', 'Ardbeg10', 'Lagavulin16', 'Talisker18'] as const
 
 const matchedNumber = computed(() => displayList.value.length)
-const compareOperator = computed(() => (pointGreaterThan.value ? '≥' : '='))
-
-const searchSummary = computed(() => {
-  const parts: string[] = []
-  const query = searchQuery.value.trim()
-  if (query) parts.push(query)
-  if (searchPoints.value !== null && searchPoints.value !== undefined) {
-    parts.push(`${compareOperator.value} ${searchPoints.value}`)
-  }
-  return parts.join(' · ')
-})
-
-function toggleCompareOperator() {
-  pointGreaterThan.value = !pointGreaterThan.value
-}
+const searchSummary = computed(() => searchQuery.value.trim())
 
 function onSearch() {
-  const result = searchWhiskies({
-    query: searchQuery.value,
-    points: searchPoints.value,
-    pointGreaterThan: pointGreaterThan.value,
-  })
+  const result = searchWhiskies({ query: searchQuery.value })
 
   if (result.status === 'too_short') {
-    warningMessage.value = 'can not search less than three letter '
+    warningMessage.value = '請至少輸入三個字再搜尋'
     displayList.value = []
     return
   }
@@ -71,7 +49,7 @@ function applyHotSearch(term: string) {
         <header class="page-header">
           <p class="eyebrow">Whisky Discovery</p>
           <h1 id="whisky-discovery-title">探索威士忌</h1>
-          <p class="lead">找到你想喝的那一杯</p>
+          <p class="lead">找酒、看評分與評論，慢慢了解自己喜歡什麼。</p>
         </header>
       </div>
     </section>
@@ -99,32 +77,6 @@ function applyHotSearch(term: string) {
         </div>
       </div>
 
-      <div class="search-secondary">
-        <span class="field-label">最低分數</span>
-        <div class="score-row">
-          <Button
-            type="button"
-            class="compare-btn"
-            :label="compareOperator"
-            severity="secondary"
-            outlined
-            :aria-label="
-              pointGreaterThan
-                ? '大於等於，點擊改為剛好等於'
-                : '剛好等於，點擊改為大於等於'
-            "
-            @click="toggleCompareOperator"
-          />
-          <InputNumber
-            v-model="searchPoints"
-            input-id="whisky-search-points"
-            class="points-input"
-            :min="0"
-            :max="100"
-          />
-        </div>
-      </div>
-
       <div class="hot-searches" aria-label="熱門搜尋">
         <span class="hot-label">熱門搜尋</span>
         <div class="hot-list">
@@ -142,7 +94,7 @@ function applyHotSearch(term: string) {
     </section>
 
     <p v-if="warningMessage" class="warning" role="alert">
-      {{ warningMessage }} / 請搜尋至少三個字
+      {{ warningMessage }}
     </p>
 
     <section v-if="!isSearch" class="results-section">
@@ -177,7 +129,7 @@ function applyHotSearch(term: string) {
           :whisky="item"
         />
       </div>
-      <p v-else class="empty">沒有符合的酒款，請試試其他名稱或分數條件。</p>
+      <p v-else class="empty">沒有符合的酒款，請試試其他酒款名稱。</p>
     </section>
     </div>
 
@@ -311,27 +263,22 @@ function applyHotSearch(term: string) {
   min-width: 0;
 }
 
-/* InputText renders the <input> itself; InputNumber wraps an inner .p-inputnumber-input. */
-.search-input.p-inputtext,
-.points-input :deep(.p-inputnumber-input) {
+.search-input.p-inputtext {
   background: #fff;
   color: var(--wh-ink);
   border-color: var(--p-inputtext-border-color);
 }
 
-.search-input.p-inputtext::placeholder,
-.points-input :deep(.p-inputnumber-input::placeholder) {
+.search-input.p-inputtext::placeholder {
   color: var(--wh-muted);
   opacity: 1;
 }
 
-.search-input.p-inputtext:enabled:hover,
-.points-input :deep(.p-inputnumber-input:enabled:hover) {
+.search-input.p-inputtext:enabled:hover {
   border-color: var(--p-inputtext-hover-border-color);
 }
 
-.search-input.p-inputtext:enabled:focus,
-.points-input :deep(.p-inputnumber-input:enabled:focus) {
+.search-input.p-inputtext:enabled:focus {
   border-color: var(--p-inputtext-focus-border-color);
 }
 
@@ -359,28 +306,6 @@ function applyHotSearch(term: string) {
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
     0 0 0 1px rgba(253, 230, 138, 0.3),
     0 10px 22px rgba(180, 83, 9, 0.22) !important;
-}
-
-.search-secondary {
-  max-width: 22rem;
-}
-
-.score-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  align-items: center;
-}
-
-.points-input,
-:deep(.p-inputnumber) {
-  width: 7.5rem;
-  flex: 0 0 auto;
-}
-
-.compare-btn {
-  min-width: 3rem;
-  flex-shrink: 0;
 }
 
 .hot-searches {
@@ -595,46 +520,6 @@ function applyHotSearch(term: string) {
     min-width: 2.75rem;
     min-height: 2.75rem;
     padding: 0 0.85rem !important;
-  }
-
-  /* Inline: 最低分數  [ ≥ ] [ 80 ] */
-  .search-secondary {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.65rem;
-    max-width: none;
-  }
-
-  .search-secondary > .field-label {
-    margin-bottom: 0;
-    flex: 0 0 auto;
-  }
-
-  .score-row {
-    flex: 1 1 auto;
-    flex-wrap: nowrap;
-    gap: 0.45rem;
-    min-width: 0;
-  }
-
-  .compare-btn {
-    min-width: 2.75rem;
-    min-height: 2.5rem;
-    padding: 0 0.55rem !important;
-  }
-
-  .points-input,
-  :deep(.p-inputnumber) {
-    width: 5.5rem;
-  }
-
-  .points-input :deep(.p-inputnumber-input),
-  :deep(.p-inputnumber .p-inputnumber-input) {
-    min-height: 2.5rem;
-    height: 2.5rem;
-    width: 100%;
   }
 
   .hot-searches {

@@ -26,12 +26,8 @@ export interface RawWhisky {
 }
 
 export interface WhiskySearchParams {
-  /** Free-text query (legacy: searchContext). Space-split into title / subtitle tokens. */
+  /** Free-text query matched against whisky.name. */
   query: string
-  /** Score threshold (legacy: searchPoints). Falsy (including 0) skips score filter. */
-  points?: number | string | null
-  /** When true, match points >= threshold; otherwise exact == (legacy pointGreaterThan). */
-  pointGreaterThan?: boolean
 }
 
 export type WhiskySearchResult =

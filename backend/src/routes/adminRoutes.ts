@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { listUsers } from '../controllers/adminController'
+import { listReviews, listUsers } from '../controllers/adminController'
 import {
   cancel,
   create,
@@ -21,6 +21,8 @@ import {
 const router = Router()
 
 router.get('/users', authenticate, requireAdmin, listUsers)
+
+router.get('/reviews', authenticate, requireAdmin, listReviews)
 
 router.get('/auctions', authenticate, requireAdmin, list)
 

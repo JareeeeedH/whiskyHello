@@ -13,3 +13,16 @@ export async function listUsers(
     next(error)
   }
 }
+
+export async function listReviews(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const reviews = await adminService.listReviewsForAdmin()
+    res.status(200).json({ reviews })
+  } catch (error) {
+    next(error)
+  }
+}

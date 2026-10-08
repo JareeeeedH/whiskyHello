@@ -233,6 +233,41 @@ describe('Admin RBAC', () => {
     }
   })
 
+  it('GET /api/v1/admin/reviews → 401 unauthenticated, 403 for normal user', async () => {
+    const unauth = await fetch(`${baseUrl}/api/v1/admin/reviews`)
+    assert.equal(unauth.status, 401)
+
+    const user = await User.create({
+      name: 'Normal Reviewer',
+      email: `qa-admin-reviews-${Date.now()}@example.com`,
+      passwordHash: await hashPassword('password12345'),
+      role: 'user',
+    })
+    createdUserIds.push(user.id)
+
+    const res = await fetch(`${baseUrl}/api/v1/admin/reviews`, {
+      headers: { Authorization: `Bearer ${signAccessToken({ userId: user.id })}` },
+    })
+    assert.equal(res.status, 403)
+  })
+
+  it('GET /api/v1/admin/reviews → 200 for admin', async () => {
+    const admin = await User.create({
+      name: 'Review Admin',
+      email: `qa-admin-reviews-ok-${Date.now()}@example.com`,
+      passwordHash: await hashPassword('password12345'),
+      role: 'admin',
+    })
+    createdUserIds.push(admin.id)
+
+    const res = await fetch(`${baseUrl}/api/v1/admin/reviews`, {
+      headers: { Authorization: `Bearer ${signAccessToken({ userId: admin.id })}` },
+    })
+    assert.equal(res.status, 200)
+    const body = (await res.json()) as { reviews: unknown[] }
+    assert.ok(Array.isArray(body.reviews))
+  })
+
   it('JWT with invalid secret cannot access admin users', async () => {
     const fake = jwt.sign({ userId: '000000000000000000000000' }, 'wrong-secret')
     const res = await fetch(`${baseUrl}/api/v1/admin/users`, {

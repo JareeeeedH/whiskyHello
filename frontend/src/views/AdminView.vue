@@ -12,6 +12,10 @@ function goUsers() {
 function goAuctions() {
   void router.push('/admin/auctions')
 }
+
+function goReviews() {
+  void router.push('/admin/reviews')
+}
 </script>
 
 <template>
@@ -52,6 +56,23 @@ function goAuctions() {
             label="Open"
             severity="secondary"
             @click="goAuctions"
+          />
+        </template>
+      </Card>
+
+      <Card class="feature-card" :pt="{ body: { class: 'feature-body' } }">
+        <template #title>Review Management</template>
+        <template #subtitle>View all reviews</template>
+        <template #content>
+          <p class="feature-copy">
+            Browse every review with whisky, author, rating, and date.
+          </p>
+        </template>
+        <template #footer>
+          <Button
+            label="Open"
+            severity="secondary"
+            @click="goReviews"
           />
         </template>
       </Card>

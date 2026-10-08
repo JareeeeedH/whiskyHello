@@ -6,23 +6,24 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
 <template>
   <footer class="site-footer">
     <div class="footer-inner">
-      <div class="footer-main">
+      <div class="footer-grid">
         <div class="footer-brand">
           <p class="footer-name">WhiskyHello</p>
           <p class="footer-tagline">From one dram to the next.</p>
         </div>
-        <div class="footer-contact">
+        <nav class="footer-col" aria-label="法律資訊">
+          <p class="footer-label">LEGAL</p>
+          <RouterLink class="footer-link" to="/privacy">隱私權政策</RouterLink>
+          <RouterLink class="footer-link" to="/terms">使用條款</RouterLink>
+        </nav>
+        <div class="footer-col">
           <p class="footer-label">GET IN TOUCH</p>
-          <a class="footer-email" :href="`mailto:${contactEmail}`">{{ contactEmail }}</a>
+          <a class="footer-link footer-email" :href="`mailto:${contactEmail}`">{{ contactEmail }}</a>
         </div>
       </div>
-      <p class="footer-warning">禁止酒駕｜飲酒過量，有害健康｜未滿十八歲禁止飲酒</p>
       <div class="footer-bottom">
+        <p class="footer-warning">禁止酒駕｜飲酒過量，有害健康｜未滿十八歲禁止飲酒</p>
         <p class="footer-legal">© 2026 WhiskyHello</p>
-        <nav class="footer-links" aria-label="法律資訊">
-          <RouterLink to="/privacy">隱私權政策</RouterLink>
-          <RouterLink to="/terms">使用條款</RouterLink>
-        </nav>
       </div>
     </div>
   </footer>
@@ -30,9 +31,10 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
 
 <style scoped>
 .site-footer {
-  padding: 1.75rem 1.5rem 1.1rem;
-  background: #161311;
-  color: var(--wh-paper);
+  padding: 3rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--wh-night-line);
+  background: var(--wh-night);
+  color: var(--wh-cream);
 }
 
 .footer-inner {
@@ -41,33 +43,27 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
   margin: 0 auto;
 }
 
-.footer-main {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.25rem 2rem;
-  padding-bottom: 1.1rem;
-  border-bottom: 1px solid rgba(250, 250, 249, 0.08);
+.footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem 3rem;
+  padding-bottom: 2.25rem;
 }
 
 .footer-brand,
-.footer-contact {
+.footer-col {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: flex-start;
+  gap: 0.45rem;
   min-width: 0;
-}
-
-.footer-contact {
-  align-items: flex-end;
-  text-align: right;
 }
 
 .footer-name {
   margin: 0;
-  color: var(--wh-paper);
+  color: var(--wh-cream);
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: 0.01em;
@@ -75,22 +71,22 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
 
 .footer-tagline {
   margin: 0;
-  color: var(--wh-faint);
+  color: var(--wh-mauve);
   font-size: 0.8125rem;
   line-height: 1.5;
 }
 
 .footer-label {
-  margin: 0;
+  margin: 0 0 0.2rem;
   color: var(--wh-gold);
   font-size: var(--fs-eyebrow);
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   line-height: 1.6;
 }
 
-.footer-email {
-  color: #e7e5e4;
+.footer-link {
+  color: var(--wh-cream);
   font-size: 0.875rem;
   line-height: 1.5;
   text-decoration: none;
@@ -98,23 +94,14 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
   transition: color 0.2s ease;
 }
 
-.footer-email:hover {
-  color: #e0a84a;
+.footer-link:hover {
+  color: var(--wh-gold-bright);
 }
 
-.footer-email:focus-visible {
-  outline: 2px solid #e0a84a;
+.footer-link:focus-visible {
+  outline: 2px solid var(--wh-gold);
   outline-offset: 3px;
   border-radius: 2px;
-}
-
-.footer-warning {
-  margin: 0;
-  padding-top: 0.85rem;
-  color: #d6d3d1;
-  font-size: 0.8125rem;
-  letter-spacing: 0.04em;
-  line-height: 1.6;
 }
 
 .footer-bottom {
@@ -122,67 +109,49 @@ import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.35rem 1.25rem;
-  padding-top: 0.5rem;
+  gap: 0.4rem 1.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--wh-night-line);
+}
+
+.footer-warning {
+  margin: 0;
+  color: #d8cfc4;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
 }
 
 .footer-legal {
   margin: 0;
-  color: var(--wh-muted);
+  color: var(--wh-mauve);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   line-height: 1.5;
-}
-
-.footer-links {
-  display: flex;
-  gap: 1.25rem;
-}
-
-.footer-links a {
-  color: var(--wh-muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.footer-links a:hover {
-  color: #e0a84a;
-}
-
-.footer-links a:focus-visible {
-  outline: 2px solid #e0a84a;
-  outline-offset: 3px;
-  border-radius: 2px;
 }
 
 @media (max-width: 640px) {
   .site-footer {
-    padding: 1.6rem 1rem 1rem;
+    padding: 2.25rem 1rem 1rem;
   }
 
-  .footer-main {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem 1.25rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+
+  .footer-bottom {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1.1rem;
-    padding-bottom: 1rem;
-  }
-
-  .footer-contact {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .footer-warning {
-    padding-top: 0.75rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .footer-email,
-  .footer-links a {
+  .footer-link {
     transition: none;
   }
 }

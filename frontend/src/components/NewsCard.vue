@@ -59,31 +59,39 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   min-width: 0;
   color: inherit;
   text-decoration: none;
-  border: 1px solid #e7e5e4;
-  background: #fff;
+  border: 1px solid var(--wh-night-line);
+  background: transparent;
   overflow: hidden;
-  transition:
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+  transition: border-color 0.25s ease;
 }
 
 .news-card:hover {
-  border-color: #d6d3d1;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(28, 25, 23, 0.06);
+  border-color: rgba(220, 184, 120, 0.4);
 }
 
 .news-card:focus-visible {
-  outline: 2px solid #b45309;
+  outline: 2px solid var(--wh-gold);
   outline-offset: 2px;
 }
 
 .media {
   position: relative;
   aspect-ratio: 16 / 10;
-  background: #f5f5f4;
+  background: #1d171d;
   overflow: hidden;
+}
+
+.media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(17, 13, 17, 0.28) 0%, rgba(17, 13, 17, 0.72) 100%);
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.news-card:hover .media::after {
+  opacity: 0.6;
 }
 
 .featured .media {
@@ -103,20 +111,20 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: #a8a29e;
+  color: var(--wh-mauve);
   font-size: 0.8125rem;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.9rem 1rem 1.05rem;
+  gap: 0.5rem;
+  padding: 1rem 1.1rem 1.15rem;
   flex: 1;
 }
 
 .featured .body {
-  padding: 1.05rem 1.15rem 1.2rem;
+  padding: 1.25rem 1.35rem 1.4rem;
 }
 
 .meta {
@@ -131,9 +139,9 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #b45309;
+  color: var(--wh-gold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -144,9 +152,9 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   font-family: var(--font-body);
   font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #a8a29e;
+  color: var(--wh-mauve);
 }
 
 .title {
@@ -154,9 +162,9 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: normal;
-  color: #1c1917;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: var(--wh-cream);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -165,7 +173,7 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 }
 
 .featured .title {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   -webkit-line-clamp: 3;
   line-clamp: 3;
 }
@@ -175,6 +183,30 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 400;
-  color: #78716c;
+  color: var(--wh-mauve);
+}
+
+@media (min-width: 801px) {
+  .featured .media {
+    flex: 1 1 0;
+    aspect-ratio: auto;
+    min-height: 16rem;
+  }
+
+  .featured .media img {
+    position: absolute;
+    inset: 0;
+  }
+
+  .featured .body {
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-card,
+  .media::after {
+    transition: none;
+  }
 }
 </style>

@@ -39,6 +39,14 @@
   --wh-gold: #c9a46a;
   --wh-amber: #a16207;
 
+  /* Dark brand surfaces (header, home, footer): plum-black, cream text, gold + amber accents */
+  --wh-night: #110d11;
+  --wh-night-raised: #171217;
+  --wh-night-line: rgba(241, 233, 220, 0.1);
+  --wh-cream: #f1e9dc;
+  --wh-mauve: #a99ca6;
+  --wh-gold-bright: #dcb878;
+
   /* Light-only design: keep native form controls light under device dark mode */
   color-scheme: light;
   color: #1f2937;

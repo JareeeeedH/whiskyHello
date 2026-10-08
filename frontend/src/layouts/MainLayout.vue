@@ -341,8 +341,8 @@ function onLogout() {
 }
 
 .site-header {
-  border-bottom: 1px solid var(--wh-line);
-  background: #fff;
+  border-bottom: 1px solid var(--wh-night-line);
+  background: var(--wh-night);
 }
 
 .site-header-inner {
@@ -364,7 +364,7 @@ function onLogout() {
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.975rem;
-  color: var(--wh-ink);
+  color: var(--wh-cream);
   text-decoration: none;
   min-width: 0;
 }
@@ -383,7 +383,7 @@ function onLogout() {
 }
 
 .brand:focus-visible {
-  outline: 2px solid #b45309;
+  outline: 2px solid var(--wh-gold);
   outline-offset: 4px;
   border-radius: 2px;
 }
@@ -408,7 +408,7 @@ function onLogout() {
 .nav-account {
   gap: 1.15rem;
   padding-left: 1.75rem;
-  border-left: 1px solid var(--wh-line);
+  border-left: 1px solid var(--wh-night-line);
 }
 
 .nav a,
@@ -417,10 +417,11 @@ function onLogout() {
   padding: 0.3rem 0;
   border: none;
   background: none;
-  color: var(--wh-muted);
+  color: var(--wh-mauve);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
+  letter-spacing: 0.08em;
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s ease;
@@ -428,21 +429,21 @@ function onLogout() {
 
 .nav a:hover,
 .nav-logout:hover {
-  color: var(--wh-ink);
+  color: var(--wh-cream);
 }
 
 .nav a.is-active {
-  color: var(--wh-ink);
+  color: var(--wh-cream);
   font-weight: 500;
 }
 
 .nav a.nav-feature {
-  color: var(--wh-ink-soft);
+  color: var(--wh-cream);
   font-weight: 500;
 }
 
 .nav a.nav-feature.is-active {
-  color: var(--wh-amber);
+  color: var(--wh-gold-bright);
 }
 
 .nav-primary a.is-active::after {
@@ -452,7 +453,7 @@ function onLogout() {
   left: 0;
   height: 1px;
   content: '';
-  background: var(--wh-ink);
+  background: var(--wh-cream);
 }
 
 .nav-primary a.nav-feature.is-active::after {
@@ -461,22 +462,19 @@ function onLogout() {
 
 .nav-account a,
 .nav-logout {
-  color: var(--wh-faint);
-  font-size: 0.8125rem;
+  color: var(--wh-mauve);
+  font-size: 0.75rem;
 }
 
 .nav-account a:hover,
-.nav-logout:hover {
-  color: var(--wh-ink-soft);
-}
-
+.nav-logout:hover,
 .nav-account a.is-active {
-  color: var(--wh-ink-soft);
+  color: var(--wh-cream);
 }
 
 .nav a:focus-visible,
 .nav-logout:focus-visible {
-  outline: 2px solid #b45309;
+  outline: 2px solid var(--wh-gold);
   outline-offset: 3px;
   border-radius: 2px;
 }
@@ -507,19 +505,19 @@ function onLogout() {
   margin: -0.35rem -0.35rem -0.35rem 0;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 0.35rem;
+  border-radius: 0.2rem;
   background: transparent;
-  color: #1c1917;
+  color: var(--wh-cream);
   cursor: pointer;
 }
 
 .nav-toggle:hover {
-  border-color: #e7e5e4;
-  background: #fafaf9;
+  border-color: var(--wh-night-line);
+  background: rgba(241, 233, 220, 0.04);
 }
 
 .nav-toggle:focus-visible {
-  outline: 2px solid #b45309;
+  outline: 2px solid var(--wh-gold);
   outline-offset: 2px;
 }
 
@@ -712,7 +710,7 @@ function onLogout() {
     margin: 0;
     padding: 0;
     border: none;
-    background: rgba(28, 25, 23, 0.38);
+    background: rgba(8, 6, 8, 0.6);
     opacity: 0;
     cursor: pointer;
     transition: opacity 220ms ease;
@@ -732,9 +730,8 @@ function onLogout() {
     height: 100%;
     max-height: 100dvh;
     padding: 4rem 0 1.25rem;
-    border-left: 1px solid #e7e5e4;
-    background: var(--wh-paper);
-    box-shadow: -8px 0 24px rgba(28, 25, 23, 0.08);
+    border-left: 1px solid var(--wh-night-line);
+    background: var(--wh-night-raised);
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -751,9 +748,9 @@ function onLogout() {
     margin: 0 1.15rem 0.65rem;
     font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #a8a29e;
+    color: var(--wh-gold);
   }
 
   .nav-mobile-link {
@@ -762,9 +759,9 @@ function onLogout() {
     margin: 0;
     padding: 0.95rem 1.15rem;
     border: none;
-    border-bottom: 1px solid #e7e5e4;
+    border-bottom: 1px solid var(--wh-night-line);
     background: transparent;
-    color: #1c1917;
+    color: var(--wh-cream);
     font: inherit;
     font-size: 0.98rem;
     letter-spacing: 0.01em;
@@ -779,27 +776,27 @@ function onLogout() {
 
   .nav-mobile-link:hover,
   .nav-mobile-link:focus-visible {
-    color: #b45309;
-    background: rgba(180, 83, 9, 0.04);
+    color: var(--wh-gold-bright);
+    background: rgba(220, 184, 120, 0.05);
   }
 
   .nav-mobile-link.is-active {
-    color: var(--wh-amber);
+    color: var(--wh-gold-bright);
     font-weight: 600;
     box-shadow: inset 2px 0 0 var(--wh-gold);
   }
 
   .nav-mobile-logout {
     margin-top: auto;
-    border-top: 1px solid #e7e5e4;
+    border-top: 1px solid var(--wh-night-line);
     border-bottom: none;
-    color: var(--wh-faint);
+    color: var(--wh-mauve);
     font-size: 0.875rem;
   }
 
   .nav-mobile-logout:hover,
   .nav-mobile-logout:focus-visible {
-    color: var(--wh-ink-soft);
+    color: var(--wh-cream);
     background: transparent;
   }
 }

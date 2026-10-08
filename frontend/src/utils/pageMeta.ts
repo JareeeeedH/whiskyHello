@@ -36,6 +36,16 @@ export const AUCTIONS_META: PageMeta = {
   description: '探索限量、收藏與稀有威士忌競標，掌握出價、價格與結標結果。',
 }
 
+export const PRIVACY_META: PageMeta = {
+  title: '隱私權政策｜WhiskyHello',
+  description: '了解 WhiskyHello 蒐集哪些資料、如何使用，以及如何查詢、更正或刪除你的資料。',
+}
+
+export const TERMS_META: PageMeta = {
+  title: '使用條款｜WhiskyHello',
+  description: '使用 WhiskyHello 的酒款資訊、評論、搜尋與 AI 輔助探索服務前，請先了解相關使用規範。',
+}
+
 /** Shown while an auction is loading, before its own title is known. */
 export const AUCTION_LOADING_META: PageMeta = {
   title: '威士忌競標｜WhiskyHello',

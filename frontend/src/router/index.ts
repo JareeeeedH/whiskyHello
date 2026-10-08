@@ -6,7 +6,9 @@ import {
   AUCTIONS_META,
   HOME_META,
   NOT_FOUND_META,
+  PRIVACY_META,
   SOMMELIER_META,
+  TERMS_META,
   WHISKIES_META,
   privatePageMeta,
   type PageMeta,
@@ -57,6 +59,18 @@ const router = createRouter({
       name: 'sommelier',
       component: () => import('../views/SommelierView.vue'),
       meta: { seo: SOMMELIER_META },
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('../views/PrivacyView.vue'),
+      meta: { seo: PRIVACY_META },
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('../views/TermsView.vue'),
+      meta: { seo: TERMS_META },
     },
     {
       path: '/login',

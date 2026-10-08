@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const contactEmail = 'jared03050@gmail.com'
+import { RouterLink } from 'vue-router'
+import { CONTACT_EMAIL as contactEmail } from '../constants/contact'
 </script>
 
 <template>
@@ -15,7 +16,14 @@ const contactEmail = 'jared03050@gmail.com'
           <a class="footer-email" :href="`mailto:${contactEmail}`">{{ contactEmail }}</a>
         </div>
       </div>
-      <p class="footer-legal">© 2026 WhiskyHello</p>
+      <p class="footer-warning">禁止酒駕｜飲酒過量，有害健康｜未滿十八歲禁止飲酒</p>
+      <div class="footer-bottom">
+        <p class="footer-legal">© 2026 WhiskyHello</p>
+        <nav class="footer-links" aria-label="法律資訊">
+          <RouterLink to="/privacy">隱私權政策</RouterLink>
+          <RouterLink to="/terms">使用條款</RouterLink>
+        </nav>
+      </div>
     </div>
   </footer>
 </template>
@@ -100,13 +108,54 @@ const contactEmail = 'jared03050@gmail.com'
   border-radius: 2px;
 }
 
-.footer-legal {
+.footer-warning {
   margin: 0;
   padding-top: 0.85rem;
+  color: #d6d3d1;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1.25rem;
+  padding-top: 0.5rem;
+}
+
+.footer-legal {
+  margin: 0;
   color: var(--wh-muted);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   line-height: 1.5;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.footer-links a {
+  color: var(--wh-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: #e0a84a;
+}
+
+.footer-links a:focus-visible {
+  outline: 2px solid #e0a84a;
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 @media (max-width: 640px) {
@@ -126,13 +175,14 @@ const contactEmail = 'jared03050@gmail.com'
     text-align: left;
   }
 
-  .footer-legal {
+  .footer-warning {
     padding-top: 0.75rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .footer-email {
+  .footer-email,
+  .footer-links a {
     transition: none;
   }
 }

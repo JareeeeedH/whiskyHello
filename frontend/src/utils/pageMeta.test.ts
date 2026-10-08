@@ -5,6 +5,8 @@ import {
   SOMMELIER_META,
   WHISKIES_META,
   AUCTIONS_META,
+  PRIVACY_META,
+  TERMS_META,
   auctionPageMeta,
   canonicalUrl,
   whiskyPageMeta,
@@ -26,7 +28,7 @@ describe('canonicalUrl', () => {
 
 describe('page meta', () => {
   it('gives each public page its own title and description', () => {
-    const pages = [HOME_META, SOMMELIER_META, WHISKIES_META, AUCTIONS_META]
+    const pages = [HOME_META, SOMMELIER_META, WHISKIES_META, AUCTIONS_META, PRIVACY_META, TERMS_META]
     assert.equal(new Set(pages.map((page) => page.title)).size, pages.length)
     assert.equal(new Set(pages.map((page) => page.description)).size, pages.length)
   })

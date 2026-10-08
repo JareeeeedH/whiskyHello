@@ -3,7 +3,7 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/(whiskies|auctions|sommelier|login|register|forgot-password|profile|admin)",
+      "source": "/(whiskies|auctions|sommelier|privacy|terms|login|register|forgot-password|profile|admin)",
       "destination": "/index.html"
     },
     { "source": "/admin/(users|reviews|auctions)", "destination": "/index.html" },

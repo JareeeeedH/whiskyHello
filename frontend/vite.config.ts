@@ -5,7 +5,7 @@ import { canonicalUrl } from './src/utils/pageMeta.ts'
 import { normalizeWhiskyDataset } from './src/utils/whiskyNormalizer.ts'
 
 /** Public pages worth indexing; whisky detail pages are added from the dataset. */
-const SITEMAP_STATIC_PATHS = ['/', '/whiskies', '/sommelier', '/auctions']
+const SITEMAP_STATIC_PATHS = ['/', '/whiskies', '/sommelier', '/auctions', '/privacy', '/terms']
 
 function sitemapPlugin(): Plugin {
   return {

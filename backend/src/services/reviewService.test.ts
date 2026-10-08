@@ -10,6 +10,8 @@ import { Review } from '../models/Review'
 import {
   createReview,
   deleteReview,
+  LATEST_REVIEWS_LIMIT,
+  listLatestReviews,
   updateReview,
 } from './reviewService'
 import {
@@ -72,6 +74,20 @@ describe('reviewService (integration)', () => {
     assert.equal(review.userId, ownerId)
     assert.equal(review.rating, 90)
     assert.equal(review.title, 'QA create')
+  })
+
+  it('lists latest reviews newest first with author name', async () => {
+    const latest = await listLatestReviews()
+
+    assert.ok(latest.length <= LATEST_REVIEWS_LIMIT)
+    assert.equal(latest[0]?.id, reviewId)
+    assert.equal(latest[0]?.authorName, 'QA Owner')
+    for (let i = 1; i < latest.length; i += 1) {
+      assert.ok(
+        new Date(latest[i - 1]!.createdAt).getTime() >=
+          new Date(latest[i]!.createdAt).getTime(),
+      )
+    }
   })
 
   it('rejects update from a non-owner', async () => {

@@ -19,6 +19,19 @@ export async function listByWhisky(
   }
 }
 
+export async function listLatest(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const reviews = await reviewService.listLatestReviews()
+    res.status(200).json({ reviews })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export async function create(
   req: Request,
   res: Response,

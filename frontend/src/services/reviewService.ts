@@ -63,6 +63,15 @@ export async function fetchMyReviews(): Promise<PublicReview[]> {
   }
 }
 
+export async function fetchLatestReviews(): Promise<PublicReview[]> {
+  try {
+    const { data } = await apiClient.get<ReviewsResponse>('/reviews/latest')
+    return data.reviews
+  } catch (error) {
+    throw toReviewApiError(error, '無法載入最新評論')
+  }
+}
+
 export async function fetchReviewsByWhiskyId(
   whiskyId: string,
 ): Promise<PublicReview[]> {

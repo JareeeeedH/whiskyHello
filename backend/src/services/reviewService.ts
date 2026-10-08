@@ -18,6 +18,17 @@ export async function listReviewsByWhiskyId(
   return reviews.map((review) => toPublicReview(review))
 }
 
+export const LATEST_REVIEWS_LIMIT = 20
+
+export async function listLatestReviews(): Promise<PublicReview[]> {
+  const reviews = await Review.find()
+    .sort({ createdAt: -1 })
+    .limit(LATEST_REVIEWS_LIMIT)
+    .populate('userId', 'name')
+
+  return reviews.map((review) => toPublicReview(review))
+}
+
 export async function createReview(
   userId: string,
   input: CreateReviewBody,

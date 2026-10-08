@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   create,
   listByWhisky,
+  listLatest,
   listMine,
   remove,
   update,
@@ -22,6 +23,8 @@ router.get(
   validate(whiskyIdParamsSchema, 'params'),
   listByWhisky,
 )
+
+router.get('/reviews/latest', listLatest)
 
 router.post('/reviews', authenticate, validate(createReviewSchema), create)
 

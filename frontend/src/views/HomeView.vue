@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import NewsCard from '../components/NewsCard.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import { getRandomNews } from '../data/news'
-import { mockFriendReviews } from '../data/mock/friendReviews'
+import { fetchLatestReviews } from '../services/reviewService'
+import type { PublicReview } from '../types/review'
 
 const router = useRouter()
 const searchHint = ref('')
@@ -17,11 +18,44 @@ const featuredNews = computed(() => newsItems[0])
 const sideNews = computed(() => newsItems.slice(1))
 
 /**
- * Mock reviews are curated for the homepage.
  * Avoid importing whiskyService here — it pulls the full static dataset JSON
  * into the Home route chunk and causes a long blank first paint.
  */
-const latestFriendReviews = mockFriendReviews
+const latestFriendReviews = ref<PublicReview[]>([])
+const reviewsLoading = ref(true)
+
+function formatRelativeTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diffMs < minute) return '剛剛'
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} 分鐘前`
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} 小時前`
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} 天前`
+
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+}
+
+onMounted(async () => {
+  try {
+    latestFriendReviews.value = await fetchLatestReviews()
+  } catch {
+    latestFriendReviews.value = []
+  } finally {
+    reviewsLoading.value = false
+  }
+})
 
 /** Duplicate list for seamless CSS marquee loop. */
 const reviewFeedLoops = [0, 1] as const
@@ -122,7 +156,13 @@ function goSommelier() {
           <p class="eyebrow">Friend Reviews</p>
           <h2>酒友最近喝了什麼。</h2>
 
-          <div class="review-marquee" aria-label="酒友最新評論流動列表">
+          <p v-if="reviewsLoading" class="review-state" role="status">
+            載入評論中…
+          </p>
+          <p v-else-if="latestFriendReviews.length === 0" class="review-state">
+            目前還沒有評論
+          </p>
+          <div v-else class="review-marquee" aria-label="酒友最新評論流動列表">
             <div class="review-marquee-viewport">
               <div
                 class="review-marquee-track"
@@ -141,22 +181,20 @@ function goSommelier() {
                   >
                     <div class="review-row">
                       <RouterLink
-                        class="whisky-name"
+                        class="review-title"
                         :to="`/whiskies/${review.whiskyId}`"
                         :tabindex="loopIndex === 0 ? undefined : -1"
                       >
-                        {{ review.whiskyName }}
+                        {{ review.title }}
                       </RouterLink>
                       <span class="rating">{{ review.rating }} / 100</span>
                     </div>
                     <p class="review-summary">
-                      <span class="user">{{ review.userName }}</span>
+                      <span class="user">{{ review.authorName || '酒友' }}</span>
                       <span class="dot">·</span>
-                      <span class="time">{{ review.createdAt }}</span>
+                      <span class="time">{{ formatRelativeTime(review.createdAt) }}</span>
                       <span class="dot">·</span>
-                      <span class="excerpt"
-                        >{{ review.title }} — {{ review.content }}</span
-                      >
+                      <span class="excerpt">{{ review.content }}</span>
                     </p>
                     <RouterLink
                       class="review-link"
@@ -562,7 +600,16 @@ function goSommelier() {
   min-width: 0;
 }
 
-.whisky-name {
+.review-state {
+  margin: 0;
+  padding: 1rem 0;
+  border-top: 1px solid #e7e5e4;
+  font-family: var(--font-body);
+  color: #78716c;
+  font-size: 0.875rem;
+}
+
+.review-title {
   min-width: 0;
   font-family: var(--font-body);
   color: #1c1917;
@@ -575,7 +622,7 @@ function goSommelier() {
   white-space: nowrap;
 }
 
-.whisky-name:hover {
+.review-title:hover {
   color: #b45309;
   text-decoration: underline;
 }

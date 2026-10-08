@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Dialog from 'primevue/dialog'
+import SiteFooter from '../components/SiteFooter.vue'
 import {
   AuctionApiError,
   createAuctionBid,
@@ -529,6 +530,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
       <template #footer><Button label="再想一下" severity="secondary" text @click="confirmVisible = false" /><Button :label="bidSubmitting ? '送出中…' : '確認出價'" :loading="bidSubmitting" class="submit-btn" @click="submitBid" /></template>
     </Dialog>
   </main>
+  <SiteFooter class="detail-footer" :class="{ 'has-bid-bar': canBid }" />
 </template>
 
 <style scoped>
@@ -677,7 +679,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
   .image-stage { height: 200px; }
   .auction-layout { grid-template-columns: minmax(0, 1fr); }
   .bid-list { flex: none; min-height: 0; max-height: 14.5rem; contain: none; }
-  .detail.has-bid-bar { padding-bottom: 4.75rem; }
+  .detail-footer.has-bid-bar { padding-bottom: calc(5.75rem + env(safe-area-inset-bottom)); }
   .mobile-bid-bar { position: fixed; inset: auto 0 0; z-index: 20; display: flex; align-items: center; gap: 1rem; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); border-top: 1px solid rgba(214,163,75,.35); color: #fafaf9; background: rgba(17,14,12,.96); backdrop-filter: blur(8px); }
   .bar-price, .bar-time { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
   .bar-price { flex: 1; }

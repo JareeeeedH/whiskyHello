@@ -129,8 +129,8 @@ onMounted(() => {
       <div class="discovery-hero-inner">
         <header class="page-header">
           <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true" />WHISKYHELLO · AUCTION HOUSE</p>
-          <h1 id="auction-list-title">發現稀有與收藏酒款</h1>
-          <p class="lead">探索限量、收藏與稀有酒款競標，看見即時價格、出價與結標結果。</p>
+          <h1 id="auction-list-title">威士忌拍賣，<br />探索稀有與收藏酒款</h1>
+          <p class="lead">掌握競標、價格與結標結果，看看威士忌收藏市場正在發生什麼。</p>
         </header>
         <div
           class="hero-stats"

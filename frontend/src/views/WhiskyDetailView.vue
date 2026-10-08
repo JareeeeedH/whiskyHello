@@ -373,7 +373,7 @@ watch(
 
       <section class="block critic-review">
         <div class="section-head critic-head">
-          <h2>知名評論家評論</h2>
+          <h2>風味如何？知名評論家這樣說</h2>
           <button
             v-if="whisky.note && !showingNoteTranslation && noteTranslation.status !== 'error'"
             type="button"
@@ -422,7 +422,7 @@ watch(
 
       <section class="block friend-reviews">
         <div class="section-head">
-          <h2>酒友評論</h2>
+          <h2>酒友怎麼評價這支酒？</h2>
           <Button
             type="button"
             label="我要評論"

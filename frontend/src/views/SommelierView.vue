@@ -539,8 +539,8 @@ function toggleTaste(tag: FlavorTag) {
       <div class="discovery-hero-inner">
         <header class="page-header">
           <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · SOMMELIER</p>
-          <h1 id="sommelier-title">了解你的口味</h1>
-          <p class="lead">與侍酒師聊聊，整理出屬於你的偏好輪廓。</p>
+          <h1 id="sommelier-title">威士忌推薦，<br />先從了解你的口味開始</h1>
+          <p class="lead">喜歡泥煤、雪莉桶、果香，還是正在找一支適合送禮的威士忌？與侍酒師聊聊你的偏好。</p>
         </header>
       </div>
     </section>

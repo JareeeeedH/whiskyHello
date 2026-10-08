@@ -49,7 +49,7 @@ function applyHotSearch(term: string) {
         <header class="page-header">
           <p class="eyebrow">Whisky Discovery</p>
           <h1 id="whisky-discovery-title">探索威士忌</h1>
-          <p class="lead">找酒、看評分與評論，慢慢了解自己喜歡什麼。</p>
+          <p class="lead">找到你想認識的酒，從每一杯開始了解自己的口味。</p>
         </header>
       </div>
     </section>

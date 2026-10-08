@@ -110,6 +110,19 @@ function goAuctions() {
             <span class="hero-accent">幫你找到下一杯威士忌。</span>
           </h1>
         </div>
+        <p class="hero-lead">
+          從風味、預算與飲酒情境出發，與侍酒師聊聊，找到更適合你的酒款。
+        </p>
+        <div class="hero-cta">
+          <Button
+            label="與侍酒師聊聊"
+            icon="pi pi-arrow-right"
+            icon-pos="right"
+            severity="secondary"
+            outlined
+            @click="goSommelier"
+          />
+        </div>
       </div>
     </section>
 
@@ -118,9 +131,9 @@ function goAuctions() {
     <section class="taste section" aria-labelledby="home-taste-heading">
       <div class="section-inner">
         <p class="eyebrow">Sommelier</p>
-        <h2 id="home-taste-heading">好的一杯，從一段對話開始</h2>
+        <h2 id="home-taste-heading">別急著找酒，先找到你的口味</h2>
         <p class="section-desc taste-desc">
-          從你的風味偏好、預算與飲酒情境出發，讓 WhiskyHello 陪你探索更適合你的酒款。
+          從你喜歡的風味出發，探索泥煤、甜香與木質調，與侍酒師一起慢慢描繪出屬於你的口味。
         </p>
         <ol class="capability-list taste-steps">
           <li
@@ -155,7 +168,7 @@ function goAuctions() {
         <div class="left-panel">
           <div class="search-panel">
             <p class="eyebrow">Whisky Discovery</p>
-            <h2 id="home-discovery-heading">每一支酒，都值得好好認識</h2>
+            <h2 id="home-discovery-heading">從一杯酒，慢慢認識自己的口味</h2>
             <p class="section-desc">
               搜尋酒款、閱讀評論，也看看其他酒友正在喝什麼。每一次探索，都讓你更了解自己喜歡的威士忌。
             </p>
@@ -355,11 +368,26 @@ function goAuctions() {
   color: #e7bd73;
 }
 
+.hero-lead {
+  margin: 0;
+  max-width: 32rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--wh-faint);
+}
+
+.hero-cta {
+  margin-top: 0.35rem;
+}
+
+.hero :deep(.p-button),
 .sommelier :deep(.p-button) {
   color: #fafaf9;
   border-color: rgba(231, 189, 115, 0.6);
 }
 
+.hero :deep(.p-button:hover),
 .sommelier :deep(.p-button:hover) {
   color: #fafaf9;
   border-color: #e7bd73;
@@ -845,6 +873,11 @@ function goAuctions() {
 
   .brand {
     margin-bottom: 0.65rem;
+  }
+
+  .hero-lead {
+    font-size: 0.875rem;
+    line-height: 1.6;
   }
 
   .section {

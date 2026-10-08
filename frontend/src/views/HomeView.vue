@@ -69,24 +69,19 @@ function resumeReviewMarquee() {
   reviewMarqueePaused.value = false
 }
 
-const capabilities = [
+/** The Sommelier currently ends with a preference profile, not whisky picks. */
+const sommelierSteps = [
   {
-    title: '探索酒款',
-    description: '搜尋威士忌，快速找到你想認識的酒款與評分。',
+    title: '聊聊你的口味',
+    description: '喜歡與不喜歡的風味、泥煤與煙燻、預算，還有今天想喝酒的情境。',
   },
   {
-    title: '分享評論',
-    description: '閱讀知名評論家筆記，也留下你自己的品飲感受。',
+    title: '理解你的偏好',
+    description: '侍酒師從對話裡抓出你在意的方向，也記下你想避開的味道。',
   },
   {
-    title: 'AI 侍酒師｜Sommelier.ai',
-    description:
-      '和 AI 侍酒師聊聊你的口味、預算與當下心情，整理出這一杯該有的方向。',
-  },
-  {
-    title: '威士忌競標｜Auction House',
-    description:
-      '瀏覽精選酒款競標，登入後即可參與出價，即時掌握最新價格與結標結果。',
+    title: '整理偏好輪廓',
+    description: '把這次的口味整理成一份偏好輪廓，作為探索下一杯的起點。',
   },
 ]
 
@@ -98,6 +93,10 @@ function goSearchEntry() {
 function goSommelier() {
   void router.push('/sommelier')
 }
+
+function goAuctions() {
+  void router.push('/auctions')
+}
 </script>
 
 <template>
@@ -107,24 +106,58 @@ function goSommelier() {
         <div class="hero-copy">
           <p class="brand"><span class="brand-rule" aria-hidden="true" />WHISKYHELLO</p>
           <h1 id="home-hero-title">
-            從探索開始，<br />
-            <span class="hero-accent">走向你的酒單。</span>
+            懂你的口味，<br />
+            <span class="hero-accent">幫你找到下一杯威士忌。</span>
           </h1>
         </div>
-        <p class="lead">搜尋酒款、閱讀知名評論，也分享你的品飲感受。</p>
       </div>
     </section>
 
     <div class="luxury-rule" aria-hidden="true" />
 
-    <section class="explore section">
+    <section class="taste section" aria-labelledby="home-taste-heading">
+      <div class="section-inner">
+        <p class="eyebrow">Sommelier</p>
+        <h2 id="home-taste-heading">好的一杯，從一段對話開始</h2>
+        <p class="section-desc taste-desc">
+          從你的風味偏好、預算與飲酒情境出發，讓 WhiskyHello 陪你探索更適合你的酒款。
+        </p>
+        <ol class="capability-list taste-steps">
+          <li
+            v-for="(step, index) in sommelierSteps"
+            :key="step.title"
+            class="capability-item"
+          >
+            <span class="capability-index" aria-hidden="true">
+              {{ String(index + 1).padStart(2, '0') }}
+            </span>
+            <div>
+              <h3>{{ step.title }}</h3>
+              <p>{{ step.description }}</p>
+            </div>
+          </li>
+        </ol>
+        <div class="taste-cta">
+          <Button
+            label="與侍酒師聊聊"
+            icon="pi pi-arrow-right"
+            icon-pos="right"
+            severity="secondary"
+            outlined
+            @click="goSommelier"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="explore section" aria-labelledby="home-discovery-heading">
       <div class="section-inner explore-grid">
         <div class="left-panel">
           <div class="search-panel">
-            <p class="eyebrow">Whisky Search</p>
-            <h2>找到你的威士忌</h2>
+            <p class="eyebrow">Whisky Discovery</p>
+            <h2 id="home-discovery-heading">每一支酒，都值得好好認識</h2>
             <p class="section-desc">
-              輸入酒款名稱，進入搜尋頁開始探索。
+              搜尋酒款、閱讀評論，也看看其他酒友正在喝什麼。每一次探索，都讓你更了解自己喜歡的威士忌。
             </p>
             <form class="search-box" @submit.prevent="goSearchEntry">
               <InputText
@@ -134,15 +167,6 @@ function goSommelier() {
               />
               <Button type="submit" label="去搜尋" icon="pi pi-arrow-right" />
             </form>
-          </div>
-
-          <div class="story-panel">
-            <p class="eyebrow">Our Story</p>
-            <h2>為什麼有 WhiskyHello？</h2>
-            <p>
-              WhiskyHello 希望讓找酒更簡單、也更有溫度。你可以搜尋酒款、閱讀知名評論，
-              再慢慢分享自己的品飲感受——從一杯酒開始，認識威士忌，也認識自己喜歡的味道。
-            </p>
           </div>
         </div>
 
@@ -212,25 +236,24 @@ function goSommelier() {
       </div>
     </section>
 
-    <section class="features section">
-      <div class="section-inner">
-        <p class="eyebrow">Features</p>
-        <h2>你可以做什麼</h2>
-        <ul class="capability-list">
-          <li
-            v-for="(item, index) in capabilities"
-            :key="item.title"
-            class="capability-item"
-          >
-            <span class="capability-index" aria-hidden="true">
-              {{ String(index + 1).padStart(2, '0') }}
-            </span>
-            <div>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.description }}</p>
-            </div>
-          </li>
-        </ul>
+    <section class="auction section" aria-labelledby="home-auction-heading">
+      <div class="section-inner auction-inner">
+        <p class="eyebrow">Auction House</p>
+        <h2 id="home-auction-heading">發現稀有酒款，也看見威士忌市場</h2>
+        <p class="section-desc">
+          探索限量、收藏與稀有酒款競標，掌握即時價格、出價與結標結果。
+        </p>
+        <p class="section-desc">
+          從「想喝什麼」到「市場上正在發生什麼」，WhiskyHello 連結你的品味與威士忌市場。
+        </p>
+        <Button
+          label="探索 Auction House"
+          icon="pi pi-arrow-right"
+          icon-pos="right"
+          severity="secondary"
+          outlined
+          @click="goAuctions"
+        />
       </div>
     </section>
 
@@ -238,7 +261,10 @@ function goSommelier() {
       <div class="section-inner">
         <div class="news-header">
           <p class="eyebrow">Whisky News</p>
-          <h2 id="home-news-heading">值得關注</h2>
+          <h2 id="home-news-heading">掌握值得關注的威士忌世界</h2>
+          <p class="section-desc">
+            從酒廠、品牌、新品，到拍賣與市場趨勢，整理全球值得關注的威士忌資訊。
+          </p>
         </div>
 
         <div v-if="featuredNews" class="news-layout">
@@ -256,13 +282,13 @@ function goSommelier() {
 
     <section class="sommelier section">
       <div class="section-inner sommelier-inner">
-        <p class="eyebrow sommelier-eyebrow">AI Whisky Sommelier · Sommelier.ai</p>
-        <h2>威你好，今天想喝什麼？</h2>
+        <p class="eyebrow sommelier-eyebrow">Next Dram</p>
+        <h2>下一杯，喝什麼？</h2>
         <p class="sommelier-lead">
-          AI 威士忌侍酒師 Sommelier.ai 會聊聊你想喝的風味、泥煤與煙燻程度、預算與當下情境，為你整理出專屬的偏好輪廓。
+          從你的口味開始，和 WhiskyHello 一起找到下一杯值得探索的威士忌。
         </p>
         <Button
-          label="開始和 Sommelier.ai 聊聊"
+          label="與侍酒師聊聊"
           severity="secondary"
           outlined
           @click="goSommelier"
@@ -329,15 +355,15 @@ function goSommelier() {
   color: #e7bd73;
 }
 
-.lead {
-  margin: 0;
-  max-width: 22rem;
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  line-height: 1.7;
-  font-weight: 400;
-  color: var(--wh-faint);
-  text-wrap: pretty;
+.sommelier :deep(.p-button) {
+  color: #fafaf9;
+  border-color: rgba(231, 189, 115, 0.6);
+}
+
+.sommelier :deep(.p-button:hover) {
+  color: #fafaf9;
+  border-color: #e7bd73;
+  background: rgba(231, 189, 115, 0.12);
 }
 
 .luxury-rule {
@@ -444,21 +470,31 @@ function goSommelier() {
   border-color: var(--p-inputtext-focus-border-color);
 }
 
+.search-box :deep(.p-button) {
+  border: 1px solid rgba(161, 98, 7, 0.45);
+  background: #fff;
+  color: #7a4310;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.search-box :deep(.p-button:not(:disabled):hover) {
+  border-color: #a16207;
+  background: #fbf3e4;
+  color: #5c320c;
+  box-shadow: 0 0 0 3px rgba(201, 164, 106, 0.16);
+}
+
+.search-box :deep(.p-button-icon) {
+  color: #a16207;
+}
+
 .search-panel .section-desc {
   margin-bottom: 1.1rem;
-}
-
-.story-panel {
-  padding-top: 1.75rem;
-  border-top: 1px solid rgba(180, 83, 9, 0.18);
-}
-
-.story-panel p:not(.eyebrow) {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 1rem;
-  line-height: 1.8;
-  color: #57534e;
 }
 
 .reviews-panel {
@@ -471,8 +507,79 @@ function goSommelier() {
   margin-bottom: 0.85rem;
 }
 
-.features {
+.taste,
+.auction {
   background: #fff;
+}
+
+.taste-desc,
+.auction-inner .section-desc,
+.news-header .section-desc {
+  max-width: 40rem;
+}
+
+.auction-inner .section-desc + .section-desc {
+  margin-top: -0.6rem;
+}
+
+.taste-cta {
+  margin-top: 1.75rem;
+}
+
+.taste-cta :deep(.p-button) {
+  position: relative;
+  overflow: hidden;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(161, 98, 7, 0.4);
+  background: linear-gradient(120deg, #f7e9cb 0%, #ebcb8f 50%, #dcae66 100%);
+  color: #3b2410;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 10px 24px -12px rgba(161, 98, 7, 0.5);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Light sweeping across the glass on hover. */
+.taste-cta :deep(.p-button)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.8s ease;
+  pointer-events: none;
+}
+
+.taste-cta :deep(.p-button:not(:disabled):hover) {
+  border-color: #a16207;
+  background: linear-gradient(120deg, #f7e9cb 0%, #ebcb8f 50%, #dcae66 100%);
+  color: #2b1a0c;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 0 4px rgba(201, 164, 106, 0.2),
+    0 14px 30px -12px rgba(161, 98, 7, 0.6);
+}
+
+.taste-cta :deep(.p-button:hover)::after {
+  transform: translateX(120%);
+}
+
+.taste-cta :deep(.p-button-icon) {
+  color: #8a4b12;
+  transition: transform 0.25s ease;
+}
+
+.taste-cta :deep(.p-button:hover .p-button-icon) {
+  transform: translateX(3px);
 }
 
 .news {
@@ -481,6 +588,10 @@ function goSommelier() {
 
 .news-header {
   margin-bottom: 1.5rem;
+}
+
+.news-header .section-desc {
+  margin-bottom: 0;
 }
 
 .news-layout {
@@ -495,7 +606,7 @@ function goSommelier() {
   gap: 1.15rem;
 }
 
-.features .capability-list {
+.taste-steps {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.15rem;
@@ -674,6 +785,16 @@ function goSommelier() {
     animation: none;
   }
 
+  .taste-cta :deep(.p-button),
+  .taste-cta :deep(.p-button-icon),
+  .search-box :deep(.p-button) {
+    transition: none;
+  }
+
+  .taste-cta :deep(.p-button)::after {
+    display: none;
+  }
+
   .review-marquee-viewport {
     height: auto;
     max-height: 26rem;
@@ -726,11 +847,6 @@ function goSommelier() {
     margin-bottom: 0.65rem;
   }
 
-  .lead {
-    font-size: 0.84rem;
-    line-height: 1.6;
-  }
-
   .section {
     padding: 2.5rem 1rem;
   }
@@ -778,17 +894,6 @@ function goSommelier() {
 }
 
 @media (min-width: 801px) {
-  .hero-shell {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 23rem);
-    align-items: end;
-    gap: 3rem;
-  }
-
-  .lead {
-    padding-left: 1.25rem;
-    border-left: 1px solid rgba(201, 164, 106, 0.35);
-  }
-
   .explore-grid {
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: 2.5rem 3rem;
@@ -801,8 +906,8 @@ function goSommelier() {
     border-left: 1px solid #e7e5e4;
   }
 
-  .features .capability-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .taste-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.5rem 2rem;
   }
 

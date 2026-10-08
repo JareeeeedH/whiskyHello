@@ -29,12 +29,12 @@ function toSommelierApiError(error: unknown): SommelierApiError {
       return new SommelierApiError(429, '分析次數過多，請稍後再試')
     }
     if (status === 503) {
-      return new SommelierApiError(503, 'AI 偏好分析目前尚未開放，請稍後再試')
+      return new SommelierApiError(503, '侍酒師目前尚未開放，請稍後再試')
     }
     if (status === 504) {
       return new SommelierApiError(504, '分析時間過長，請再試一次')
     }
-    return new SommelierApiError(status, 'AI 偏好分析暫時無法使用，請稍後再試')
+    return new SommelierApiError(status, '偏好整理暫時無法使用，請稍後再試')
   }
 
   if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {

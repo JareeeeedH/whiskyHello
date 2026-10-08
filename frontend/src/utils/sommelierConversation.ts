@@ -22,7 +22,7 @@ export const CONVERSATION_STEPS = 4
 export const SOMMELIER_ARRIVAL_MS = 3000
 export const SOMMELIER_ARRIVAL_TEXT = { en: 'Sommelier is coming…', zh: '侍酒師正在過來…' } as const
 
-export const SOMMELIER_GREETING = '嗨，我是今晚的 Sommelier。先聊聊你想喝的感覺。'
+export const SOMMELIER_GREETING = '嗨，我是今晚的侍酒師。先聊聊你想喝的感覺。'
 
 export const SOMMELIER_QUESTIONS: Record<ConversationStep, { title: string; hint?: string }> = {
   1: { title: '這次想喝到哪些風味？' },

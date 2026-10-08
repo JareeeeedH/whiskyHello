@@ -107,7 +107,7 @@ const FREE_TEXT_PLACEHOLDER = ['例如：', ...FREE_TEXT_EXAMPLES.map((example) 
 const REPLY_EXIT_MS = 180
 const SCROLL_MARGIN_TOP = 16
 const SCROLL_MARGIN_BOTTOM = 24
-const PREFERENCE_ERROR_FALLBACK = 'AI 偏好分析暫時無法使用，請稍後再試'
+const PREFERENCE_ERROR_FALLBACK = '偏好整理暫時無法使用，請稍後再試'
 const PREFERENCE_ERROR_INTRO = '抱歉，剛剛整理的時候出了點問題。'
 
 const FIELD_STEPS: Record<SommelierInputField, ConversationStep> = {
@@ -538,9 +538,9 @@ function toggleTaste(tag: FlavorTag) {
       <div class="discovery-hero-glow" aria-hidden="true" />
       <div class="discovery-hero-inner">
         <header class="page-header">
-          <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · AI SOMMELIER</p>
-          <h1 id="sommelier-title">今天喝什麼？</h1>
-          <p class="lead">和 Sommelier 聊幾句，整理出這一次想喝的方向。</p>
+          <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · SOMMELIER</p>
+          <h1 id="sommelier-title">了解你的口味</h1>
+          <p class="lead">與侍酒師聊聊，整理出屬於你的偏好輪廓。</p>
         </header>
       </div>
     </section>
@@ -550,12 +550,12 @@ function toggleTaste(tag: FlavorTag) {
     <section
       ref="chatRef"
       class="chat"
-      aria-label="與 AI Sommelier 的對話"
+      aria-label="與侍酒師的對話"
       :style="{ minHeight: heldHeight || undefined, '--reply-exit': `${REPLY_EXIT_MS}ms` }"
     >
       <header ref="headerRef" class="chat-header">
         <div class="chat-header-row">
-          <span class="chat-title">AI Sommelier</span>
+          <span class="chat-title">Sommelier</span>
           <span class="chat-progress" :aria-label="`第 ${progressStep} 題，共 ${CONVERSATION_STEPS} 題`">
             {{ progressLabel }}
           </span>

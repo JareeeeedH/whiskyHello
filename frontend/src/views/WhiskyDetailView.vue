@@ -503,7 +503,7 @@ watch(
     </template>
 
     <section v-else class="not-found">
-      <h1>Whisky not found</h1>
+      <h1>找不到這款酒</h1>
       <p>找不到這款威士忌，請返回搜尋再試一次。</p>
       <RouterLink to="/whiskies">← 返回搜尋</RouterLink>
     </section>

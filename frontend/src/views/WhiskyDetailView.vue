@@ -15,6 +15,7 @@ import {
   updateReview,
 } from '../services/reviewService'
 import CriticReviewBody from '../components/CriticReviewBody.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import { fetchWhiskyTranslation } from '../services/translationService'
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
@@ -642,6 +643,7 @@ watch(
       </template>
     </Dialog>
   </main>
+  <SiteFooter />
 </template>
 
 <style scoped>

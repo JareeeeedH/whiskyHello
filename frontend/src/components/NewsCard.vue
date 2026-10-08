@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { WhiskyNews } from '../types/news'
 import { formatRelativeTime } from '../utils/relativeTime'
 
@@ -12,6 +12,8 @@ const props = withDefaults(
 )
 
 const relativeTime = computed(() => formatRelativeTime(props.item.publishedAt))
+const imageFailed = ref(false)
+const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.svg`
 
 const categoryLabel: Record<WhiskyNews['category'], string> = {
   news: 'News',
@@ -32,13 +34,17 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
   >
     <div class="media">
       <img
-        v-if="item.imageUrl"
+        v-if="item.imageUrl && !imageFailed"
         :src="item.imageUrl"
         :alt="item.title"
         loading="lazy"
         referrerpolicy="no-referrer"
+        @error="imageFailed = true"
       />
-      <div v-else class="media-fallback" aria-hidden="true">No image</div>
+      <div v-else class="media-fallback" aria-hidden="true">
+        <img class="fallback-logo" :src="brandLogoSrc" alt="" />
+        <span class="fallback-name">WhiskyHello</span>
+      </div>
     </div>
     <div class="body">
       <div class="meta">
@@ -106,13 +112,29 @@ const categoryLabel: Record<WhiskyNews['category'], string> = {
 }
 
 .media-fallback {
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  gap: 0.6rem;
+  background: radial-gradient(ellipse at center, rgba(220, 184, 120, 0.08), transparent 70%), #1d171d;
   color: var(--wh-mauve);
-  font-size: 0.8125rem;
+}
+
+.media .media-fallback .fallback-logo {
+  position: static;
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.75;
+}
+
+.fallback-name {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
 }
 
 .body {

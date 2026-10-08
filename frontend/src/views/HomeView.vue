@@ -45,20 +45,24 @@ const capabilities = [
     description: '閱讀知名評論家筆記，也留下你自己的品飲感受。',
   },
   {
-    title: '發現更多',
+    title: 'AI 侍酒師｜Sommelier.ai',
     description:
-      '未來會有專屬侍酒師，依你的口味與當下心情，輕輕推薦適合的那一杯。',
+      '和 AI 侍酒師聊聊你的口味、預算與當下心情，整理出這一杯該有的方向。',
   },
   {
-    title: '買賣媒合',
+    title: '威士忌競標｜Auction House',
     description:
-      '之後也會讓酒友出售收藏、找到想要的酒款，輕輕撮合買賣雙方。',
+      '瀏覽精選酒款競標，登入後即可參與出價，即時掌握最新價格與結標結果。',
   },
 ]
 
 function goSearchEntry() {
   // Entry only — full search stays on /whiskies
   void router.push('/whiskies')
+}
+
+function goSommelier() {
+  void router.push('/sommelier')
 }
 </script>
 
@@ -214,16 +218,16 @@ function goSearchEntry() {
 
     <section class="sommelier section">
       <div class="section-inner sommelier-inner">
-        <p class="eyebrow sommelier-eyebrow">Coming soon</p>
+        <p class="eyebrow sommelier-eyebrow">AI Whisky Sommelier · Sommelier.ai</p>
         <h2>威你好，今天想喝什麼？</h2>
         <p class="sommelier-lead">
-          未來 AI 將了解你的口味、品飲經驗、預算與當下情境，幫你找到適合的那一杯。
+          AI 威士忌侍酒師 Sommelier.ai 會聊聊你想喝的風味、泥煤與煙燻程度、預算與當下情境，為你整理出專屬的偏好輪廓。
         </p>
         <Button
-          label="AI Whisky Sommelier｜即將推出"
+          label="開始和 Sommelier.ai 聊聊"
           severity="secondary"
           outlined
-          disabled
+          @click="goSommelier"
         />
       </div>
     </section>

@@ -390,7 +390,8 @@ GET    /api/v1/auth/me
 - 寄信失敗回傳 503，不儲存暫存資料；前端顯示「驗證信寄送失敗，請稍後再試」
 - 驗證碼寄送優先順序：Resend（`RESEND_API_KEY`，寄件人 `MAIL_FROM`，預設 `WhiskyHello <noreply@whiskyhello.com>`，逾時 15 秒）→ Gmail（`SMTP_USER`／`SMTP_PASS` 應用程式密碼）→ 開發環境皆未設定時改印在後端 console
 - 正式站（Railway 封鎖對外 SMTP）使用 Resend；本機開發使用 Gmail
-- Register 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Verify／Resend 沿用 Auth 頻率限制
+- 寄信頻率限制：Register、Resend、Forgot 三個寄信入口共用同一 IP 計數，正式環境每小時 5 次、每天 10 次（非正式環境各 100 次）；超過回傳 429，前端顯示「操作太頻繁，請稍後再試」（同一 Email 90 秒冷卻則顯示「（重寄需間隔 90 秒）」）
+- Verify 沿用 Auth 頻率限制
 - Google 登入不需 Email 驗證；登入成功時刪除同 Email 的暫存註冊資料
 
 ### Forgot Password
@@ -401,7 +402,7 @@ GET    /api/v1/auth/me
 - 驗證碼存在 User（`passwordResetCodeHash`、`passwordResetCodeExpiresAt`、`passwordResetLastSentAt`、`passwordResetAttempts`，皆不對外回傳），只存雜湊
 - 驗證碼 10 分鐘有效、用過即作廢；同一組錯誤 5 次即作廢，需重新寄送
 - 寄送間隔至少 90 秒，未滿時回傳 429；寄信失敗回傳 503 且不儲存驗證碼
-- Forgot 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Reset 沿用 Auth 頻率限制
+- Forgot 與註冊共用寄信頻率限制（見上）；Reset 沿用 Auth 頻率限制
 - 不寄送「密碼已變更」通知信；重設後既有 JWT 仍在效期內有效
 
 ### Google Login

@@ -18,7 +18,8 @@ const authStore = useAuthStore()
 const toast = useToast()
 
 const MAIL_FAILED_MESSAGE = '驗證信寄送失敗，請稍後再試'
-const TOO_MANY_REQUESTS_MESSAGE = '操作太頻繁，請稍後再試（重寄需間隔 90 秒）'
+const TOO_MANY_REQUESTS_MESSAGE = '操作太頻繁，請稍後再試'
+const RESEND_COOLDOWN_MESSAGE = '操作太頻繁，請稍後再試（重寄需間隔 90 秒）'
 
 const name = ref('')
 const email = ref('')
@@ -41,7 +42,9 @@ function sendErrorMessage(error: unknown, fallback: string): string {
     return MAIL_FAILED_MESSAGE
   }
   if (error.status === 429) {
-    return TOO_MANY_REQUESTS_MESSAGE
+    return error.message.includes('90 seconds')
+      ? RESEND_COOLDOWN_MESSAGE
+      : TOO_MANY_REQUESTS_MESSAGE
   }
   return error.message
 }

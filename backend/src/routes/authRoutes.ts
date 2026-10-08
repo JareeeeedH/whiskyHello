@@ -33,7 +33,7 @@ router.post(
 )
 router.post(
   '/register/resend',
-  authRateLimit,
+  emailCodeRateLimit,
   validate(resendRegistrationCodeSchema),
   resendRegistrationCode,
 )

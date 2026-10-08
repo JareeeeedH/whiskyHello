@@ -5,6 +5,8 @@ type RateLimitOptions = {
   windowMs: number
   max: number
   message?: string
+  /** Shared bucket name so several routes count together; defaults to per method + path. */
+  scope?: string
 }
 
 type Bucket = {
@@ -33,7 +35,8 @@ export function rateLimit(options: RateLimitOptions) {
 
   return (req: Request, res: Response, next: NextFunction): void => {
     const now = Date.now()
-    const key = `${req.method}:${req.path}:${clientKey(req)}`
+    const scope = options.scope ?? `${req.method}:${req.path}`
+    const key = `${scope}:${clientKey(req)}`
     const existing = buckets.get(key)
 
     if (!existing || existing.resetAt <= now) {
@@ -71,12 +74,27 @@ export const authRateLimit = rateLimit({
   message: 'Too many authentication attempts, please try again later',
 })
 
-/** Endpoints that email a verification code (register, forgot password); counted per path. */
-export const emailCodeRateLimit = rateLimit({
-  windowMs: 30 * 60 * 1000,
-  max: env.isProduction ? 10 : 100,
-  message: 'Too many requests, please try again later',
-})
+const EMAIL_CODE_SCOPE = 'email-code'
+const EMAIL_CODE_LIMIT_MESSAGE = 'Too many requests, please try again later'
+
+/**
+ * Endpoints that email a verification code (register, resend, forgot password)
+ * share one per-client count: production 5 per hour and 10 per day.
+ */
+export const emailCodeRateLimit = [
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: env.isProduction ? 5 : 100,
+    message: EMAIL_CODE_LIMIT_MESSAGE,
+    scope: EMAIL_CODE_SCOPE,
+  }),
+  rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    max: env.isProduction ? 10 : 100,
+    message: EMAIL_CODE_LIMIT_MESSAGE,
+    scope: EMAIL_CODE_SCOPE,
+  }),
+]
 
 /** Sommelier preference endpoint: may call a paid LLM API, so cap per-client usage. */
 export const sommelierRateLimit = rateLimit({

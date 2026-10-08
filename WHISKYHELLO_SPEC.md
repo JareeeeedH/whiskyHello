@@ -388,7 +388,8 @@ GET    /api/v1/auth/me
 - 暫存資料在最後一次寄送 1 小時後自動刪除（MongoDB TTL）
 - 同一 Email 尚在暫存中再次註冊時，以新資料覆蓋並重寄驗證碼
 - 寄信失敗回傳 503，不儲存暫存資料；前端顯示「驗證信寄送失敗，請稍後再試」
-- 驗證碼透過 Gmail（`SMTP_USER`／`SMTP_PASS` 應用程式密碼）寄出；開發環境未設定時改印在後端 console
+- 驗證碼寄送優先順序：Resend（`RESEND_API_KEY`，寄件人 `MAIL_FROM`，預設 `WhiskyHello <noreply@whiskyhello.com>`，逾時 15 秒）→ Gmail（`SMTP_USER`／`SMTP_PASS` 應用程式密碼）→ 開發環境皆未設定時改印在後端 console
+- 正式站（Railway 封鎖對外 SMTP）使用 Resend；本機開發使用 Gmail
 - Register 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Verify／Resend 沿用 Auth 頻率限制
 - Google 登入不需 Email 驗證；登入成功時刪除同 Email 的暫存註冊資料
 

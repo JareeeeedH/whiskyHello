@@ -70,6 +70,15 @@ export function resolveOpenAIConfig(): { apiKey: string; model: string } {
   }
 }
 
+/** Live read of Resend settings. An empty apiKey means "not configured". */
+export function resolveResendConfig(): { apiKey: string; from: string } {
+  return {
+    apiKey: process.env.RESEND_API_KEY?.trim() ?? '',
+    from:
+      process.env.MAIL_FROM?.trim() || 'WhiskyHello <noreply@whiskyhello.com>',
+  }
+}
+
 /** Live read of Gmail SMTP credentials (app password). Empty strings mean "not configured". */
 export function resolveSmtpConfig(): { user: string; pass: string } {
   return {

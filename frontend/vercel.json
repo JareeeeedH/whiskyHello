@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/(whiskies|auctions|sommelier|login|register|forgot-password|profile|admin)",
+      "destination": "/index.html"
+    },
+    { "source": "/admin/(users|reviews|auctions)", "destination": "/index.html" },
+    { "source": "/whiskies/:id(\\d+)", "destination": "/index.html" },
+    { "source": "/auctions/:id([0-9a-f]{24})", "destination": "/index.html" }
+  ]
+}

@@ -18,6 +18,8 @@ import CriticReviewBody from '../components/CriticReviewBody.vue'
 import { fetchWhiskyTranslation } from '../services/translationService'
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
+import { applyPageMeta } from '../utils/applyPageMeta'
+import { NOT_FOUND_META, whiskyPageMeta } from '../utils/pageMeta'
 import {
   NOTE_TRANSLATION_TEXT,
   createNoteTranslationController,
@@ -39,6 +41,15 @@ const whisky = computed(() => {
   }
   return getWhiskyById(id)
 })
+
+watch(
+  whisky,
+  (current) => {
+    if (route.name !== 'whisky-detail') return
+    applyPageMeta(current ? whiskyPageMeta(current) : NOT_FOUND_META, route.path)
+  },
+  { immediate: true },
+)
 
 const whiskyId = computed(() => whisky.value?.id ?? '')
 

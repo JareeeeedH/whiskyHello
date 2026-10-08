@@ -23,6 +23,8 @@ import {
   getCountdownParts,
   isEndingSoon,
 } from '../utils/auctionDisplay'
+import { applyPageMeta } from '../utils/applyPageMeta'
+import { AUCTION_LOADING_META, NOT_FOUND_META, auctionPageMeta } from '../utils/pageMeta'
 
 /** Display-only hint; the backend enforces the real minimum bid. */
 const BID_INCREMENT = 100
@@ -271,6 +273,21 @@ watch(
   auctionId,
   (id) => {
     void loadAuction(id)
+  },
+  { immediate: true },
+)
+
+watch(
+  [auction, notFound],
+  ([current, missing]) => {
+    if (route.name !== 'auction-detail') return
+    if (missing) {
+      applyPageMeta(NOT_FOUND_META, route.path)
+    } else if (current) {
+      applyPageMeta(auctionPageMeta(current.title, whiskyName.value, current.startingPrice), route.path)
+    } else {
+      applyPageMeta(AUCTION_LOADING_META, route.path)
+    }
   },
   { immediate: true },
 )

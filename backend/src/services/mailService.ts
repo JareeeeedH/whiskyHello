@@ -4,7 +4,7 @@ import { AppError } from '../utils/AppError'
 
 export const MAIL_SEND_FAILED_MESSAGE = 'Failed to send verification email'
 
-export type VerificationCodePurpose = 'register'
+export type VerificationCodePurpose = 'register' | 'passwordReset'
 
 export type VerificationCodeMailer = (
   email: string,
@@ -20,6 +20,11 @@ const MAIL_CONTENT: Record<
     subject: 'WhiskyHello 驗證碼',
     intro: '你的 WhiskyHello 註冊驗證碼是',
     ignoreNote: '如非本人操作，請忽略此信。',
+  },
+  passwordReset: {
+    subject: 'WhiskyHello 密碼重設驗證碼',
+    intro: '你的 WhiskyHello 密碼重設驗證碼是',
+    ignoreNote: '如非本人操作，請忽略此信，你的密碼不會被變更。',
   },
 }
 

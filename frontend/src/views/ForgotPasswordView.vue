@@ -1,61 +1,121 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
-import SocialAuthButtons from '../components/SocialAuthButtons.vue'
-import { AuthApiError } from '../services/authService'
-import { useAuthStore } from '../stores/auth'
-import { resolvePostLoginPath } from '../utils/safeRedirect'
 import { useToast } from 'primevue/usetoast'
+import { AuthApiError, requestPasswordReset } from '../services/authService'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 const toast = useToast()
 
+const MAIL_FAILED_MESSAGE = '驗證信寄送失敗，請稍後再試'
+const TOO_MANY_REQUESTS_MESSAGE = '操作太頻繁，請稍後再試（重寄需間隔 90 秒）'
+const GOOGLE_ACCOUNT_MESSAGE = '此帳號使用 Google 登入，請直接使用 Google 登入'
+
 const email = ref('')
+const code = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const sentEmail = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const infoMessage = ref('')
 
-const canSubmit = computed(() => !loading.value)
+const codeSent = computed(() => sentEmail.value !== '')
 
-function notifyLoginSuccess() {
-  toast.add({
-    severity: 'success',
-    summary: '登入成功，歡迎回到 WhiskyHello',
-    life: 1800,
-  })
+function sendErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof AuthApiError)) {
+    return fallback
+  }
+  if (error.status === 409) {
+    return GOOGLE_ACCOUNT_MESSAGE
+  }
+  if (error.status === 503) {
+    return MAIL_FAILED_MESSAGE
+  }
+  if (error.status === 429) {
+    return TOO_MANY_REQUESTS_MESSAGE
+  }
+  if (error.status === 400 && error.details.length > 0) {
+    return error.details.join('；')
+  }
+  return error.message
 }
 
-function validateClient(): string | null {
-  const trimmedEmail = email.value.trim()
+function onSubmit() {
+  if (codeSent.value) {
+    void onReset()
+  } else {
+    void onSendCode()
+  }
+}
 
+async function sendCode(target: string) {
+  errorMessage.value = ''
+  infoMessage.value = ''
+  loading.value = true
+
+  try {
+    await requestPasswordReset(target)
+    sentEmail.value = target
+    infoMessage.value = '若此 Email 有註冊帳號，驗證碼已寄出，請於 10 分鐘內輸入'
+  } catch (error) {
+    errorMessage.value = sendErrorMessage(error, '寄送驗證碼失敗，請稍後再試')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onSendCode() {
+  if (loading.value) {
+    return
+  }
+
+  const trimmedEmail = email.value.trim().toLowerCase()
   if (!trimmedEmail) {
-    return '請輸入 Email'
+    errorMessage.value = '請輸入 Email'
+    return
   }
-
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    return '請輸入有效的 Email'
+    errorMessage.value = '請輸入有效的 Email'
+    return
   }
 
-  if (!password.value) {
-    return '請輸入密碼'
-  }
+  await sendCode(trimmedEmail)
+}
 
+async function onResend() {
+  if (loading.value) {
+    return
+  }
+  await sendCode(sentEmail.value)
+}
+
+function validateReset(): string | null {
+  if (!/^\d{6}$/.test(code.value.trim())) {
+    return '請輸入 6 位數驗證碼'
+  }
+  if (password.value.length < 8) {
+    return '新密碼至少需要 8 個字元'
+  }
+  if (password.value !== confirmPassword.value) {
+    return '兩次輸入的密碼不一致'
+  }
   return null
 }
 
-async function onLogin() {
+async function onReset() {
   if (loading.value) {
     return
   }
 
   errorMessage.value = ''
 
-  const clientError = validateClient()
+  const clientError = validateReset()
   if (clientError) {
     errorMessage.value = clientError
     return
@@ -64,73 +124,36 @@ async function onLogin() {
   loading.value = true
 
   try {
-    await authStore.login({
-      email: email.value.trim().toLowerCase(),
+    await authStore.resetPassword({
+      email: sentEmail.value,
+      code: code.value.trim(),
       password: password.value,
     })
-    notifyLoginSuccess()
-    void router.push(resolvePostLoginPath(route.query.redirect))
+    toast.add({
+      severity: 'success',
+      summary: '密碼已重設，歡迎回到 WhiskyHello',
+      life: 1800,
+    })
+    void router.push('/')
   } catch (error) {
-    if (error instanceof AuthApiError) {
-      if (error.status === 401) {
-        errorMessage.value =
-          error.message.includes('Google')
-            ? '此帳號請使用 Google 登入'
-            : 'Email 或密碼錯誤，請再試一次'
-      } else if (error.status === 400 && error.details.length > 0) {
-        errorMessage.value = error.details.join('；')
-      } else if (error.status === 400) {
-        errorMessage.value = error.message || '資料驗證失敗'
-      } else {
-        errorMessage.value = error.message
-      }
+    infoMessage.value = ''
+    if (
+      error instanceof AuthApiError &&
+      error.status === 400 &&
+      error.details.length === 0
+    ) {
+      errorMessage.value = '驗證碼錯誤或已過期（錯誤 5 次需重新寄送驗證碼）'
     } else {
-      errorMessage.value = '登入失敗，請稍後再試'
+      errorMessage.value = sendErrorMessage(error, '重設密碼失敗，請稍後再試')
     }
   } finally {
     loading.value = false
   }
-}
-
-async function onGoogleCredential(credential: string) {
-  if (loading.value) {
-    return
-  }
-
-  errorMessage.value = ''
-  loading.value = true
-
-  try {
-    await authStore.loginWithGoogle(credential)
-    notifyLoginSuccess()
-    void router.push(resolvePostLoginPath(route.query.redirect))
-  } catch (error) {
-    if (error instanceof AuthApiError) {
-      if (error.status === 409) {
-        errorMessage.value =
-          '此 Email 已有帳號，請改用 Email / 密碼登入（暫不支援自動綁定 Google）'
-      } else if (error.status === 503) {
-        errorMessage.value = '伺服器尚未啟用 Google 登入，請稍後再試'
-      } else if (error.status === 401 || error.status === 400) {
-        errorMessage.value = 'Google 登入失敗，請再試一次'
-      } else {
-        errorMessage.value = error.message
-      }
-    } else {
-      errorMessage.value = 'Google 登入失敗，請稍後再試'
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-function onGoogleError(message: string) {
-  errorMessage.value = message
 }
 </script>
 
 <template>
-  <main class="login-page">
+  <main class="forgot-page">
     <div class="atmosphere" aria-hidden="true">
       <div class="grain" />
       <div class="glow glow-a" />
@@ -138,13 +161,13 @@ function onGoogleError(message: string) {
       <div class="glow glow-edge" />
     </div>
 
-    <div class="login-shell auth-reveal">
-      <div class="login-card">
+    <div class="forgot-shell auth-reveal">
+      <div class="forgot-card">
         <p class="brand">WhiskyHello</p>
-        <h1>登入</h1>
-        <p class="subtitle">歡迎回到威你好</p>
+        <h1>忘記密碼</h1>
+        <p class="subtitle">輸入註冊的 Email，我們會寄送驗證碼給你</p>
 
-        <form class="form" @submit.prevent="onLogin">
+        <form class="form" @submit.prevent="onSubmit">
           <label>
             Email
             <InputText
@@ -153,49 +176,74 @@ function onGoogleError(message: string) {
               autocomplete="email"
               placeholder="your@email.com"
               class="field"
-              :disabled="loading"
+              :disabled="loading || codeSent"
             />
           </label>
-          <label>
-            Password
-            <Password
-              v-model="password"
-              :feedback="false"
-              toggle-mask
-              placeholder="請輸入密碼"
-              input-class="field"
-              :disabled="loading"
-            />
-          </label>
+          <template v-if="codeSent">
+            <label>
+              驗證碼
+              <InputText
+                v-model="code"
+                type="text"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="6 位數驗證碼"
+                class="field"
+                :disabled="loading"
+              />
+            </label>
+            <label>
+              New Password
+              <Password
+                v-model="password"
+                :feedback="false"
+                toggle-mask
+                placeholder="至少 8 個字元"
+                input-class="field"
+                :disabled="loading"
+              />
+            </label>
+            <label>
+              Confirm Password
+              <Password
+                v-model="confirmPassword"
+                :feedback="false"
+                toggle-mask
+                placeholder="再輸入一次新密碼"
+                input-class="field"
+                :disabled="loading"
+              />
+            </label>
+          </template>
 
           <p v-if="errorMessage" class="form-message is-error" role="alert">
             {{ errorMessage }}
           </p>
+          <p v-else-if="infoMessage" class="form-message is-success" role="status">
+            {{ infoMessage }}
+          </p>
 
-          <div class="form-actions">
-            <Button
-              type="submit"
-              label="登入"
-              class="submit-btn"
-              :loading="loading"
-              :disabled="!canSubmit"
-            />
-            <RouterLink to="/forgot-password" class="forgot-link">
-              忘記密碼？
-            </RouterLink>
-          </div>
+          <Button
+            type="submit"
+            :label="codeSent ? '重設密碼' : '寄送驗證碼'"
+            class="submit-btn"
+            :loading="loading"
+            :disabled="loading"
+          />
+          <Button
+            v-if="codeSent"
+            type="button"
+            label="重寄驗證碼"
+            text
+            class="resend-btn"
+            :disabled="loading"
+            @click="onResend"
+          />
         </form>
 
-        <SocialAuthButtons
-          mode="login"
-          :disabled="loading"
-          @credential="onGoogleCredential"
-          @error="onGoogleError"
-        />
-
-        <p class="register-hint">
-          還沒有帳號？
-          <RouterLink to="/register">註冊</RouterLink>
+        <p class="login-hint">
+          想起密碼了？
+          <RouterLink to="/login">返回登入</RouterLink>
         </p>
       </div>
     </div>
@@ -203,7 +251,7 @@ function onGoogleError(message: string) {
 </template>
 
 <style scoped>
-.login-page {
+.forgot-page {
   position: relative;
   overflow: hidden;
   display: flex;
@@ -278,14 +326,14 @@ function onGoogleError(message: string) {
   background: rgba(245, 158, 11, 0.08);
 }
 
-.login-shell {
+.forgot-shell {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 420px;
 }
 
-.login-card {
+.forgot-card {
   padding: 2.25rem 1.85rem 1.85rem;
   border-radius: 1.1rem;
   background: linear-gradient(
@@ -395,18 +443,13 @@ label {
   color: #fca5a5;
 }
 
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem 1rem;
-  margin-top: 0.25rem;
+.form-message.is-success {
+  color: #86efac;
 }
 
 .submit-btn {
-  width: auto;
-  min-width: 7.5rem;
+  margin-top: 0.4rem;
+  width: 100%;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%),
     linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
@@ -416,7 +459,7 @@ label {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.28) inset,
     0 -1px 0 rgba(120, 53, 15, 0.3) inset,
-    0 10px 24px rgba(217, 119, 6, 0.28) !important;
+    0 12px 28px rgba(217, 119, 6, 0.3) !important;
   transition:
     filter 0.3s ease,
     box-shadow 0.3s ease,
@@ -432,42 +475,26 @@ label {
     0 14px 28px rgba(180, 83, 9, 0.28) !important;
 }
 
-.forgot-link {
-  padding: 0;
-  border: none;
-  background: none;
-  color: #a8a29e;
-  font-size: 0.875rem;
-  text-decoration: none;
-  cursor: pointer;
+.resend-btn {
+  align-self: center;
+  color: #fbbf24 !important;
 }
 
-.forgot-link:hover {
-  color: #fbbf24;
-  text-decoration: underline;
-}
-
-.forgot-link:focus-visible {
-  outline: 2px solid #fbbf24;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.register-hint {
+.login-hint {
   margin: 1.35rem 0 0;
   text-align: center;
   color: #a8a29e;
   font-size: 0.9375rem;
 }
 
-.register-hint a {
+.login-hint a {
   color: #fbbf24;
   font-weight: 600;
   text-decoration: none;
   text-shadow: 0 0 16px rgba(251, 191, 36, 0.25);
 }
 
-.register-hint a:hover {
+.login-hint a:hover {
   text-decoration: underline;
 }
 
@@ -487,11 +514,11 @@ label {
 }
 
 @media (max-width: 480px) {
-  .login-page {
+  .forgot-page {
     padding: 1.5rem 1rem;
   }
 
-  .login-card {
+  .forgot-card {
     padding: 1.75rem 1.25rem 1.5rem;
     border-radius: 0.95rem;
   }

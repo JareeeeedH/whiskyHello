@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test --test-concurrency=1 src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/registrationVerification.test.ts src/services/adminRbac.test.ts src/models/Auction.test.ts src/validations/auctionValidation.test.ts src/services/auctionAdmin.test.ts src/services/auctionDetail.test.ts src/services/bidApi.test.ts src/services/auctionAutoClose.test.ts src/services/auctionList.test.ts src/validations/sommelierValidation.test.ts src/services/sommelierService.test.ts src/services/translationService.test.ts"
+    "test": "tsx --test --test-concurrency=1 src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/registrationVerification.test.ts src/services/passwordReset.test.ts src/services/adminRbac.test.ts src/models/Auction.test.ts src/validations/auctionValidation.test.ts src/services/auctionAdmin.test.ts src/services/auctionDetail.test.ts src/services/bidApi.test.ts src/services/auctionAutoClose.test.ts src/services/auctionList.test.ts src/validations/sommelierValidation.test.ts src/services/sommelierService.test.ts src/services/translationService.test.ts"
   },
   "engines": {
     "node": ">=20"

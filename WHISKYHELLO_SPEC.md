@@ -371,6 +371,8 @@ User 1 ───── N Review N ───── 1 Static Whisky
 POST   /api/v1/auth/register
 POST   /api/v1/auth/register/verify
 POST   /api/v1/auth/register/resend
+POST   /api/v1/auth/password/forgot
+POST   /api/v1/auth/password/reset
 POST   /api/v1/auth/login
 POST   /api/v1/auth/google
 GET    /api/v1/auth/me
@@ -389,6 +391,17 @@ GET    /api/v1/auth/me
 - 驗證碼透過 Gmail（`SMTP_USER`／`SMTP_PASS` 應用程式密碼）寄出；開發環境未設定時改印在後端 console
 - Register 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Verify／Resend 沿用 Auth 頻率限制
 - Google 登入不需 Email 驗證；登入成功時刪除同 Email 的暫存註冊資料
+
+### Forgot Password
+
+- 前端 `/forgot-password`（登入頁「忘記密碼？」進入）：輸入 Email 寄送驗證碼，同頁輸入驗證碼、新密碼、確認新密碼
+- `POST /api/v1/auth/password/forgot`：接收 `email`；有密碼的帳號寄出 6 位數驗證碼；Email 未註冊時不寄信但回傳相同訊息；只用 Google 登入（無密碼）的帳號回傳 409，前端顯示「此帳號使用 Google 登入，請直接使用 Google 登入」，不寄信、不設定密碼
+- `POST /api/v1/auth/password/reset`：接收 `email`、`code`、`password`（8～128 字元）；正確時更新密碼、清除驗證碼並回傳 JWT（直接登入）；錯誤或過期回傳 400
+- 驗證碼存在 User（`passwordResetCodeHash`、`passwordResetCodeExpiresAt`、`passwordResetLastSentAt`、`passwordResetAttempts`，皆不對外回傳），只存雜湊
+- 驗證碼 10 分鐘有效、用過即作廢；同一組錯誤 5 次即作廢，需重新寄送
+- 寄送間隔至少 90 秒，未滿時回傳 429；寄信失敗回傳 503 且不儲存驗證碼
+- Forgot 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Reset 沿用 Auth 頻率限制
+- 不寄送「密碼已變更」通知信；重設後既有 JWT 仍在效期內有效
 
 ### Google Login
 

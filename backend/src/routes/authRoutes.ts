@@ -1,20 +1,24 @@
 import { Router } from 'express'
 import {
+  forgotPassword,
   googleLogin,
   login,
   me,
   register,
   resendRegistrationCode,
+  resetPassword,
   verifyRegistration,
 } from '../controllers/authController'
 import { authenticate } from '../middlewares/auth'
 import { authRateLimit, emailCodeRateLimit } from '../middlewares/rateLimit'
 import { validate } from '../middlewares/validate'
 import {
+  forgotPasswordSchema,
   googleLoginSchema,
   loginSchema,
   registerSchema,
   resendRegistrationCodeSchema,
+  resetPasswordSchema,
   verifyRegistrationSchema,
 } from '../validations/authValidation'
 
@@ -32,6 +36,18 @@ router.post(
   authRateLimit,
   validate(resendRegistrationCodeSchema),
   resendRegistrationCode,
+)
+router.post(
+  '/password/forgot',
+  emailCodeRateLimit,
+  validate(forgotPasswordSchema),
+  forgotPassword,
+)
+router.post(
+  '/password/reset',
+  authRateLimit,
+  validate(resetPasswordSchema),
+  resetPassword,
 )
 router.post('/login', authRateLimit, validate(loginSchema), login)
 router.post(

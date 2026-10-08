@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response } from 'express'
 import * as authService from '../services/authService'
 import type {
+  ForgotPasswordBody,
   GoogleLoginBody,
   LoginBody,
   RegisterBody,
+  ResetPasswordBody,
   ResendRegistrationCodeBody,
   VerifyRegistrationBody,
 } from '../validations/authValidation'
@@ -47,6 +49,36 @@ export async function resendRegistrationCode(
     res.status(200).json({
       message: 'If this email has a pending registration, a new code has been sent',
     })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const body = req.body as ForgotPasswordBody
+    await authService.requestPasswordReset(body)
+    res.status(200).json({
+      message: 'If this email is registered, a verification code has been sent',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const body = req.body as ResetPasswordBody
+    const result = await authService.resetPassword(body)
+    res.status(200).json(result)
   } catch (error) {
     next(error)
   }

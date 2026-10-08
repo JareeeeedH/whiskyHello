@@ -7,6 +7,7 @@ import type {
   PublicUser,
   RegisterPayload,
   RegisterResponse,
+  ResetPasswordPayload,
   VerifyRegistrationPayload,
 } from '../types/auth'
 
@@ -98,6 +99,28 @@ export async function resendRegistrationCode(email: string): Promise<void> {
     await apiClient.post('/auth/register/resend', { email })
   } catch (error) {
     throw toAuthApiError(error, '重寄驗證碼失敗，請稍後再試')
+  }
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  try {
+    await apiClient.post('/auth/password/forgot', { email })
+  } catch (error) {
+    throw toAuthApiError(error, '寄送驗證碼失敗，請稍後再試')
+  }
+}
+
+export async function resetPassword(
+  payload: ResetPasswordPayload,
+): Promise<LoginResponse> {
+  try {
+    const { data } = await apiClient.post<LoginResponse>(
+      '/auth/password/reset',
+      payload,
+    )
+    return data
+  } catch (error) {
+    throw toAuthApiError(error, '重設密碼失敗，請稍後再試')
   }
 }
 

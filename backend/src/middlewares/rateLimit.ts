@@ -71,7 +71,7 @@ export const authRateLimit = rateLimit({
   message: 'Too many authentication attempts, please try again later',
 })
 
-/** Endpoints that email a verification code; counted per path. */
+/** Endpoints that email a verification code (register, forgot password); counted per path. */
 export const emailCodeRateLimit = rateLimit({
   windowMs: 30 * 60 * 1000,
   max: env.isProduction ? 10 : 100,

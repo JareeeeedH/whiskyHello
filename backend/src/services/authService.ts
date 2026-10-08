@@ -8,9 +8,11 @@ import { signAccessToken } from '../utils/jwt'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { toPublicUser } from '../utils/toPublicUser'
 import type {
+  ForgotPasswordBody,
   GoogleLoginBody,
   LoginBody,
   RegisterBody,
+  ResetPasswordBody,
   ResendRegistrationCodeBody,
   VerifyRegistrationBody,
 } from '../validations/authValidation'
@@ -23,11 +25,13 @@ import { sendVerificationCode } from './mailService'
 const CODE_TTL_MS = 10 * 60 * 1000
 const PENDING_TTL_MS = 60 * 60 * 1000
 const RESEND_COOLDOWN_MS = 90 * 1000
+const MAX_PASSWORD_RESET_ATTEMPTS = 5
 
 const INVALID_CREDENTIALS = 'Invalid email or password'
 const EMAIL_ALREADY_REGISTERED = 'Email is already registered'
 const INVALID_VERIFICATION_CODE = 'Invalid or expired verification code'
 const RESEND_TOO_SOON = 'Please wait 90 seconds before requesting another code'
+const GOOGLE_ACCOUNT_NO_PASSWORD = 'This account uses Google sign-in. Please sign in with Google.'
 const GOOGLE_EMAIL_CONFLICT =
   'An account with this email already exists. Please sign in with email and password.'
 
@@ -201,6 +205,93 @@ export async function loginUser(
     token,
     user: toPublicUser(user),
   }
+}
+
+const PASSWORD_RESET_FIELDS_UNSET = {
+  passwordResetCodeHash: '',
+  passwordResetCodeExpiresAt: '',
+  passwordResetLastSentAt: '',
+  passwordResetAttempts: '',
+}
+
+/** Unknown emails return silently; Google-only accounts get a 409 telling them to use Google. */
+export async function requestPasswordReset(input: ForgotPasswordBody): Promise<void> {
+  const user = await User.findOne({ email: input.email }).select(
+    '+passwordHash +passwordResetLastSentAt',
+  )
+  if (!user) {
+    return
+  }
+
+  if (!user.passwordHash) {
+    if (user.googleId) {
+      throw new AppError(409, GOOGLE_ACCOUNT_NO_PASSWORD)
+    }
+    return
+  }
+
+  assertResendCooldownPassed(user.passwordResetLastSentAt ?? undefined, Date.now())
+
+  const code = generateVerificationCode()
+  await sendVerificationCode(input.email, code, 'passwordReset')
+
+  const now = Date.now()
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        passwordResetCodeHash: hashVerificationCode(input.email, code),
+        passwordResetCodeExpiresAt: new Date(now + CODE_TTL_MS),
+        passwordResetLastSentAt: new Date(now),
+        passwordResetAttempts: 0,
+      },
+    },
+  )
+}
+
+export async function resetPassword(
+  input: ResetPasswordBody,
+): Promise<{ token: string; user: PublicUser }> {
+  const user = await User.findOne({ email: input.email }).select(
+    '+passwordResetCodeHash +passwordResetCodeExpiresAt',
+  )
+
+  if (
+    !user ||
+    !user.passwordResetCodeHash ||
+    !user.passwordResetCodeExpiresAt ||
+    user.passwordResetCodeExpiresAt.getTime() <= Date.now()
+  ) {
+    throw new AppError(400, INVALID_VERIFICATION_CODE)
+  }
+
+  if (!codeMatches(input.email, input.code, user.passwordResetCodeHash)) {
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { passwordResetAttempts: 1 } },
+      { returnDocument: 'after', projection: { passwordResetAttempts: 1 } },
+    )
+    if ((updated?.passwordResetAttempts ?? 0) >= MAX_PASSWORD_RESET_ATTEMPTS) {
+      await User.updateOne(
+        { _id: user._id },
+        { $unset: { passwordResetCodeHash: '', passwordResetCodeExpiresAt: '' } },
+      )
+    }
+    throw new AppError(400, INVALID_VERIFICATION_CODE)
+  }
+
+  const passwordHash = await hashPassword(input.password)
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: user._id },
+    { $set: { passwordHash }, $unset: PASSWORD_RESET_FIELDS_UNSET },
+    { returnDocument: 'after' },
+  )
+  if (!updatedUser) {
+    throw new AppError(400, INVALID_VERIFICATION_CODE)
+  }
+
+  const token = signAccessToken({ userId: updatedUser._id.toString() })
+  return { token, user: toPublicUser(updatedUser) }
 }
 
 export async function loginWithGoogle(

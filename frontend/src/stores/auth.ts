@@ -5,11 +5,13 @@ import {
   fetchCurrentUser,
   loginUser,
   loginWithGoogle as loginWithGoogleApi,
+  resetPassword as resetPasswordApi,
   verifyRegistration as verifyRegistrationApi,
 } from '../services/authService'
 import type {
   LoginPayload,
   PublicUser,
+  ResetPasswordPayload,
   VerifyRegistrationPayload,
 } from '../types/auth'
 import { resolveUserRole } from '../types/auth'
@@ -78,6 +80,13 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(result.token, result.user)
     return result
   }
+
+  async function resetPassword(payload: ResetPasswordPayload) {
+    const result = await resetPasswordApi(payload)
+    setSession(result.token, result.user)
+    return result
+  }
+
   function logout() {
     clearSession()
   }
@@ -123,6 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     loginWithGoogle,
     verifyRegistration,
+    resetPassword,
     logout,
     restoreSession,
   }

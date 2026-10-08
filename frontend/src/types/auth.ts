@@ -26,6 +26,13 @@ export interface VerifyRegistrationPayload {
   email: string
   code: string
 }
+
+export interface ResetPasswordPayload {
+  email: string
+  code: string
+  password: string
+}
+
 export interface LoginPayload {
   email: string
   password: string

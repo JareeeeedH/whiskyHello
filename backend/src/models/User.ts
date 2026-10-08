@@ -48,6 +48,22 @@ const userSchema = new Schema(
       trim: true,
       maxlength: [500, 'Bio must be at most 500 characters'],
     },
+    passwordResetCodeHash: {
+      type: String,
+      select: false,
+    },
+    passwordResetCodeExpiresAt: {
+      type: Date,
+      select: false,
+    },
+    passwordResetLastSentAt: {
+      type: Date,
+      select: false,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      select: false,
+    },
   },
   {
     timestamps: true,

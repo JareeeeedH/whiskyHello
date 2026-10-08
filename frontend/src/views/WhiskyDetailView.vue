@@ -6,7 +6,7 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Slider from 'primevue/slider'
 import Textarea from 'primevue/textarea'
-import { getWhiskyById } from '../services/whiskyService'
+import { getWhiskyById, getWhiskyNote } from '../services/whiskyService'
 import {
   createReview,
   deleteReview,
@@ -35,7 +35,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const whisky = computed(() => {
+const baseWhisky = computed(() => {
   const id = String(route.params.id ?? '')
   if (!id) {
     return undefined
@@ -43,10 +43,41 @@ const whisky = computed(() => {
   return getWhiskyById(id)
 })
 
+const note = ref<string>()
+const noteStatus = ref<'loading' | 'ready' | 'error'>('loading')
+
 watch(
-  whisky,
-  (current) => {
+  () => baseWhisky.value?.id,
+  async (id) => {
+    note.value = undefined
+    if (!id) {
+      noteStatus.value = 'ready'
+      return
+    }
+    noteStatus.value = 'loading'
+    try {
+      const loaded = await getWhiskyNote(id)
+      if (baseWhisky.value?.id !== id) return
+      note.value = loaded
+      noteStatus.value = 'ready'
+    } catch {
+      if (baseWhisky.value?.id !== id) return
+      noteStatus.value = 'error'
+    }
+  },
+  { immediate: true },
+)
+
+const whisky = computed(() => {
+  const base = baseWhisky.value
+  return base && note.value !== undefined ? { ...base, note: note.value } : base
+})
+
+watch(
+  [whisky, noteStatus],
+  ([current, status]) => {
     if (route.name !== 'whisky-detail') return
+    if (current && status === 'loading') return
     applyPageMeta(current ? whiskyPageMeta(current) : NOT_FOUND_META, route.path)
   },
   { immediate: true },
@@ -429,6 +460,8 @@ watch(
             :text="whisky.note"
           />
         </template>
+        <p v-else-if="noteStatus === 'loading'" class="empty">評論載入中…</p>
+        <p v-else-if="noteStatus === 'error'" class="empty">評論載入失敗，請重新整理再試一次。</p>
         <p v-else class="empty">目前沒有知名評論家評論。</p>
       </section>
 

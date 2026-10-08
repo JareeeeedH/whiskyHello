@@ -1,4 +1,4 @@
-import rawWhiskyDataset from '../data/raw/whiskyDataset.json'
+import rawWhiskyIndex from '../data/generated/whiskyIndex.json'
 import type {
   RawWhisky,
   Whisky,
@@ -6,13 +6,14 @@ import type {
   WhiskySearchResult,
 } from '../types/whisky'
 import { normalizeWhiskyDataset } from '../utils/whiskyNormalizer'
+import { whiskyNoteChunkName } from '../utils/whiskyNoteChunk'
 import { searchWhiskies as runSearch } from '../utils/whiskySearch'
 
 /**
  * Whisky Service — Frontend Data Layer entry point.
  *
  * Raw Static Dataset
- *   ↓
+ *   ↓ (scripts/split-whisky-data.ts: index without notes + note chunks)
  * Normalization (once, cached)
  *   ↓
  * Standardized Whisky[]
@@ -30,7 +31,7 @@ function loadWhiskies(): Whisky[] {
     return cachedWhiskies
   }
 
-  cachedWhiskies = normalizeWhiskyDataset(rawWhiskyDataset as RawWhisky[])
+  cachedWhiskies = normalizeWhiskyDataset(rawWhiskyIndex as RawWhisky[])
   cachedById = new Map(cachedWhiskies.map((item) => [item.id, item]))
   return cachedWhiskies
 }
@@ -49,6 +50,30 @@ export function getWhiskyById(id: string): Whisky | undefined {
     return undefined
   }
   return getIndex().get(String(id))
+}
+
+type NoteChunk = Record<string, string>
+
+const noteChunkLoaders = import.meta.glob<NoteChunk>('../data/generated/notes/*.json', {
+  import: 'default',
+})
+const noteChunkCache = new Map<string, Promise<NoteChunk>>()
+
+/** Tasting notes are not in the index; they load per chunk, only where needed. */
+export async function getWhiskyNote(id: string): Promise<string | undefined> {
+  const chunkName = whiskyNoteChunkName(String(id))
+  const loader = noteChunkLoaders[`../data/generated/notes/${chunkName}.json`]
+  if (!loader) {
+    return undefined
+  }
+
+  let chunk = noteChunkCache.get(chunkName)
+  if (!chunk) {
+    chunk = loader()
+    noteChunkCache.set(chunkName, chunk)
+    chunk.catch(() => noteChunkCache.delete(chunkName))
+  }
+  return (await chunk)[String(id)]
 }
 
 export function searchWhiskies(params: WhiskySearchParams): WhiskySearchResult {

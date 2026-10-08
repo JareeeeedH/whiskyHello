@@ -19,7 +19,9 @@ import {
   loginWithGoogle,
   registerUser,
   setGoogleTokenVerifierForTests,
+  verifyRegistration,
 } from './authService'
+import { setVerificationCodeMailerForTests } from './mailService'
 import { googleLoginSchema } from '../validations/authValidation'
 import {
   connectTestDatabase,
@@ -241,18 +243,27 @@ describe('authService Google + password (integration)', () => {
     )
   })
 
-  it('email/password register and login still work', async () => {
+  it('email/password register, verify, and login still work', async () => {
     const email = `qa-google-password-${Date.now()}@example.com`
-
-    const user = await registerUser({
-      name: 'Password QA',
-      email,
-      password: 'password12345',
+    let sentCode = ''
+    setVerificationCodeMailerForTests(async (_to, code) => {
+      sentCode = code
     })
-    createdUserIds.push(user.id)
 
-    const result = await loginUser({ email, password: 'password12345' })
-    assert.equal(result.user.id, user.id)
-    assert.ok(result.token)
+    try {
+      await registerUser({
+        name: 'Password QA',
+        email,
+        password: 'password12345',
+      })
+      const { user } = await verifyRegistration({ email, code: sentCode })
+      createdUserIds.push(user.id)
+
+      const result = await loginUser({ email, password: 'password12345' })
+      assert.equal(result.user.id, user.id)
+      assert.ok(result.token)
+    } finally {
+      setVerificationCodeMailerForTests(null)
+    }
   })
 })

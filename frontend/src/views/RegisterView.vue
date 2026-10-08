@@ -5,7 +5,11 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import SocialAuthButtons from '../components/SocialAuthButtons.vue'
-import { AuthApiError, registerUser } from '../services/authService'
+import {
+  AuthApiError,
+  registerUser,
+  resendRegistrationCode,
+} from '../services/authService'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
 
@@ -13,16 +17,34 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 
+const MAIL_FAILED_MESSAGE = '驗證信寄送失敗，請稍後再試'
+const TOO_MANY_REQUESTS_MESSAGE = '操作太頻繁，請稍後再試（重寄需間隔 90 秒）'
+
 const name = ref('')
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const code = ref('')
+const sentEmail = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
-const successMessage = ref('')
+const infoMessage = ref('')
 
-const canSubmit = computed(
-  () => !loading.value && successMessage.value === '',
-)
+const codeSent = computed(() => sentEmail.value !== '')
+const canSubmit = computed(() => !loading.value)
+
+function sendErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof AuthApiError)) {
+    return fallback
+  }
+  if (error.status === 503) {
+    return MAIL_FAILED_MESSAGE
+  }
+  if (error.status === 429) {
+    return TOO_MANY_REQUESTS_MESSAGE
+  }
+  return error.message
+}
 
 function validateClient(): string | null {
   const trimmedName = name.value.trim()
@@ -48,16 +70,28 @@ function validateClient(): string | null {
     return '密碼至少需要 8 個字元'
   }
 
+  if (password.value !== confirmPassword.value) {
+    return '兩次輸入的密碼不一致'
+  }
+
   return null
 }
 
+function onSubmit() {
+  if (codeSent.value) {
+    void onVerify()
+  } else {
+    void onRegister()
+  }
+}
+
 async function onRegister() {
-  if (loading.value || successMessage.value) {
+  if (loading.value) {
     return
   }
 
   errorMessage.value = ''
-  successMessage.value = ''
+  infoMessage.value = ''
 
   const clientError = validateClient()
   if (clientError) {
@@ -68,40 +102,97 @@ async function onRegister() {
   loading.value = true
 
   try {
-    await registerUser({
+    const result = await registerUser({
       name: name.value.trim(),
       email: email.value.trim().toLowerCase(),
       password: password.value,
     })
 
-    successMessage.value = '註冊成功，即將前往登入頁…'
-    window.setTimeout(() => {
-      void router.push('/login')
-    }, 900)
+    sentEmail.value = result.email
+    infoMessage.value = `驗證碼已寄到 ${result.email}，請於 10 分鐘內輸入`
   } catch (error) {
-    if (error instanceof AuthApiError) {
-      if (error.status === 409) {
-        errorMessage.value = '此 Email 已被註冊，請改用其他 Email 或前往登入'
-      } else if (error.status === 400 && error.details.length > 0) {
-        errorMessage.value = error.details.join('；')
-      } else {
-        errorMessage.value = error.message
-      }
+    if (error instanceof AuthApiError && error.status === 409) {
+      errorMessage.value = '此 Email 已被註冊，請改用其他 Email 或前往登入'
+    } else if (
+      error instanceof AuthApiError &&
+      error.status === 400 &&
+      error.details.length > 0
+    ) {
+      errorMessage.value = error.details.join('；')
     } else {
-      errorMessage.value = '註冊失敗，請稍後再試'
+      errorMessage.value = sendErrorMessage(error, '註冊失敗，請稍後再試')
     }
   } finally {
     loading.value = false
   }
 }
 
-async function onGoogleCredential(credential: string) {
-  if (loading.value || successMessage.value) {
+async function onVerify() {
+  if (loading.value) {
     return
   }
 
   errorMessage.value = ''
-  successMessage.value = ''
+
+  const trimmedCode = code.value.trim()
+  if (!/^\d{6}$/.test(trimmedCode)) {
+    errorMessage.value = '請輸入 6 位數驗證碼'
+    return
+  }
+
+  loading.value = true
+
+  try {
+    await authStore.verifyRegistration({
+      email: sentEmail.value,
+      code: trimmedCode,
+    })
+    toast.add({
+      severity: 'success',
+      summary: '註冊成功，歡迎加入 WhiskyHello',
+      life: 1800,
+    })
+    void router.push('/')
+  } catch (error) {
+    infoMessage.value = ''
+    if (error instanceof AuthApiError && error.status === 400) {
+      errorMessage.value = '驗證碼錯誤或已過期'
+    } else if (error instanceof AuthApiError && error.status === 409) {
+      errorMessage.value = '此 Email 已被註冊，請前往登入'
+    } else {
+      errorMessage.value = sendErrorMessage(error, '驗證失敗，請稍後再試')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onResend() {
+  if (loading.value) {
+    return
+  }
+
+  errorMessage.value = ''
+  infoMessage.value = ''
+  loading.value = true
+
+  try {
+    await resendRegistrationCode(sentEmail.value)
+    infoMessage.value = `已重新寄出驗證碼到 ${sentEmail.value}`
+  } catch (error) {
+    errorMessage.value = sendErrorMessage(error, '重寄驗證碼失敗，請稍後再試')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onGoogleCredential(credential: string) {
+  if (loading.value) {
+    return
+  }
+
+  errorMessage.value = ''
+  infoMessage.value = ''
   loading.value = true
 
   try {
@@ -152,7 +243,7 @@ function onGoogleError(message: string) {
         <h1>註冊</h1>
         <p class="subtitle">建立你的威你好帳號</p>
 
-        <form class="form" @submit.prevent="onRegister">
+        <form class="form" @submit.prevent="onSubmit">
           <label>
             Name
             <InputText
@@ -161,7 +252,7 @@ function onGoogleError(message: string) {
               autocomplete="name"
               placeholder="你的顯示名稱"
               class="field"
-              :disabled="loading || Boolean(successMessage)"
+              :disabled="loading || codeSent"
             />
           </label>
           <label>
@@ -172,7 +263,7 @@ function onGoogleError(message: string) {
               autocomplete="email"
               placeholder="your@email.com"
               class="field"
-              :disabled="loading || Boolean(successMessage)"
+              :disabled="loading || codeSent"
             />
           </label>
           <label>
@@ -183,29 +274,61 @@ function onGoogleError(message: string) {
               toggle-mask
               placeholder="至少 8 個字元"
               input-class="field"
-              :disabled="loading || Boolean(successMessage)"
+              :disabled="loading || codeSent"
+            />
+          </label>
+          <label>
+            Confirm Password
+            <Password
+              v-model="confirmPassword"
+              :feedback="false"
+              toggle-mask
+              placeholder="再輸入一次密碼"
+              input-class="field"
+              :disabled="loading || codeSent"
+            />
+          </label>
+          <label v-if="codeSent">
+            驗證碼
+            <InputText
+              v-model="code"
+              type="text"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="6 位數驗證碼"
+              class="field"
+              :disabled="loading"
             />
           </label>
 
           <p v-if="errorMessage" class="form-message is-error" role="alert">
             {{ errorMessage }}
           </p>
-          <p v-else-if="successMessage" class="form-message is-success" role="status">
-            {{ successMessage }}
+          <p v-else-if="infoMessage" class="form-message is-success" role="status">
+            {{ infoMessage }}
           </p>
 
           <Button
             type="submit"
-            label="註冊"
+            :label="codeSent ? '完成驗證' : '註冊'"
             class="submit-btn"
             :loading="loading"
             :disabled="!canSubmit"
+          />
+          <Button
+            v-if="codeSent"
+            type="button"
+            label="重寄驗證碼"
+            text
+            class="resend-btn"
+            :disabled="loading"
+            @click="onResend"
           />
         </form>
 
         <SocialAuthButtons
           mode="register"
-          :disabled="loading || Boolean(successMessage)"
+          :disabled="loading"
           @credential="onGoogleCredential"
           @error="onGoogleError"
         />
@@ -442,6 +565,11 @@ label {
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
     0 0 0 1px rgba(253, 230, 138, 0.28),
     0 14px 28px rgba(180, 83, 9, 0.28) !important;
+}
+
+.resend-btn {
+  align-self: center;
+  color: #fbbf24 !important;
 }
 
 .login-hint {

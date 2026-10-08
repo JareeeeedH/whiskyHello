@@ -7,6 +7,7 @@ import type {
   PublicUser,
   RegisterPayload,
   RegisterResponse,
+  VerifyRegistrationPayload,
 } from '../types/auth'
 
 export class AuthApiError extends Error {
@@ -75,6 +76,28 @@ export async function registerUser(
     return data
   } catch (error) {
     throw toAuthApiError(error, '註冊失敗，請稍後再試')
+  }
+}
+
+export async function verifyRegistration(
+  payload: VerifyRegistrationPayload,
+): Promise<LoginResponse> {
+  try {
+    const { data } = await apiClient.post<LoginResponse>(
+      '/auth/register/verify',
+      payload,
+    )
+    return data
+  } catch (error) {
+    throw toAuthApiError(error, '驗證失敗，請稍後再試')
+  }
+}
+
+export async function resendRegistrationCode(email: string): Promise<void> {
+  try {
+    await apiClient.post('/auth/register/resend', { email })
+  } catch (error) {
+    throw toAuthApiError(error, '重寄驗證碼失敗，請稍後再試')
   }
 }
 

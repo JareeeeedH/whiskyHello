@@ -30,6 +30,31 @@ export const loginSchema = Joi.object({
   }),
 })
 
+const emailField = Joi.string().trim().lowercase().email().max(254).required().messages({
+  'string.email': 'Email must be a valid email address',
+  'string.empty': 'Email is required',
+  'any.required': 'Email is required',
+})
+
+const codeField = Joi.string()
+  .trim()
+  .pattern(/^\d{6}$/)
+  .required()
+  .messages({
+    'string.pattern.base': 'Verification code must be 6 digits',
+    'string.empty': 'Verification code is required',
+    'any.required': 'Verification code is required',
+  })
+
+export const verifyRegistrationSchema = Joi.object({
+  email: emailField,
+  code: codeField,
+})
+
+export const resendRegistrationCodeSchema = Joi.object({
+  email: emailField,
+})
+
 export const googleLoginSchema = Joi.object({
   credential: Joi.string().trim().min(1).required().messages({
     'string.empty': 'Google credential is required',
@@ -46,6 +71,15 @@ export type RegisterBody = {
 export type LoginBody = {
   email: string
   password: string
+}
+
+export type VerifyRegistrationBody = {
+  email: string
+  code: string
+}
+
+export type ResendRegistrationCodeBody = {
+  email: string
 }
 
 export type GoogleLoginBody = {

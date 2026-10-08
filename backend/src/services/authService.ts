@@ -1,3 +1,6 @@
+import { createHmac, randomInt, timingSafeEqual } from 'node:crypto'
+import { env } from '../config/env'
+import { PendingRegistration } from '../models/PendingRegistration'
 import { User } from '../models/User'
 import type { PublicUser } from '../types/user'
 import { AppError } from '../utils/AppError'
@@ -8,13 +11,23 @@ import type {
   GoogleLoginBody,
   LoginBody,
   RegisterBody,
+  ResendRegistrationCodeBody,
+  VerifyRegistrationBody,
 } from '../validations/authValidation'
 import {
   verifyGoogleIdToken,
   type GoogleIdentity,
 } from './googleAuthService'
+import { sendVerificationCode } from './mailService'
+
+const CODE_TTL_MS = 10 * 60 * 1000
+const PENDING_TTL_MS = 60 * 60 * 1000
+const RESEND_COOLDOWN_MS = 90 * 1000
 
 const INVALID_CREDENTIALS = 'Invalid email or password'
+const EMAIL_ALREADY_REGISTERED = 'Email is already registered'
+const INVALID_VERIFICATION_CODE = 'Invalid or expired verification code'
+const RESEND_TOO_SOON = 'Please wait 90 seconds before requesting another code'
 const GOOGLE_EMAIL_CONFLICT =
   'An account with this email already exists. Please sign in with email and password.'
 
@@ -48,26 +61,113 @@ function isDuplicateGoogleIdError(error: unknown): boolean {
   return err.code === 11000 && Boolean(err.keyPattern?.googleId)
 }
 
-export async function registerUser(input: RegisterBody): Promise<PublicUser> {
-  const passwordHash = await hashPassword(input.password)
+function generateVerificationCode(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, '0')
+}
 
+function hashVerificationCode(email: string, code: string): string {
+  return createHmac('sha256', env.jwtSecret).update(`${email}:${code}`).digest('hex')
+}
+
+function codeMatches(email: string, code: string, codeHash: string): boolean {
+  const actual = Buffer.from(hashVerificationCode(email, code), 'hex')
+  const expected = Buffer.from(codeHash, 'hex')
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
+}
+
+function assertResendCooldownPassed(lastSentAt: Date | undefined, now: number): void {
+  if (lastSentAt && now - lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+    throw new AppError(429, RESEND_TOO_SOON)
+  }
+}
+
+/** Sends a new code first, then stores it; nothing is saved when sending fails. */
+async function sendCodeAndSavePending(
+  email: string,
+  fields: { name?: string; passwordHash?: string },
+): Promise<void> {
+  const code = generateVerificationCode()
+  await sendVerificationCode(email, code, 'register')
+
+  const now = Date.now()
+  await PendingRegistration.updateOne(
+    { email },
+    {
+      $set: {
+        ...fields,
+        codeHash: hashVerificationCode(email, code),
+        codeExpiresAt: new Date(now + CODE_TTL_MS),
+        lastSentAt: new Date(now),
+        expiresAt: new Date(now + PENDING_TTL_MS),
+      },
+    },
+    { upsert: Boolean(fields.passwordHash) },
+  )
+}
+
+/** Starts email/password sign-up: no User is created until the code is verified. */
+export async function registerUser(input: RegisterBody): Promise<{ email: string }> {
+  if (await User.exists({ email: input.email })) {
+    throw new AppError(409, EMAIL_ALREADY_REGISTERED)
+  }
+
+  const pending = await PendingRegistration.findOne({ email: input.email })
+  assertResendCooldownPassed(pending?.lastSentAt, Date.now())
+
+  const passwordHash = await hashPassword(input.password)
+  await sendCodeAndSavePending(input.email, { name: input.name, passwordHash })
+
+  return { email: input.email }
+}
+
+export async function resendRegistrationCode(
+  input: ResendRegistrationCodeBody,
+): Promise<void> {
+  const pending = await PendingRegistration.findOne({ email: input.email })
+  if (!pending) {
+    return
+  }
+
+  assertResendCooldownPassed(pending.lastSentAt, Date.now())
+  await sendCodeAndSavePending(input.email, {})
+}
+
+export async function verifyRegistration(
+  input: VerifyRegistrationBody,
+): Promise<{ token: string; user: PublicUser }> {
+  const pending = await PendingRegistration.findOne({ email: input.email }).select(
+    '+passwordHash +codeHash',
+  )
+
+  if (
+    !pending ||
+    pending.codeExpiresAt.getTime() <= Date.now() ||
+    !codeMatches(input.email, input.code, pending.codeHash)
+  ) {
+    throw new AppError(400, INVALID_VERIFICATION_CODE)
+  }
+
+  let user
   try {
     // role is never taken from the client; new accounts are always 'user'.
-    const user = await User.create({
-      name: input.name,
-      email: input.email,
-      passwordHash,
+    user = await User.create({
+      name: pending.name,
+      email: pending.email,
+      passwordHash: pending.passwordHash,
       role: 'user',
     })
-
-    return toPublicUser(user)
   } catch (error) {
     if (isDuplicateEmailError(error)) {
-      throw new AppError(409, 'Email is already registered')
+      await PendingRegistration.deleteOne({ _id: pending._id })
+      throw new AppError(409, EMAIL_ALREADY_REGISTERED)
     }
-
     throw error
   }
+
+  await PendingRegistration.deleteOne({ _id: pending._id })
+
+  const token = signAccessToken({ userId: user._id.toString() })
+  return { token, user: toPublicUser(user) }
 }
 
 export async function loginUser(
@@ -107,6 +207,7 @@ export async function loginWithGoogle(
   input: GoogleLoginBody,
 ): Promise<{ token: string; user: PublicUser }> {
   const identity = await googleTokenVerifier(input.credential)
+  await PendingRegistration.deleteOne({ email: identity.email })
 
   const existingByGoogle = await User.findOne({ googleId: identity.sub })
   if (existingByGoogle) {

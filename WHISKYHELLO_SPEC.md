@@ -369,10 +369,26 @@ User 1 ───── N Review N ───── 1 Static Whisky
 
 ```http
 POST   /api/v1/auth/register
+POST   /api/v1/auth/register/verify
+POST   /api/v1/auth/register/resend
 POST   /api/v1/auth/login
 POST   /api/v1/auth/google
 GET    /api/v1/auth/me
 ```
+
+### Email Registration Verification
+
+- Email／密碼註冊需先通過 6 位數 Email 驗證碼，驗證成功後才建立 User
+- `POST /api/v1/auth/register`：資料先存入 `PendingRegistration`（密碼與驗證碼皆只存雜湊），寄出驗證碼後回傳 202；Email 已是正式會員時回傳 409
+- `POST /api/v1/auth/register/verify`：接收 `email`、`code`，正確時建立 `user` 帳號、刪除暫存資料並回傳 JWT（直接登入）；錯誤或過期回傳 400
+- `POST /api/v1/auth/register/resend`：重寄驗證碼，舊驗證碼作廢；無論該 Email 是否有待驗證資料都回傳相同訊息
+- 驗證碼 10 分鐘有效；同一 Email 寄送間隔至少 90 秒，未滿時回傳 429
+- 暫存資料在最後一次寄送 1 小時後自動刪除（MongoDB TTL）
+- 同一 Email 尚在暫存中再次註冊時，以新資料覆蓋並重寄驗證碼
+- 寄信失敗回傳 503，不儲存暫存資料；前端顯示「驗證信寄送失敗，請稍後再試」
+- 驗證碼透過 Gmail（`SMTP_USER`／`SMTP_PASS` 應用程式密碼）寄出；開發環境未設定時改印在後端 console
+- Register 頻率限制：同一 IP 每 30 分鐘 10 次（非正式環境 100 次）；Verify／Resend 沿用 Auth 頻率限制
+- Google 登入不需 Email 驗證；登入成功時刪除同 Email 的暫存註冊資料
 
 ### Google Login
 

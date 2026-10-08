@@ -5,8 +5,13 @@ import {
   fetchCurrentUser,
   loginUser,
   loginWithGoogle as loginWithGoogleApi,
+  verifyRegistration as verifyRegistrationApi,
 } from '../services/authService'
-import type { LoginPayload, PublicUser } from '../types/auth'
+import type {
+  LoginPayload,
+  PublicUser,
+  VerifyRegistrationPayload,
+} from '../types/auth'
 import { resolveUserRole } from '../types/auth'
 
 function normalizeUser(raw: PublicUser): PublicUser {
@@ -68,6 +73,11 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
+  async function verifyRegistration(payload: VerifyRegistrationPayload) {
+    const result = await verifyRegistrationApi(payload)
+    setSession(result.token, result.user)
+    return result
+  }
   function logout() {
     clearSession()
   }
@@ -112,6 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession,
     login,
     loginWithGoogle,
+    verifyRegistration,
     logout,
     restoreSession,
   }

@@ -4,6 +4,8 @@ import type {
   GoogleLoginBody,
   LoginBody,
   RegisterBody,
+  ResendRegistrationCodeBody,
+  VerifyRegistrationBody,
 } from '../validations/authValidation'
 
 export async function register(
@@ -13,8 +15,38 @@ export async function register(
 ): Promise<void> {
   try {
     const body = req.body as RegisterBody
-    const user = await authService.registerUser(body)
-    res.status(201).json({ user })
+    const result = await authService.registerUser(body)
+    res.status(202).json({ message: 'Verification code sent', email: result.email })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function verifyRegistration(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const body = req.body as VerifyRegistrationBody
+    const result = await authService.verifyRegistration(body)
+    res.status(201).json(result)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function resendRegistrationCode(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const body = req.body as ResendRegistrationCodeBody
+    await authService.resendRegistrationCode(body)
+    res.status(200).json({
+      message: 'If this email has a pending registration, a new code has been sent',
+    })
   } catch (error) {
     next(error)
   }

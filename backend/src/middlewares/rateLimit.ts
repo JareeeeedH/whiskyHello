@@ -71,6 +71,13 @@ export const authRateLimit = rateLimit({
   message: 'Too many authentication attempts, please try again later',
 })
 
+/** Endpoints that email a verification code; counted per path. */
+export const emailCodeRateLimit = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  max: env.isProduction ? 10 : 100,
+  message: 'Too many requests, please try again later',
+})
+
 /** Sommelier preference endpoint: may call a paid LLM API, so cap per-client usage. */
 export const sommelierRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,

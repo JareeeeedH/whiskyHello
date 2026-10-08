@@ -18,7 +18,9 @@ import {
   loginWithGoogle,
   registerUser,
   setGoogleTokenVerifierForTests,
+  verifyRegistration,
 } from '../services/authService'
+import { setVerificationCodeMailerForTests } from '../services/mailService'
 import { registerSchema } from '../validations/authValidation'
 import {
   connectTestDatabase,
@@ -91,13 +93,20 @@ describe('registerSchema role stripping', () => {
 describe('Admin RBAC', () => {
   it('register always creates role user even if role=admin is attempted', async () => {
     const email = `qa-role-register-${Date.now()}@example.com`
-    const user = await registerUser({
+    let sentCode = ''
+    setVerificationCodeMailerForTests(async (_to, code) => {
+      sentCode = code
+    })
+
+    await registerUser({
       name: 'Role Register',
       email,
       password: 'password12345',
       // @ts-expect-error intentional malicious client field
       role: 'admin',
     })
+    const { user } = await verifyRegistration({ email, code: sentCode })
+    setVerificationCodeMailerForTests(null)
     createdUserIds.push(user.id)
 
     assert.equal(user.role, 'user')

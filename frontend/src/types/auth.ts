@@ -18,9 +18,14 @@ export interface RegisterPayload {
 }
 
 export interface RegisterResponse {
-  user: PublicUser
+  message: string
+  email: string
 }
 
+export interface VerifyRegistrationPayload {
+  email: string
+  code: string
+}
 export interface LoginPayload {
   email: string
   password: string

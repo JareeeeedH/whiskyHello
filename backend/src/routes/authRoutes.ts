@@ -1,17 +1,38 @@
 import { Router } from 'express'
-import { googleLogin, login, me, register } from '../controllers/authController'
+import {
+  googleLogin,
+  login,
+  me,
+  register,
+  resendRegistrationCode,
+  verifyRegistration,
+} from '../controllers/authController'
 import { authenticate } from '../middlewares/auth'
-import { authRateLimit } from '../middlewares/rateLimit'
+import { authRateLimit, emailCodeRateLimit } from '../middlewares/rateLimit'
 import { validate } from '../middlewares/validate'
 import {
   googleLoginSchema,
   loginSchema,
   registerSchema,
+  resendRegistrationCodeSchema,
+  verifyRegistrationSchema,
 } from '../validations/authValidation'
 
 const router = Router()
 
-router.post('/register', authRateLimit, validate(registerSchema), register)
+router.post('/register', emailCodeRateLimit, validate(registerSchema), register)
+router.post(
+  '/register/verify',
+  authRateLimit,
+  validate(verifyRegistrationSchema),
+  verifyRegistration,
+)
+router.post(
+  '/register/resend',
+  authRateLimit,
+  validate(resendRegistrationCodeSchema),
+  resendRegistrationCode,
+)
 router.post('/login', authRateLimit, validate(loginSchema), login)
 router.post(
   '/google',

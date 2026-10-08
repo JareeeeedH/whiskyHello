@@ -70,6 +70,14 @@ export function resolveOpenAIConfig(): { apiKey: string; model: string } {
   }
 }
 
+/** Live read of Gmail SMTP credentials (app password). Empty strings mean "not configured". */
+export function resolveSmtpConfig(): { user: string; pass: string } {
+  return {
+    user: process.env.SMTP_USER?.trim() ?? '',
+    pass: process.env.SMTP_PASS?.replace(/\s+/g, '') ?? '',
+  }
+}
+
 const nodeEnv = readNodeEnv()
 
 export const env = {

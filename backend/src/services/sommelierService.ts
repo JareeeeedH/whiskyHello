@@ -83,9 +83,9 @@ export function sanitizeExtraction(raw: unknown): PreferenceExtraction {
 }
 
 /**
- * Merges the slider input with the validated extraction. Taste and style are
- * explicit user ratings and are never changed or filled in by freeText. Budget keeps its
- * existing rule: each bound the LLM extracted overrides the slider value.
+ * Merges the conversation input with the validated extraction. Taste and style are
+ * explicit user ratings and are never changed or filled in by freeText. For budget
+ * and occasion, what the LLM extracted from freeText overrides the picked value.
  */
 export function mergePreference(
   input: SommelierInput,
@@ -103,8 +103,9 @@ export function mergePreference(
   if (budget) {
     preference.budget = budget
   }
-  if (extraction.occasion) {
-    preference.occasion = extraction.occasion
+  const occasion = extraction.occasion ?? input.occasion
+  if (occasion) {
+    preference.occasion = occasion
   }
   if (extraction.mood) {
     preference.mood = extraction.mood

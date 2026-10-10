@@ -5,13 +5,13 @@ import type {
 } from '../types/sommelier.ts'
 
 export const PREFERENCE_OCCASION_LABELS: Record<PreferenceOccasion, string> = {
-  relaxing: '放鬆、獨飲',
-  social: '聚會、朋友小酌',
+  relaxing: '放鬆獨飲',
+  tasting: '專心品飲',
+  social: '朋友聚會',
   meal: '搭配餐點',
+  date: '伴侶約會',
   gift: '送禮',
-  beginner: '入門、第一次嘗試',
-  premium: '特別場合、想喝好一點',
-  date: '約會',
+  celebration: '慶祝時刻',
 }
 
 export const MOOD_LABELS: Record<SommelierMood, string> = {

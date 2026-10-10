@@ -1,11 +1,12 @@
 import Joi from 'joi'
 import {
+  OCCASIONS,
   PREFERENCE_SCALE_MAX,
   PREFERENCE_SCALE_MIN,
   STYLE_KEYS,
-  TASTE_GROUPS,
   TASTE_KEYS,
-  TASTE_PICKS_PER_GROUP,
+  TASTE_PICKS_MAX,
+  TASTE_PICKS_MIN,
 } from '../types/sommelier'
 import type { SommelierInput } from '../types/sommelier'
 
@@ -27,23 +28,24 @@ const ratingValue = (label: string) =>
       'any.required': `${label} is required`,
     })
 
-/** Taste holds only the picked tastes: exactly 3 from each group of six. */
+/**
+ * Taste holds only the picked tastes, 3–5 of them, each rated. Unknown keys
+ * (including the retired driedFruit, citrus and vanillaCaramel) are rejected
+ * rather than stripped, so a stale client can't slip through with fewer picks.
+ */
 const tasteSchema = Joi.object(
   Object.fromEntries(TASTE_KEYS.map((key) => [key, ratingValue(`Taste ${key}`)])),
 )
   .required()
-  .custom((taste: Record<string, unknown>, helpers) => {
-    const picksPerGroup = TASTE_GROUPS.map(
-      (group) => group.filter((key) => taste[key] !== undefined).length,
-    )
-    return picksPerGroup.every((count) => count === TASTE_PICKS_PER_GROUP)
-      ? taste
-      : helpers.error('taste.picks')
-  })
+  .min(TASTE_PICKS_MIN)
+  .max(TASTE_PICKS_MAX)
+  .prefs({ stripUnknown: false })
   .messages({
     'object.base': 'Taste must be an object',
     'any.required': 'Taste is required',
-    'taste.picks': `Taste must rate exactly ${TASTE_PICKS_PER_GROUP} flavors from each group`,
+    'object.min': `Taste must rate ${TASTE_PICKS_MIN}–${TASTE_PICKS_MAX} flavors`,
+    'object.max': `Taste must rate ${TASTE_PICKS_MIN}–${TASTE_PICKS_MAX} flavors`,
+    'object.unknown': 'Taste {#key} is not a supported flavor',
   })
 
 const styleSchema = Joi.object(
@@ -67,6 +69,13 @@ const budgetValue = (label: string) =>
 export const preferenceRequestSchema = Joi.object({
   taste: tasteSchema,
   style: styleSchema,
+  occasion: Joi.string()
+    .valid(...OCCASIONS)
+    .messages({
+      'string.base': 'Occasion must be a string',
+      'string.empty': 'Occasion is not supported',
+      'any.only': 'Occasion is not supported',
+    }),
   budget: Joi.object({
     min: budgetValue('min'),
     max: budgetValue('max'),

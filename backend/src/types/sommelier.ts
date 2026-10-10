@@ -1,11 +1,9 @@
-/** Taste dimensions rated by the user, in the order the UI asks them. */
+/** Taste dimensions, in the order the UI shows them. */
 export const TASTE_KEYS = [
-  'sweet',
   'fruit',
-  'driedFruit',
-  'citrus',
+  'sweet',
   'floral',
-  'vanillaCaramel',
+  'maltGrain',
   'nutty',
   'chocolateCoffee',
   'spice',
@@ -14,25 +12,29 @@ export const TASTE_KEYS = [
   'smoke',
 ] as const
 
-/** The UI shows the taste keys in two groups of six; the user picks and rates 3 from each. */
-export const TASTE_GROUPS = [TASTE_KEYS.slice(0, 6), TASTE_KEYS.slice(6)] as const
-export const TASTE_PICKS_PER_GROUP = 3
+/** The user picks this many tastes in total, then rates how pronounced each should be. */
+export const TASTE_PICKS_MIN = 3
+export const TASTE_PICKS_MAX = 5
 
 /** Drinking-style dimensions rated by the user. */
 export const STYLE_KEYS = ['body', 'intensity', 'smoothness'] as const
 
-/** Every taste and style rating is an integer on this scale (1 = least, 10 = most). */
+/**
+ * Every taste and style rating is an integer on this scale. For a taste it is how
+ * pronounced it should be: 1 a light touch, 5 clearly noticeable, 10 the main flavor.
+ */
 export const PREFERENCE_SCALE_MIN = 1
 export const PREFERENCE_SCALE_MAX = 10
 
+/** Picked by the user in the conversation, or extracted from freeText. */
 export const OCCASIONS = [
   'relaxing',
+  'tasting',
   'social',
   'meal',
-  'gift',
-  'beginner',
-  'premium',
   'date',
+  'gift',
+  'celebration',
 ] as const
 
 export const MOODS = ['positive', 'neutral', 'low', 'stressed'] as const
@@ -46,7 +48,7 @@ export type Mood = (typeof MOODS)[number]
 export type Companion = (typeof COMPANIONS)[number]
 
 /**
- * Only the tastes the user picked and rated. A missing key means "not provided":
+ * Only the 3–5 tastes the user picked and rated. A missing key means "not specified":
  * it is never a low (1) or neutral (5) rating.
  */
 export type TasteProfile = Partial<Record<TasteKey, number>>
@@ -61,6 +63,8 @@ export interface PreferenceBudget {
 export interface SommelierInput {
   taste: TasteProfile
   style: StyleProfile
+  /** Omitted when the user picks "no particular occasion". */
+  occasion?: Occasion
   budget?: PreferenceBudget
   freeText?: string
 }
@@ -73,7 +77,7 @@ export interface PreferenceExtraction {
   companion?: Companion
 }
 
-/** Final Preference: ratings as entered (unpicked tastes stay absent), plus budget and freeText context. */
+/** Final Preference: ratings as entered (unpicked tastes stay absent), plus budget, occasion and freeText context. */
 export interface Preference {
   taste: TasteProfile
   style: StyleProfile

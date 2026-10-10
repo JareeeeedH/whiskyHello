@@ -24,14 +24,12 @@ import { buildPreference, mergePreference, sanitizeExtraction } from './sommelie
 const originalModel = process.env.OPENAI_MODEL
 const originalKey = process.env.OPENAI_API_KEY
 
-/** 3 picked tastes from each group; the other six are not provided. */
+/** 4 picked tastes; the other six are not specified. */
 const TASTE: TasteProfile = {
-  sweet: 8,
   fruit: 9,
   floral: 6,
-  chocolateCoffee: 8,
+  maltGrain: 7,
   peat: 2,
-  smoke: 1,
 }
 
 const STYLE: StyleProfile = { body: 8, intensity: 6, smoothness: 9 }
@@ -112,17 +110,17 @@ describe('buildPreference without freeText', () => {
   it('keeps unpicked tastes absent: not 1, not 5', async () => {
     const preference = await buildPreference(input())
 
-    for (const key of ['driedFruit', 'citrus', 'vanillaCaramel', 'nutty', 'spice', 'oak']) {
+    for (const key of ['sweet', 'nutty', 'chocolateCoffee', 'spice', 'oak', 'smoke']) {
       assert.equal(key in preference.taste, false, key)
     }
   })
 
   it('orders the picked tastes canonically', async () => {
     const preference = await buildPreference(
-      input({ taste: { smoke: 1, floral: 6, sweet: 8, peat: 2, fruit: 9, chocolateCoffee: 8 } }),
+      input({ taste: { smoke: 1, floral: 6, sweet: 8, maltGrain: 4, fruit: 9 } }),
     )
 
-    assert.deepEqual(Object.keys(preference.taste), ['sweet', 'fruit', 'floral', 'chocolateCoffee', 'peat', 'smoke'])
+    assert.deepEqual(Object.keys(preference.taste), ['fruit', 'sweet', 'floral', 'maltGrain', 'smoke'])
   })
 
   it('works without OpenAI configuration', async () => {
@@ -174,7 +172,7 @@ describe('buildPreference with freeText', () => {
   it('never lets freeText change the slider taste or style values', async () => {
     mockExtraction(
       llmOutput({
-        taste: { sweet: 1, smoke: 10 },
+        taste: { fruit: 1, smoke: 10 },
         style: { smoothness: 1 },
         dislikes: ['sweet'],
         intensity: { peaty: 100 },
@@ -277,7 +275,7 @@ describe('mergePreference', () => {
     assert.equal('budget' in mergePreference(input(), sanitizeExtraction(llmOutput())), false)
   })
 
-  it('takes occasion, mood and companion only from the LLM', () => {
+  it('takes mood and companion only from the LLM', () => {
     const preference = mergePreference(
       input(),
       sanitizeExtraction(llmOutput({ occasion: 'gift', mood: 'stressed', companion: 'family' })),
@@ -290,6 +288,22 @@ describe('mergePreference', () => {
     assert.equal('occasion' in empty, false)
     assert.equal('mood' in empty, false)
     assert.equal('companion' in empty, false)
+  })
+
+  it('keeps the picked occasion unless freeText states another one', () => {
+    const picked = input({ occasion: 'social' })
+    assert.equal(mergePreference(picked, {}).occasion, 'social')
+    assert.equal(mergePreference(picked, sanitizeExtraction(llmOutput())).occasion, 'social')
+    assert.equal(
+      mergePreference(picked, sanitizeExtraction(llmOutput({ occasion: 'date' }))).occasion,
+      'date',
+    )
+  })
+
+  it('drops retired occasions the LLM might still return', () => {
+    for (const occasion of ['beginner', 'premium']) {
+      assert.equal('occasion' in sanitizeExtraction(llmOutput({ occasion })), false, occasion)
+    }
   })
 })
 
@@ -387,11 +401,40 @@ describe('POST /api/v1/sommelier/preference', () => {
     assert.equal(result.status, 400)
   })
 
-  it('rejects taste that does not have exactly 3 picks per group', async () => {
-    const result = await post({ taste: { ...TASTE, oak: 5 }, style: STYLE })
+  it('rejects fewer than 3 or more than 5 tastes', async () => {
+    const tooFew = await post({ taste: { fruit: 9, peat: 2 }, style: STYLE })
+    const tooMany = await post({ taste: { ...TASTE, oak: 5, smoke: 5 }, style: STYLE })
+
+    for (const result of [tooFew, tooMany]) {
+      assert.equal(result.status, 400)
+      assert.ok(result.body.details.some((detail: string) => detail.includes('3–5 flavors')))
+    }
+  })
+
+  it('rejects retired and unknown taste keys instead of stripping them', async () => {
+    const legacy = await post({ taste: { fruit: 9, citrus: 6, vanillaCaramel: 7 }, style: STYLE })
+    const unknown = await post({ taste: { ...TASTE, salty: 5 }, style: STYLE })
+
+    for (const result of [legacy, unknown]) {
+      assert.equal(result.status, 400)
+      assert.ok(result.body.details.some((detail: string) => detail.includes('not a supported flavor')))
+    }
+  })
+
+  it('rejects a picked taste without a rating', async () => {
+    const result = await post({ taste: { ...TASTE, oak: null }, style: STYLE })
 
     assert.equal(result.status, 400)
-    assert.ok(result.body.details.some((detail: string) => detail.includes('exactly 3')))
+  })
+
+  it('returns the picked occasion, and rejects an unsupported one', async () => {
+    const picked = await post({ taste: TASTE, style: STYLE, occasion: 'celebration' })
+    assert.equal(picked.status, 200)
+    assert.equal(picked.body.preference.occasion, 'celebration')
+
+    const retired = await post({ taste: TASTE, style: STYLE, occasion: 'premium' })
+    assert.equal(retired.status, 400)
+    assert.ok(retired.body.details.some((detail: string) => detail.includes('Occasion is not supported')))
   })
 
   it('returns the full Preference profile without calling OpenAI', async () => {

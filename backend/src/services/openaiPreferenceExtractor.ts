@@ -66,7 +66,7 @@ Flavor and drinking-style preferences are set separately with sliders, so do not
 
 Fields:
 - budget: price bounds as written, without currency conversion. "2000 以內" means max 2000; "1000 以上" means min 1000. Use null for a bound that is not stated, and null for budget if no price is mentioned.
-- occasion: relaxing (放鬆/獨飲), social (聚會/朋友小酌), meal (搭配餐點), gift (送禮), beginner (入門/第一次喝), premium (特別場合/想喝好一點), date (約會).
+- occasion: relaxing (放鬆/獨飲), tasting (專心品飲/細細品嚐), social (朋友聚會/小酌), meal (搭配餐點), date (伴侶/約會), gift (送禮), celebration (慶祝/特別的日子).
 - mood: positive (開心/想慶祝), neutral (平常), low (低落/疲憊), stressed (壓力大/焦慮). Only when the user describes how they feel.
 - companion: alone (一個人), friend (朋友), date (約會對象), partner (伴侶), family (家人).
 

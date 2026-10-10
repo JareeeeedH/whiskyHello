@@ -1,5 +1,7 @@
 import type {
+  OccasionChoice,
   Preference,
+  PreferenceOccasion,
   SommelierBudget,
   SommelierCompanion,
   SommelierInputDraft,
@@ -10,6 +12,7 @@ import type {
   TasteProfile,
 } from '../types/sommelier.ts'
 import {
+  OCCASION_OPTIONS,
   RATING_MAX,
   STYLE_KEYS,
   STYLE_LABELS,
@@ -26,29 +29,30 @@ import { PREFERENCE_OCCASION_LABELS } from './sommelierPreference.ts'
  * the real Preference, and nothing here calls the LLM.
  */
 
-export type ConversationStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-
-export const CONVERSATION_STEPS = 9
+/** 1-based position of a question in the conversation. */
+export type ConversationStep = number
 
 /** What each question asks for; `group` indexes TASTE_GROUPS. */
 export type StepKind =
   | { type: 'pickTaste'; group: number }
-  | { type: 'rateTaste'; group: number }
+  | { type: 'rateTaste' }
   | { type: 'style'; key: StyleKey }
+  | { type: 'occasion' }
   | { type: 'budget' }
   | { type: 'freeText' }
 
-export const STEP_KINDS: Record<ConversationStep, StepKind> = {
-  1: { type: 'pickTaste', group: 0 },
-  2: { type: 'rateTaste', group: 0 },
-  3: { type: 'pickTaste', group: 1 },
-  4: { type: 'rateTaste', group: 1 },
-  5: { type: 'style', key: 'body' },
-  6: { type: 'style', key: 'intensity' },
-  7: { type: 'style', key: 'smoothness' },
-  8: { type: 'budget' },
-  9: { type: 'freeText' },
-}
+/**
+ * Both taste groups, one question rating all picked tastes together,
+ * then style one at a time, occasion, budget and free text.
+ */
+export const CONVERSATION_STEPS: readonly StepKind[] = [
+  ...TASTE_GROUPS.map((_, group): StepKind => ({ type: 'pickTaste', group })),
+  { type: 'rateTaste' },
+  ...STYLE_KEYS.map((key): StepKind => ({ type: 'style', key })),
+  { type: 'occasion' },
+  { type: 'budget' },
+  { type: 'freeText' },
+]
 
 /** How long the "Sommelier is on the way" state stays before the conversation opens. */
 export const SOMMELIER_ARRIVAL_MS = 3000
@@ -68,19 +72,37 @@ export function getSommelierGreeting(hour: number): string {
   return '這麼晚還沒睡呀，我是今晚的侍酒師。先聊聊你想喝的感覺。'
 }
 
-export const SOMMELIER_QUESTIONS: Record<ConversationStep, { title: string; hint?: string }> = {
-  1: { title: '這次想喝到哪些風味？', hint: '挑 3 種最吸引你的。' },
-  2: { title: '好，我們再聊聊這幾種風味，你各有多喜歡？', hint: '1 是幾乎不喜歡，10 是非常喜歡。' },
-  3: { title: '還有這幾種風味，也來看看哪些比較吸引你。', hint: '一樣挑 3 種。' },
-  4: { title: '那這三種呢？各給個分數吧。' },
-  5: { title: '你喜歡什麼樣的酒體？' },
-  6: { title: '你偏好柔和一點，還是風味更鮮明的酒？', hint: '指的是整體風味的強弱，不是酒精濃度。' },
-  7: { title: '你比較喜歡圓潤順口，還是帶點粗獷個性的口感？' },
-  8: { title: '這次大概想把預算控制在哪裡？' },
-  9: {
-    title: '還有什麼想告訴我的嗎？',
-    hint: '可以告訴我今晚的心情、場合，或任何你想補充的需求。',
-  },
+export interface QuestionPrompt {
+  title: string
+  hint?: string
+}
+
+const STYLE_QUESTIONS: Record<StyleKey, QuestionPrompt> = {
+  body: { title: '你喜歡什麼樣的酒體？' },
+  intensity: { title: '你偏好柔和一點，還是風味更鮮明的酒？', hint: '指的是整體風味的強弱，不是酒精濃度。' },
+  smoothness: { title: '你比較喜歡圓潤順口，還是帶點粗獷個性的口感？' },
+}
+
+export function getQuestion(kind: StepKind): QuestionPrompt {
+  switch (kind.type) {
+    case 'pickTaste':
+      return kind.group === 0
+        ? { title: '這次，你最想在威士忌中喝到哪些風味？', hint: '選 3～4 種就好，挑出這次最想感受到的味道。' }
+        : { title: '再看看這幾種，有沒有也想喝到的？', hint: '兩組加起來選 3～5 種，這組沒有也沒關係。' }
+    case 'rateTaste':
+      return {
+        title: '你希望這些風味在這杯威士忌中各有多明顯？',
+        hint: '1 是淡淡帶到即可，5 是明顯感受得到，10 是希望成為主要風味。',
+      }
+    case 'style':
+      return STYLE_QUESTIONS[kind.key]
+    case 'occasion':
+      return { title: '這次是在什麼情境下喝呢？', hint: '選一個最接近的就好。' }
+    case 'budget':
+      return { title: '這次大概想把預算控制在哪裡？' }
+    case 'freeText':
+      return { title: '還有什麼想告訴我的嗎？', hint: '可以告訴我今晚的心情、場合，或任何你想補充的需求。' }
+  }
 }
 
 /** Pause between the user's message landing and the thinking state appearing. */
@@ -108,23 +130,20 @@ export interface ThinkingCue {
   durationMs: number
 }
 
-export type ThinkingMoment = 'opening' | ConversationStep | 'retry' | 'profile'
+export type ThinkingMoment = 'opening' | StepKind['type'] | 'retry' | 'profile'
 
 /**
- * Keyed by the step just answered; the last one covers the Preference request.
+ * Keyed by the kind of question just answered; `freeText` covers the Preference request.
  * One line is picked at random each time; '' shows the dots on their own.
  */
 const THINKING_CUES: Record<ThinkingMoment, { texts: string[]; durationMs: number }> = {
   opening: { texts: [''], durationMs: 1000 },
-  1: { texts: ['', '嗯，這幾個不錯…', '我看看…'], durationMs: 900 },
-  2: { texts: ['嗯，讓我看看…', '我記一下…', '好，我想想…'], durationMs: 1200 },
-  3: { texts: ['', '嗯…', '我看看…'], durationMs: 900 },
-  4: { texts: ['好，記下了…', '嗯，有點輪廓了…', '我整理一下…'], durationMs: 1200 },
-  5: { texts: ['', '嗯…', '好…'], durationMs: 900 },
-  6: { texts: ['', '嗯…', '了解…'], durationMs: 900 },
-  7: { texts: ['', '好…', '我記一下…'], durationMs: 1000 },
-  8: { texts: ['', '了解…', '我記一下…'], durationMs: 900 },
-  9: {
+  pickTaste: { texts: ['', '嗯，這幾個不錯…', '我看看…'], durationMs: 900 },
+  rateTaste: { texts: ['好，記下了…', '嗯，有點輪廓了…', '我想想…'], durationMs: 1200 },
+  style: { texts: ['', '嗯…', '了解…'], durationMs: 900 },
+  occasion: { texts: ['', '好的…', '了解…'], durationMs: 900 },
+  budget: { texts: ['', '了解…', '我記一下…'], durationMs: 900 },
+  freeText: {
     texts: ['嗯，我大概抓到你的方向了…', '好，我差不多有個方向了…', '讓我把這些拼起來…'],
     durationMs: 1700,
   },
@@ -205,7 +224,7 @@ const COMPANION_CONTEXT: Record<SommelierCompanion, string> = {
   family: '和家人一起',
 }
 
-/** Rated tastes in a band; unrated tastes are unknown and never counted. */
+/** Rated tastes in a band; unrated tastes are unspecified and never counted. */
 function tastesInBand(taste: TasteProfile, band: RatingBand): string[] {
   return TASTE_KEYS.filter((key) => {
     const value = taste[key]
@@ -223,7 +242,7 @@ export function composeClosingMessage(preference: Preference): string[] {
     parts.push(`${high.join('、')}為主`)
   }
   if (low.length > 0) {
-    parts.push(`${low.join('、')}少一點`)
+    parts.push(`${low.join('、')}淡淡帶到`)
   }
   parts.push(
     ...STYLE_KEYS.map((key) => ({ key, band: ratingBand(preference.style[key]) }))
@@ -254,16 +273,25 @@ export function composeClosingMessage(preference: Preference): string[] {
   ]
 }
 
+export const SKIPPED_TASTE_GROUP_ANSWER = '這組先跳過'
+
+/** The picks made in one group; an empty group is a skip, not an error. */
 export function describeTastePicks(keys: readonly TasteKey[]): string[] {
-  return [keys.map((key) => TASTE_LABELS[key]).join(' · ')]
+  return [keys.length > 0 ? keys.map((key) => TASTE_LABELS[key]).join(' · ') : SKIPPED_TASTE_GROUP_ANSWER]
 }
 
-export function describeTasteRatings(taste: TasteProfile, keys: readonly TasteKey[]): string[] {
-  return [keys.map((key) => `${TASTE_LABELS[key]} ${taste[key]}`).join(' · ')]
+/** Every picked taste with its rating, in display order. */
+export function describeTasteRatings(taste: TasteProfile): string[] {
+  return [pickedTastes(taste).map((key) => `${TASTE_LABELS[key]} ${taste[key]}`).join(' · ')]
 }
 
 export function describeStyleAnswer(style: StyleProfile, key: StyleKey): string[] {
   return [`${STYLE_LABELS[key]} ${style[key]} / ${RATING_MAX}`]
+}
+
+export function describeOccasionAnswer(choice: OccasionChoice): string[] {
+  const option = OCCASION_OPTIONS.find((item) => item.value === choice)
+  return option ? [`${option.icon} ${option.label}`] : []
 }
 
 export function describeBudgetAnswer(max: number): string[] {
@@ -273,17 +301,24 @@ export function describeBudgetAnswer(max: number): string[] {
 /** At most this many short reactions per conversation, so they never feel scripted. */
 export const MAX_ACKNOWLEDGEMENTS = 3
 
-type AcknowledgementValues = Pick<SommelierInputDraft, 'taste' | 'style' | 'budget'>
+type AcknowledgementValues = Pick<SommelierInputDraft, 'taste' | 'style' | 'occasion' | 'budget'>
+
+const OCCASION_REACTIONS: Partial<Record<PreferenceOccasion, string>> = {
+  tasting: '專心品飲的話，就挑一支值得細細喝的。',
+  date: '約會啊，那就選一支氣氛好的。',
+  gift: '送禮的話，我會留意一下體面一點的。',
+  celebration: '慶祝的話，就來點特別的吧。',
+}
 
 const PICK_PAIRS: Record<number, { keys: [TasteKey, TasteKey]; lines: string[] }[]> = {
   0: [
-    { keys: ['citrus', 'floral'], lines: ['柑橘加花香，很清新的組合。', '柑橘跟花香，聽起來很明亮。'] },
-    { keys: ['sweet', 'vanillaCaramel'], lines: ['甜感配香草焦糖，走甜美路線。', '偏甜的香草焦糖調，懂了。'] },
-    { keys: ['fruit', 'driedFruit'], lines: ['新鮮水果加果乾，果香控呢。'] },
+    { keys: ['fruit', 'floral'], lines: ['果香加花香，很清新的組合。', '果香配花香，聽起來很明亮。'] },
+    { keys: ['sweet', 'maltGrain'], lines: ['甜香配麥芽，溫和好入口的方向。'] },
+    { keys: ['sweet', 'nutty'], lines: ['甜香加堅果，有點像剛烤好的點心。'] },
   ],
   1: [
     { keys: ['peat', 'smoke'], lines: ['喔，喜歡有煙燻個性的。', '泥煤加煙燻，有點重口味喔。'] },
-    { keys: ['nutty', 'chocolateCoffee'], lines: ['堅果配巧克力，很溫暖的味道。'] },
+    { keys: ['chocolateCoffee', 'spice'], lines: ['巧克力配香料，很溫暖的味道。'] },
     { keys: ['spice', 'oak'], lines: ['香料跟橡木，偏成熟穩重。'] },
   ],
 }
@@ -298,16 +333,19 @@ function pickLine(lines: string[], random: () => number): string | null {
   return lines[Math.floor(random() * lines.length)] ?? null
 }
 
-function reactToRatings(taste: TasteProfile, keys: TasteKey[], random: () => number): string | null {
+/** Reacts to the first very pronounced taste, else the first very light one. */
+function reactToRatings(taste: TasteProfile, random: () => number): string | null {
   if ((taste.peat ?? 0) >= 9) {
     return '泥煤給到這麼高，看來是重口味玩家。'
   }
-  const top = keys.find((key) => (taste[key] ?? 0) >= 9)
-  if (top) {
-    return pickLine([`看得出來你很愛${TASTE_LABELS[top]}。`, `${TASTE_LABELS[top]}給到這麼高，記住了。`], random)
+  const picked = pickedTastes(taste)
+  const main = picked.find((key) => (taste[key] ?? 0) >= 9)
+  if (main) {
+    const label = TASTE_LABELS[main]
+    return pickLine([`${label}要當主角，懂了。`, `那就讓${label}站到最前面。`], random)
   }
-  const bottom = keys.find((key) => (taste[key] ?? RATING_MAX) <= 2)
-  return bottom ? `${TASTE_LABELS[bottom]}就少一點，記下了。` : null
+  const light = picked.find((key) => (taste[key] ?? RATING_MAX) <= 2)
+  return light ? `${TASTE_LABELS[light]}淡淡帶到就好，記下了。` : null
 }
 
 /**
@@ -315,11 +353,10 @@ function reactToRatings(taste: TasteProfile, keys: TasteKey[], random: () => num
  * Scripted on purpose: no LLM call, so it's instant and predictable.
  */
 export function getAcknowledgement(
-  step: ConversationStep,
+  kind: StepKind,
   values: AcknowledgementValues,
   random: () => number = Math.random,
 ): string | null {
-  const kind = STEP_KINDS[step]
   switch (kind.type) {
     case 'pickTaste': {
       const picks = pickedTastes(values.taste, TASTE_GROUPS[kind.group] ?? [])
@@ -327,11 +364,15 @@ export function getAcknowledgement(
       return pair ? pickLine(pair.lines, random) : null
     }
     case 'rateTaste':
-      return reactToRatings(values.taste, pickedTastes(values.taste, TASTE_GROUPS[kind.group] ?? []), random)
+      return reactToRatings(values.taste, random)
     case 'style': {
       const band = ratingBand(values.style[kind.key])
       return band === 'mid' ? null : pickLine(STYLE_REACTIONS[kind.key][band], random)
     }
+    case 'occasion':
+      return values.occasion && values.occasion !== 'none'
+        ? (OCCASION_REACTIONS[values.occasion] ?? null)
+        : null
     case 'budget':
       if (values.budget >= 5000) return '這個預算可以挑到很不錯的酒。'
       if (values.budget <= 1500) return '這個價位也有不少好喝的選擇。'

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Preference } from '../types/sommelier'
-import { STYLE_KEYS, STYLE_LABELS, TASTE_KEYS, TASTE_LABELS } from '../utils/sommelierInput'
+import {
+  STYLE_KEYS,
+  STYLE_LABELS,
+  TASTE_KEYS,
+  TASTE_LABELS,
+  describeTasteLevel,
+} from '../utils/sommelierInput'
 import { formatBudget } from '../utils/sommelierConversation'
 import {
   COMPANION_LABELS,
@@ -13,7 +19,7 @@ const props = defineProps<{
   preference: Preference
 }>()
 
-/** Only the tastes the user picked and rated; the rest are unknown, not low. */
+/** Only the tastes the user picked and rated; the rest are unspecified, not low. */
 const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.taste[key] !== undefined))
 </script>
 
@@ -23,10 +29,11 @@ const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.t
 
     <dl class="profile-list">
       <div>
-        <dt>風味</dt>
+        <dt>想喝到的風味</dt>
         <dd>
           <span v-for="key in ratedTastes" :key="key" class="profile-tag is-taste">
             {{ TASTE_LABELS[key] }} <strong>{{ preference.taste[key] }}</strong>
+            <span class="taste-level">{{ describeTasteLevel(preference.taste[key] ?? 0) }}</span>
           </span>
         </dd>
       </div>
@@ -132,6 +139,11 @@ const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.t
   border: 1px solid #e3c48f;
   background: #fdf3df;
   color: #6f381c;
+}
+
+.taste-level {
+  color: #8f5a22;
+  font-size: 0.76rem;
 }
 
 .profile-tag strong,

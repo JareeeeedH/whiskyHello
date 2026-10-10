@@ -1,11 +1,9 @@
-/** Taste dimensions; the user picks 3 of each group of six and rates them 1–10. */
+/** Taste dimensions; the user picks 3–5 across two groups of five and rates each 1–10. */
 export type TasteKey =
-  | 'sweet'
   | 'fruit'
-  | 'driedFruit'
-  | 'citrus'
+  | 'sweet'
   | 'floral'
-  | 'vanillaCaramel'
+  | 'maltGrain'
   | 'nutty'
   | 'chocolateCoffee'
   | 'spice'
@@ -17,8 +15,9 @@ export type TasteKey =
 export type StyleKey = 'body' | 'intensity' | 'smoothness'
 
 /**
- * Only the picked tastes, rated 1 = 幾乎不喜歡 … 10 = 非常喜歡 (integers).
- * A missing key means "not provided": it is never a low (1) or neutral (5) rating.
+ * Only the 3–5 picked tastes, each rated by how pronounced it should be:
+ * 1 淡淡帶到即可, 5 明顯感受得到, 10 希望成為主要風味 (integers).
+ * A missing key means "not specified": it is never a low (1) or neutral (5) rating.
  */
 export type TasteProfile = Partial<Record<TasteKey, number>>
 
@@ -34,19 +33,26 @@ export interface SommelierBudget {
 export interface SommelierInput {
   taste: TasteProfile
   style: StyleProfile
+  /** Omitted for "no particular occasion". */
+  occasion?: PreferenceOccasion
   budget?: Pick<SommelierBudget, 'max'>
   freeText?: string
 }
+
+/** One occasion, or 'none' for "no particular occasion". */
+export type OccasionChoice = PreferenceOccasion | 'none'
 
 /** Raw values from the conversation; a taste key is present once picked and starts at 5. */
 export interface SommelierInputDraft {
   taste: TasteProfile
   style: StyleProfile
+  /** null until the occasion question is answered. */
+  occasion: OccasionChoice | null
   budget: number
   freeText: string
 }
 
-export type SommelierInputField = 'taste' | 'style' | 'budget' | 'freeText'
+export type SommelierInputField = 'taste' | 'style' | 'occasion' | 'budget' | 'freeText'
 
 export type SommelierInputErrors = Partial<Record<SommelierInputField, string>>
 
@@ -54,16 +60,17 @@ export type SommelierInputResult =
   | { ok: true; value: SommelierInput }
   | { ok: false; errors: SommelierInputErrors }
 
-/** Context the backend extracts from freeText. */
+/** Picked in the conversation; an occasion stated in freeText overrides it. */
 export type PreferenceOccasion =
   | 'relaxing'
+  | 'tasting'
   | 'social'
   | 'meal'
-  | 'gift'
-  | 'beginner'
-  | 'premium'
   | 'date'
+  | 'gift'
+  | 'celebration'
 
+/** Context the backend extracts from freeText. */
 export type SommelierMood = 'positive' | 'neutral' | 'low' | 'stressed'
 
 export type SommelierCompanion = 'alone' | 'friend' | 'date' | 'partner' | 'family'

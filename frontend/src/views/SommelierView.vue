@@ -7,6 +7,7 @@ import SommelierAvatar from '../components/SommelierAvatar.vue'
 import SommelierPreferenceProfile from '../components/SommelierPreferenceProfile.vue'
 import { SommelierApiError, fetchPreference } from '../services/sommelierService'
 import type {
+  OccasionChoice,
   Preference,
   SommelierInput,
   SommelierInputDraft,
@@ -18,17 +19,22 @@ import {
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
+  OCCASION_OPTIONS,
   RATING_DEFAULT,
   RATING_MAX,
   RATING_MIN,
   STYLE_LABELS,
   STYLE_SCALE_HINTS,
+  TASTE_EXAMPLES,
   TASTE_GROUPS,
   TASTE_LABELS,
-  TASTE_PICKS_PER_GROUP,
+  TASTE_PICKS_MAX,
+  TASTE_PICKS_MIN,
+  TASTE_SCALE_HINTS,
+  canPickMoreTastes,
   createEmptySommelierDraft,
   describeStyleRating,
-  describeTasteRating,
+  describeTasteLevel,
   pickedTastes,
   toggleTastePick,
   validateSommelierInput,
@@ -41,11 +47,10 @@ import {
   QUESTION_TO_INPUT_MS,
   SOMMELIER_ARRIVAL_MS,
   SOMMELIER_ARRIVAL_TEXT,
-  SOMMELIER_QUESTIONS,
-  STEP_KINDS,
   USER_TO_THINKING_MS,
   composeClosingMessage,
   describeBudgetAnswer,
+  describeOccasionAnswer,
   describeFreeTextAnswer,
   describeStyleAnswer,
   describeTastePicks,
@@ -54,10 +59,13 @@ import {
   formatPrice,
   MAX_ACKNOWLEDGEMENTS,
   getAcknowledgement,
+  getQuestion,
   getSommelierGreeting,
   getThinkingCue,
   getThinkingDurationMs,
   type ConversationStep,
+  type QuestionPrompt,
+  type StepKind,
   type ThinkingMoment,
 } from '../utils/sommelierConversation'
 
@@ -71,8 +79,9 @@ interface SommelierMessage {
   id: number
   type: 'sommelier'
   lines: string[]
-  /** Set when the message asks one of the questions. */
+  /** Set when the message asks one of the questions; `prompt` is its wording at that moment. */
   question?: ConversationStep
+  prompt?: QuestionPrompt
   /** Questions, the closing summary and errors become the auto-scroll reading position. */
   anchor?: boolean
   /** A short reaction to the previous answer. */
@@ -122,13 +131,14 @@ const SCROLL_MARGIN_BOTTOM = 24
 const PREFERENCE_ERROR_FALLBACK = '偏好整理暫時無法使用，請稍後再試'
 const PREFERENCE_ERROR_INTRO = '抱歉，剛剛整理的時候出了點問題。'
 
-const FIELD_STEPS: Record<SommelierInputField, ConversationStep> = {
-  taste: 1,
-  style: 5,
-  budget: 8,
-  freeText: 9,
+/** The first question of each kind that a validation error sends the user back to. */
+const FIELD_STEP_TYPES: Record<SommelierInputField, StepKind['type']> = {
+  taste: 'pickTaste',
+  style: 'style',
+  occasion: 'occasion',
+  budget: 'budget',
+  freeText: 'freeText',
 }
-const FREE_TEXT_STEP: ConversationStep = 9
 
 const draft = ref<SommelierInputDraft>(createEmptySommelierDraft())
 const messages = ref<ChatMessage[]>([])
@@ -152,33 +162,55 @@ let flowToken = 0
 let timers: ReturnType<typeof setTimeout>[] = []
 let focusReplyOnEnter = false
 
+const totalSteps = CONVERSATION_STEPS.length
+const freeTextStep = stepOf('freeText')
 const progressStep = computed(() =>
   phase.value === 'closing' || phase.value === 'error' || phase.value === 'done'
-    ? CONVERSATION_STEPS
+    ? totalSteps
     : activeStep.value,
 )
-const progressLabel = computed(
-  () => `${padStep(progressStep.value)} / ${padStep(CONVERSATION_STEPS)}`,
+const progressLabel = computed(() => `${padStep(progressStep.value)} / ${padStep(totalSteps)}`)
+const progressWidth = computed(() => `${(progressStep.value / totalSteps) * 100}%`)
+const activeKind = computed(() => kindAt(activeStep.value))
+/** The five tastes offered in the current pick step. */
+const activeTasteGroup = computed<readonly TasteKey[]>(() =>
+  activeKind.value.type === 'pickTaste' ? (TASTE_GROUPS[activeKind.value.group] ?? []) : [],
 )
-const progressWidth = computed(() => `${(progressStep.value / CONVERSATION_STEPS) * 100}%`)
-const activeKind = computed(() => STEP_KINDS[activeStep.value])
-/** The six tastes offered, or the three picked, in the current taste step. */
-const activeTasteGroup = computed<readonly TasteKey[]>(() => {
-  const kind = activeKind.value
-  return kind.type === 'pickTaste' || kind.type === 'rateTaste' ? (TASTE_GROUPS[kind.group] ?? []) : []
-})
-const activePicks = computed(() => pickedTastes(draft.value.taste, activeTasteGroup.value))
+const isLastTasteGroup = computed(
+  () => activeKind.value.type === 'pickTaste' && activeKind.value.group === TASTE_GROUPS.length - 1,
+)
+const pickedCount = computed(() => pickedTastes(draft.value.taste).length)
+const canPickMore = computed(() => canPickMoreTastes(draft.value.taste))
 const activeStyleKey = computed(() => (activeKind.value.type === 'style' ? activeKind.value.key : null))
-const canContinue = computed(
-  () => activeKind.value.type !== 'pickTaste' || activePicks.value.length === TASTE_PICKS_PER_GROUP,
-)
+/** Groups can be switched freely; only leaving the last group needs 3 picks. */
+const canContinue = computed(() => {
+  if (activeKind.value.type === 'occasion') {
+    return draft.value.occasion !== null
+  }
+  return !isLastTasteGroup.value || pickedCount.value >= TASTE_PICKS_MIN
+})
+const pickHint = computed(() => {
+  if (pickedCount.value >= TASTE_PICKS_MAX) {
+    return `已經選滿 ${TASTE_PICKS_MAX} 種，想換的話先取消一種。`
+  }
+  if (isLastTasteGroup.value && pickedCount.value < TASTE_PICKS_MIN) {
+    return `再選 ${TASTE_PICKS_MIN - pickedCount.value} 種就能繼續。`
+  }
+  return ''
+})
+const continueLabel = computed(() => {
+  if (activeKind.value.type === 'pickTaste') {
+    return isLastTasteGroup.value ? '下一步' : '下一組'
+  }
+  return '繼續'
+})
 const canModify = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
 const replyVisible = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
 const replyKey = computed(() =>
   phase.value === 'answering' ? `step-${activeStep.value}` : phase.value,
 )
 const replyLabel = computed(() =>
-  phase.value === 'answering' ? `回覆：${SOMMELIER_QUESTIONS[activeStep.value].title}` : '下一步',
+  phase.value === 'answering' ? `回覆：${getQuestion(activeKind.value).title}` : '下一步',
 )
 
 onMounted(() => {
@@ -189,6 +221,14 @@ onBeforeUnmount(() => {
   flowToken++
   clearTimers()
 })
+
+function kindAt(step: ConversationStep): StepKind {
+  return CONVERSATION_STEPS[step - 1] ?? { type: 'freeText' }
+}
+
+function stepOf(type: StepKind['type']): ConversationStep {
+  return CONVERSATION_STEPS.findIndex((kind) => kind.type === type) + 1
+}
 
 function padStep(value: number): string {
   return String(value).padStart(2, '0')
@@ -349,8 +389,12 @@ async function askQuestion(step: ConversationStep, token: number, focus = true) 
     return
   }
   activeStep.value = step
-  addMessage({ type: 'sommelier', lines: [], question: step, anchor: true })
+  addMessage({ type: 'sommelier', lines: [], ...questionMessage(step) })
   await showReply('answering', token, focus)
+}
+
+function questionMessage(step: ConversationStep) {
+  return { question: step, prompt: getQuestion(kindAt(step)), anchor: true }
 }
 
 async function openConversation() {
@@ -391,10 +435,12 @@ async function sendAnswer(step: ConversationStep, answerLines: string[]) {
   if (token === null) {
     return
   }
-  const next = (step + 1) as ConversationStep
-  const reaction = canAcknowledge(step) ? getAcknowledgement(step, draft.value) : null
+  const kind = kindAt(step)
+  const next = step + 1
+  const reaction = canAcknowledge(step) ? getAcknowledgement(kind, draft.value) : null
   addMessage({ type: 'user', step, lines: answerLines })
-  const thought = await thinkWhile(step, token, Promise.resolve(), reaction ?? SOMMELIER_QUESTIONS[next].title)
+  const upcoming = reaction ?? getQuestion(kindAt(next)).title
+  const thought = await thinkWhile(kind.type, token, Promise.resolve(), upcoming)
   if (!thought) {
     return
   }
@@ -404,20 +450,22 @@ async function sendAnswer(step: ConversationStep, answerLines: string[]) {
     return
   }
   activeStep.value = next
-  replaceMessage(thought.id, { type: 'sommelier', lines: [], question: next, anchor: true })
+  replaceMessage(thought.id, { type: 'sommelier', lines: [], ...questionMessage(next) })
   await showReply('answering', token)
 }
 
 function describeAnswer(): string[] | null {
   const kind = activeKind.value
-  const { taste, style, budget } = draft.value
+  const { taste, style, occasion, budget } = draft.value
   switch (kind.type) {
     case 'pickTaste':
-      return canContinue.value ? describeTastePicks(activePicks.value) : null
+      return canContinue.value ? describeTastePicks(pickedTastes(taste, activeTasteGroup.value)) : null
     case 'rateTaste':
-      return describeTasteRatings(taste, activePicks.value)
+      return describeTasteRatings(taste)
     case 'style':
       return describeStyleAnswer(style, kind.key)
+    case 'occasion':
+      return occasion ? describeOccasionAnswer(occasion) : null
     case 'budget':
       return describeBudgetAnswer(budget)
     default:
@@ -438,10 +486,22 @@ function onContinue() {
 }
 
 function onToggleTaste(key: TasteKey) {
-  draft.value.taste = toggleTastePick(draft.value.taste, activeTasteGroup.value, key)
+  draft.value.taste = toggleTastePick(draft.value.taste, key)
   if (errors.value.taste) {
     errors.value = {}
   }
+}
+
+function onPickOccasion(choice: OccasionChoice) {
+  draft.value.occasion = choice
+  if (errors.value.occasion) {
+    errors.value = {}
+  }
+}
+
+/** Back to the first taste group; every pick is kept in the draft. */
+function onEditTastes() {
+  rewindTo(stepOf('pickTaste'))
 }
 
 async function onAnswerFreeText(includeFreeText: boolean) {
@@ -454,7 +514,7 @@ async function onAnswerFreeText(includeFreeText: boolean) {
   if (!result.ok) {
     errors.value = result.errors
     const fields = Object.keys(result.errors) as SommelierInputField[]
-    rewindTo(Math.min(...fields.map((field) => FIELD_STEPS[field])) as ConversationStep, false)
+    rewindTo(Math.min(...fields.map((field) => stepOf(FIELD_STEP_TYPES[field]))), false)
     return
   }
 
@@ -464,9 +524,9 @@ async function onAnswerFreeText(includeFreeText: boolean) {
   if (token === null) {
     return
   }
-  addMessage({ type: 'user', step: FREE_TEXT_STEP, lines: describeFreeTextAnswer(input.freeText) })
+  addMessage({ type: 'user', step: freeTextStep, lines: describeFreeTextAnswer(input.freeText) })
   submittedInput.value = input
-  await deliverPreference(FREE_TEXT_STEP, input, token)
+  await deliverPreference('freeText', input, token)
 }
 
 async function requestPreference(input: SommelierInput): Promise<PreferenceOutcome> {
@@ -585,7 +645,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
       <header ref="headerRef" class="chat-header">
         <div class="chat-header-row">
           <span class="chat-title">Sommelier</span>
-          <span class="chat-progress" :aria-label="`第 ${progressStep} 題，共 ${CONVERSATION_STEPS} 題`">
+          <span class="chat-progress" :aria-label="`第 ${progressStep} 題，共 ${totalSteps} 題`">
             {{ progressLabel }}
           </span>
         </div>
@@ -660,11 +720,9 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 class="msg-body"
                 :class="{ 'is-error': message.tone === 'error' }"
               >
-                <template v-if="message.question">
-                  <p class="question">{{ SOMMELIER_QUESTIONS[message.question].title }}</p>
-                  <p v-if="SOMMELIER_QUESTIONS[message.question].hint" class="question-hint">
-                    {{ SOMMELIER_QUESTIONS[message.question].hint }}
-                  </p>
+                <template v-if="message.prompt">
+                  <p class="question">{{ message.prompt.title }}</p>
+                  <p v-if="message.prompt.hint" class="question-hint">{{ message.prompt.hint }}</p>
                 </template>
                 <p v-for="(line, lineIndex) in message.lines" :key="lineIndex" class="msg-line">
                   {{ line }}
@@ -691,30 +749,34 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
         >
           <template v-if="phase === 'answering'">
             <div v-if="activeKind.type === 'pickTaste'">
-              <div class="chip-list" role="group" :aria-label="SOMMELIER_QUESTIONS[activeStep].title">
+              <div class="choice-options" role="group" :aria-label="replyLabel">
                 <button
                   v-for="key in activeTasteGroup"
                   :key="key"
                   type="button"
-                  class="chip"
+                  class="choice-option"
                   :class="{ 'is-selected': draft.taste[key] !== undefined }"
                   :aria-pressed="draft.taste[key] !== undefined"
-                  :disabled="draft.taste[key] === undefined && activePicks.length >= TASTE_PICKS_PER_GROUP"
+                  :disabled="draft.taste[key] === undefined && !canPickMore"
                   @click="onToggleTaste(key)"
                 >
-                  {{ TASTE_LABELS[key] }}
+                  <span class="choice-name">{{ TASTE_LABELS[key] }}</span>
+                  <span class="choice-note">{{ TASTE_EXAMPLES[key] }}</span>
                 </button>
               </div>
-              <p class="pick-count" aria-live="polite">已選 {{ activePicks.length }} / {{ TASTE_PICKS_PER_GROUP }}</p>
+              <p class="pick-count" aria-live="polite">
+                已選 {{ pickedCount }} / {{ TASTE_PICKS_MAX }}
+                <span v-if="pickHint" class="pick-hint">{{ pickHint }}</span>
+              </p>
               <p v-if="errors.taste" class="field-error" role="alert">{{ errors.taste }}</p>
             </div>
 
             <div v-else-if="activeKind.type === 'rateTaste'" class="slider-stack">
-              <div v-for="key in activePicks" :key="key">
+              <div v-for="key in pickedTastes(draft.taste)" :key="key">
                 <div class="slider-head">
                   <label :for="`taste-${key}`" class="slider-label">{{ TASTE_LABELS[key] }}</label>
                   <output :for="`taste-${key}`" class="slider-value">
-                    <span class="slider-word">{{ describeTasteRating(draft.taste[key] ?? RATING_DEFAULT) }}</span>
+                    <span class="slider-word">{{ describeTasteLevel(draft.taste[key] ?? RATING_DEFAULT) }}</span>
                     {{ draft.taste[key] }}
                   </output>
                 </div>
@@ -726,13 +788,13 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                   :min="RATING_MIN"
                   :max="RATING_MAX"
                   step="1"
-                  :aria-valuetext="`${draft.taste[key]} ${describeTasteRating(draft.taste[key] ?? RATING_DEFAULT)}`"
+                  :aria-valuetext="`${draft.taste[key]} ${describeTasteLevel(draft.taste[key] ?? RATING_DEFAULT)}`"
                   :style="{ '--fill': fillPercent(draft.taste[key] ?? RATING_DEFAULT, RATING_MIN, RATING_MAX) }"
                 />
-                <div class="slider-hints" aria-hidden="true">
-                  <span>{{ RATING_MIN }}</span>
-                  <span>{{ RATING_MAX }}</span>
-                </div>
+              </div>
+              <div class="slider-hints" aria-hidden="true">
+                <span>{{ RATING_MIN }} {{ TASTE_SCALE_HINTS.min }}</span>
+                <span>{{ RATING_MAX }} {{ TASTE_SCALE_HINTS.max }}</span>
               </div>
             </div>
 
@@ -760,6 +822,25 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 <span>{{ RATING_MAX }} {{ STYLE_SCALE_HINTS[activeStyleKey].max }}</span>
               </div>
               <p v-if="errors.style" class="field-error" role="alert">{{ errors.style }}</p>
+            </div>
+
+            <div v-else-if="activeKind.type === 'occasion'">
+              <div class="choice-options" role="radiogroup" :aria-label="replyLabel">
+                <button
+                  v-for="option in OCCASION_OPTIONS"
+                  :key="option.value"
+                  type="button"
+                  role="radio"
+                  class="choice-option is-inline"
+                  :class="{ 'is-selected': draft.occasion === option.value }"
+                  :aria-checked="draft.occasion === option.value"
+                  @click="onPickOccasion(option.value)"
+                >
+                  <span class="choice-icon" aria-hidden="true">{{ option.icon }}</span>
+                  <span class="choice-name">{{ option.label }}</span>
+                </button>
+              </div>
+              <p v-if="errors.occasion" class="field-error" role="alert">{{ errors.occasion }}</p>
             </div>
 
             <div v-else-if="activeKind.type === 'budget'">
@@ -822,16 +903,27 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                   @click="onAnswerFreeText(true)"
                 />
               </template>
-              <Button
-                v-else
-                type="button"
-                label="繼續"
-                icon="pi pi-arrow-right"
-                icon-pos="right"
-                class="primary-btn"
-                :disabled="!canContinue"
-                @click="onContinue"
-              />
+              <template v-else>
+                <Button
+                  v-if="isLastTasteGroup"
+                  type="button"
+                  label="返回上一組"
+                  icon="pi pi-arrow-left"
+                  severity="secondary"
+                  text
+                  class="quiet-btn"
+                  @click="onEditTastes"
+                />
+                <Button
+                  type="button"
+                  :label="continueLabel"
+                  icon="pi pi-arrow-right"
+                  icon-pos="right"
+                  class="primary-btn"
+                  :disabled="!canContinue"
+                  @click="onContinue"
+                />
+              </template>
             </div>
           </template>
 
@@ -853,7 +945,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               severity="secondary"
               text
               class="quiet-btn"
-              @click="rewindTo(FREE_TEXT_STEP)"
+              @click="rewindTo(freeTextStep)"
             />
             <Button
               type="button"
@@ -873,7 +965,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               severity="secondary"
               text
               class="quiet-btn"
-              @click="rewindTo(FREE_TEXT_STEP)"
+              @click="rewindTo(freeTextStep)"
             />
           </div>
         </div>
@@ -1388,22 +1480,23 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   margin-top: 0;
 }
 
-.chip-list {
-  display: flex;
-  flex-wrap: wrap;
+.choice-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
   gap: 0.5rem;
 }
 
-.chip {
-  min-height: 2.5rem;
-  padding: 0 1rem;
+.choice-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid #e2d9cc;
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--wh-paper);
   color: var(--wh-ink-soft);
   font: inherit;
-  font-size: 0.925rem;
-  line-height: 1.3;
+  text-align: left;
   cursor: pointer;
   transition:
     border-color 160ms ease,
@@ -1412,24 +1505,52 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
     opacity 160ms ease;
 }
 
-.chip:not(:disabled):hover {
+.choice-option:not(:disabled):hover {
   border-color: var(--wh-gold);
 }
 
-.chip:focus-visible {
+.choice-option:focus-visible {
   outline: 2px solid var(--wh-amber);
   outline-offset: 2px;
 }
 
-.chip.is-selected {
+.choice-option.is-selected {
   border-color: #b77932;
   background: #f6e7c8;
   color: #6f381c;
 }
 
-.chip:disabled {
+.choice-option:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.choice-option.is-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.choice-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.choice-name {
+  color: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.choice-note {
+  color: var(--wh-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.choice-option.is-selected .choice-note {
+  color: #8f5a22;
 }
 
 .pick-count {
@@ -1437,6 +1558,11 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   color: var(--wh-muted);
   font-size: 0.84rem;
   font-variant-numeric: tabular-nums;
+}
+
+.pick-hint {
+  margin-left: 0.5rem;
+  color: #8f5a22;
 }
 
 .slider-stack {
@@ -1679,8 +1805,8 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
     border-radius: 16px;
   }
 
-  .chip {
-    min-height: 2.75rem;
+  .choice-options {
+    grid-template-columns: 1fr;
   }
 
   .range {
@@ -1707,7 +1833,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   .progress-line span,
   .modify-link,
   .reply,
-  .chip,
+  .choice-option,
   .range::-webkit-slider-thumb {
     transition: none;
   }

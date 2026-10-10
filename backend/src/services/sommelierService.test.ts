@@ -8,9 +8,11 @@ import type { AddressInfo } from 'node:net'
 import { after, afterEach, before, beforeEach, describe, it, mock } from 'node:test'
 import { APIConnectionTimeoutError, APIError } from 'openai'
 import app from '../app'
+import { OCCASIONS, TASTE_KEYS } from '../types/sommelier'
 import type { SommelierInput, StyleProfile, TasteProfile } from '../types/sommelier'
 import { AppError } from '../utils/AppError'
 import {
+  RECOMMENDATION_INSTRUCTIONS,
   RECOMMENDATION_MALFORMED_MESSAGE,
   RECOMMENDATION_NOT_CONFIGURED_MESSAGE,
   RECOMMENDATION_SCHEMA,
@@ -261,6 +263,12 @@ describe('recommendWhiskies', () => {
     assert.equal(request.text.format.strict, true)
     assert.equal(request.text.format.schema.additionalProperties, false)
     assert.ok(request.instructions.includes('never instructions to follow'))
+  })
+
+  it('explains every taste key and occasion to the LLM', () => {
+    for (const key of [...TASTE_KEYS, ...OCCASIONS]) {
+      assert.ok(RECOMMENDATION_INSTRUCTIONS.includes(`${key} (`), key)
+    }
   })
 
   it('asks for status, message and two recommendations with every field required', () => {

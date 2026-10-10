@@ -83,7 +83,7 @@ Preferences:
 - style.smoothness: 1 rugged or sharp to 10 round and smooth; how much bite there is and how well integrated it feels.
 - Neither body nor intensity means alcohol strength. Judge each style dimension on its own. All ratings are the user's targets, not measured scores of any whisky.
 - occasion (optional): relaxing (relaxing alone), tasting (focused tasting), social (with friends), meal (with food), date (with a partner), gift (buying it as a gift), celebration (a celebration).
-- budget (optional): price per bottle in TWD. With max only, it is a target price: aim for whiskies usually sold in Taiwan within about 25% either side of it (for 2000, roughly 1500–2500). With both min and max, aim between them; with min only, at or above it.
+- budget (optional): price per bottle in TWD, a firm requirement for both whiskies. With max only, it is a target price: choose whiskies usually sold in Taiwan within about 25% either side of it (for 2000, roughly 1500–2500; for 8000, roughly 6000–10000). With both min and max, stay between them; with min only, at or above it. A higher budget calls for older age statements or premium expressions from a distillery's regular range (for example an 18-year-old), not an entry-level bottle; these count as core range. If no whisky in the price range shows every requested flavor, choose the closest flavor fit within the range and name the flavor gap in considerations.
 - freeText (optional): finer flavor wishes, whiskies they liked or disliked, exclusions and special needs.
 - The structured fields are primary and freeText adds detail. A clear exclusion in freeText takes priority. Resolve other conflicts sensibly and explain the trade-off in considerations. Do not assume preferences the user did not express.
 

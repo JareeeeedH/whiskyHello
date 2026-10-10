@@ -441,6 +441,8 @@ describe('recommendWhiskies', () => {
   it('asks for brand names, a budget band and sommelier wording', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('starting with the brand or distillery'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 25% either side'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm requirement for both whiskies'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('closest flavor fit within the range'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Do not default to a famous bottle'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('never mention fields, JSON or how the input was processed'))
   })

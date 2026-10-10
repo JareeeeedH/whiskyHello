@@ -67,6 +67,18 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
   border: 1px solid #ebe3d6;
   border-radius: 16px;
   background: #fff;
+  animation: card-reveal 480ms ease both;
+}
+
+.card:nth-child(2) {
+  animation-delay: 600ms;
+}
+
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 .card.is-best {
@@ -149,6 +161,12 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 @media (max-width: 640px) {
   .card {
     padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
   }
 }
 </style>

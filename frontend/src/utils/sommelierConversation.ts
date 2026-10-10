@@ -14,6 +14,7 @@ import {
   RATING_MAX,
   STYLE_KEYS,
   STYLE_LABELS,
+  TASTE_EXAMPLES,
   TASTE_GROUPS,
   TASTE_KEYS,
   TASTE_LABELS,
@@ -128,11 +129,11 @@ export interface ThinkingCue {
   durationMs: number
 }
 
-export type ThinkingMoment = 'opening' | StepKind['type'] | 'profile' | 'recommend' | 'retry'
+export type ThinkingMoment = 'opening' | StepKind['type'] | 'profile' | 'retry'
 
 /**
  * Keyed by the kind of question just answered; `freeText` leads to the closing
- * message, `recommend` and `retry` cover the recommendation request.
+ * message, `retry` covers a repeated recommendation request.
  * One line is picked at random each time; '' shows the dots on their own.
  */
 const THINKING_CUES: Record<ThinkingMoment, { texts: string[]; durationMs: number }> = {
@@ -147,14 +148,16 @@ const THINKING_CUES: Record<ThinkingMoment, { texts: string[]; durationMs: numbe
     durationMs: 1700,
   },
   profile: { texts: ['我幫你整理一下……', '稍等，我把它寫下來…'], durationMs: 1400 },
-  recommend: {
-    texts: ['我在幫你挑酒…', '讓我想想哪兩支最適合…', '我翻一下酒單…'],
-    durationMs: 1700,
-  },
   retry: { texts: ['再試一次，稍等我一下…', '我再挑一次…'], durationMs: 1400 },
 }
 
 export const LONG_WAIT_TEXT = '還在幫你比對，再等我一下…'
+
+/** Each selection step stays up this long, so every step is readable before the cards appear. */
+export const SELECTION_STEP_MS = 2200
+/** How long the last step may hold, while the request is still pending, before a reassuring line. */
+export const SELECTION_LONG_WAIT_MS = 6000
+export const SELECTION_LONG_WAIT_TEXT = '這兩支有點難選，再給我幾秒…'
 
 export function getThinkingTexts(moment: ThinkingMoment): readonly string[] {
   return THINKING_CUES[moment].texts
@@ -248,6 +251,125 @@ export function composeClosingMessage(input: SommelierInput): string[] {
     ...(input.occasion ? [`我也記下了：情境是${PREFERENCE_OCCASION_LABELS[input.occasion]}。`] : []),
     '我先把今天的方向整理成一份偏好輪廓給你。',
   ]
+}
+
+const TASTE_FOCUS_PHRASES: Record<TasteKey, string> = {
+  fruit: '果香明亮',
+  sweet: '甜香飽滿',
+  floral: '帶點花香',
+  maltGrain: '麥芽香濃',
+  nutty: '有堅果香',
+  chocolateCoffee: '帶巧克力咖啡調',
+  spice: '有香料感',
+  oak: '橡木味足',
+  peat: '泥煤夠份量',
+  smoke: '煙燻明顯',
+}
+
+const STYLE_STEP_PHRASES: Record<StyleKey, Record<'low' | 'high', string>> = {
+  body: { low: '酒體輕盈', high: '酒體厚實' },
+  intensity: { low: '風味柔和', high: '風味鮮明' },
+  smoothness: { low: '帶點粗獷個性', high: '圓潤順口' },
+}
+
+const OCCASION_STEPS: Record<PreferenceOccasion, string[]> = {
+  relaxing: ['再挑適合一個人放鬆慢慢喝的…', '一個人放鬆喝，要能慢慢品的…'],
+  tasting: ['再挑值得專心細品、層次夠多的…', '專心品飲的話，要有層次可以慢慢挖…'],
+  social: ['再挑適合朋友聚會一起喝的…', '朋友一起喝，要大家都容易喜歡的…'],
+  meal: ['再挑適合搭配餐點的…', '配餐的話，風味不能蓋過食物…'],
+  date: ['再挑約會時好入口的…', '約會喝的，要好入口、氣氛對的…'],
+  gift: ['再挑拿來送禮夠體面的…', '送禮的話，要拿得出手的…'],
+  celebration: ['再挑適合慶祝時刻的…', '慶祝的時候，來點有記憶點的…'],
+}
+
+type StepTemplate = (labels: string, examples: string) => string
+
+const AVOID_STEPS: StepTemplate[] = [
+  (labels, examples) => `先把${labels}壓低，${examples}那類味道淡淡帶到就好…`,
+  (labels, examples) => `先避開${labels}太重的，${examples}只要輕輕帶過…`,
+]
+
+const FOCUS_STEPS: StepTemplate[] = [
+  (labels, examples) => `鎖定${labels}的方向，要喝得到${examples}…`,
+  (labels, examples) => `往${labels}去找，${examples}這類香氣要明顯…`,
+  (labels, examples) => `主軸放在${labels}，找${examples}這類風味突出的…`,
+]
+
+const STYLE_STEPS: ((phrases: string) => string)[] = [
+  (phrases) => `喝感要${phrases}…`,
+  (phrases) => `再對一下喝感：${phrases}…`,
+]
+
+const FREE_TEXT_STEPS: ((quote: string) => string)[] = [
+  (quote) => `再對照你說的「${quote}」…`,
+  (quote) => `把你提到的「${quote}」也放進來考慮…`,
+]
+
+const FALLBACK_STEPS = ['再看看哪些酒款最貼近你整體的感覺…', '把你的整體感覺放在一起比對…']
+
+const FINAL_STEPS = ['最後確認兩支風格不重複…', '最後比一比，讓兩支各有特色…', '剩最後一步，確認兩支不要太像…']
+
+const MIN_SELECTION_STEPS = 3
+const MAX_SELECTION_STEPS = 5
+const MAX_PHRASES_PER_STEP = 2
+const FREE_TEXT_QUOTE_CHARS = 14
+
+/** Two examples for one taste, or the first example of each when there are two. */
+function tasteExamples(keys: TasteKey[]): string {
+  const perTaste = keys.length === 1 ? 2 : 1
+  return keys.flatMap((key) => TASTE_EXAMPLES[key].split('、').slice(0, perTaste)).join('、')
+}
+
+/** The user's own words on one line, cut short when long. */
+function quoteFreeText(freeText: string): string {
+  const text = freeText.replace(/\s+/g, ' ').trim()
+  return text.length > FREE_TEXT_QUOTE_CHARS ? `${text.slice(0, FREE_TEXT_QUOTE_CHARS)}…` : text
+}
+
+/**
+ * What the Sommelier "narrows down" while the recommendation request runs,
+ * built only from the user's own answers: lightly wanted tastes to keep down,
+ * the main tastes with examples, the occasion, any distinct style, then the
+ * user's own words, closing with a final check when there is room.
+ * Never budget, since prices are not checked.
+ */
+export function composeSelectionSteps(input: SommelierInput, random: () => number = Math.random): string[] {
+  const pick = <T>(items: T[]): T => items[Math.min(Math.floor(random() * items.length), items.length - 1)] as T
+  const labelsOf = (keys: TasteKey[]) => keys.map((key) => TASTE_LABELS[key]).join('、')
+  const steps: string[] = []
+
+  const picked = pickedTastes(input.taste)
+  const light = picked.filter((key) => ratingBand(input.taste[key] ?? 0) === 'low').slice(0, MAX_PHRASES_PER_STEP)
+  if (light.length > 0) {
+    steps.push(pick(AVOID_STEPS)(labelsOf(light), tasteExamples(light)))
+  }
+
+  const high = picked.filter((key) => ratingBand(input.taste[key] ?? 0) === 'high')
+  const focus = (high.length > 0
+    ? high
+    : [...picked].sort((a, b) => (input.taste[b] ?? 0) - (input.taste[a] ?? 0))
+  ).slice(0, MAX_PHRASES_PER_STEP)
+  steps.push(pick(FOCUS_STEPS)(focus.map((key) => TASTE_FOCUS_PHRASES[key]).join('、'), tasteExamples(focus)))
+
+  if (input.occasion) {
+    steps.push(pick(OCCASION_STEPS[input.occasion]))
+  }
+
+  const style = STYLE_KEYS.map((key) => ({ key, band: ratingBand(input.style[key]) }))
+    .filter((item): item is { key: StyleKey; band: 'low' | 'high' } => item.band !== 'mid')
+    .slice(0, MAX_PHRASES_PER_STEP)
+    .map((item) => STYLE_STEP_PHRASES[item.key][item.band])
+  if (style.length > 0) {
+    steps.push(pick(STYLE_STEPS)(style.join('、')))
+  }
+  if (input.freeText?.trim()) {
+    steps.push(pick(FREE_TEXT_STEPS)(quoteFreeText(input.freeText)))
+  }
+  if (steps.length < MIN_SELECTION_STEPS - 1) {
+    steps.push(pick(FALLBACK_STEPS))
+  }
+
+  return steps.length < MAX_SELECTION_STEPS ? [...steps, pick(FINAL_STEPS)] : steps
 }
 
 /** When the LLM finds no suitable pair; its short reason sits in the middle when given. */

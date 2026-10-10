@@ -47,10 +47,14 @@ import {
   LONG_WAIT_MS,
   LONG_WAIT_TEXT,
   QUESTION_TO_INPUT_MS,
+  SELECTION_LONG_WAIT_MS,
+  SELECTION_LONG_WAIT_TEXT,
+  SELECTION_STEP_MS,
   SOMMELIER_ARRIVAL_MS,
   SOMMELIER_ARRIVAL_TEXT,
   USER_TO_THINKING_MS,
   composeClosingMessage,
+  composeSelectionSteps,
   composeUnableMessage,
   describeBudgetAnswer,
   describeOccasionAnswer,
@@ -373,6 +377,37 @@ async function thinkWhile<T>(
   return token === flowToken ? { id, result } : null
 }
 
+/**
+ * Rotates the thinking line through `steps` while `work` runs. Every step stays
+ * up for SELECTION_STEP_MS even when `work` settles sooner; the last one holds
+ * until it settles, then gives way to a reassuring line if that takes long.
+ */
+async function thinkThroughSteps<T>(
+  steps: string[],
+  token: number,
+  work: Promise<T>,
+): Promise<{ id: number; result: T } | null> {
+  await wait(USER_TO_THINKING_MS)
+  if (token !== flowToken) {
+    return null
+  }
+
+  const id = addMessage({ type: 'thinking', text: steps[0] ?? '' })
+  let longWait: ReturnType<typeof setTimeout> | undefined
+  const rotation = (async () => {
+    for (const step of steps.slice(1)) {
+      await wait(SELECTION_STEP_MS)
+      setThinkingText(id, step)
+    }
+    await wait(SELECTION_STEP_MS)
+    longWait = setTimeout(() => setThinkingText(id, SELECTION_LONG_WAIT_TEXT), SELECTION_LONG_WAIT_MS)
+    timers.push(longWait)
+  })()
+  const [result] = await Promise.all([work, rotation])
+  clearTimeout(longWait)
+  return token === flowToken ? { id, result } : null
+}
+
 async function showReply(next: Phase, token: number, focus = true) {
   await wait(QUESTION_TO_INPUT_MS)
   if (token !== flowToken) {
@@ -562,9 +597,15 @@ async function requestRecommendations(input: SommelierInput): Promise<Recommenda
   }
 }
 
-/** Calls the recommendation API while the Sommelier is thinking, then shows the cards, a reason or an error. */
-async function deliverRecommendations(moment: ThinkingMoment, input: SommelierInput, token: number) {
-  const thought = await thinkWhile(moment, token, requestRecommendations(input))
+/**
+ * Calls the recommendation API while the Sommelier narrows things down (or, on a
+ * retry, simply thinks), then shows the cards, a reason or an error.
+ */
+async function deliverRecommendations(input: SommelierInput, token: number, retry: boolean) {
+  const work = requestRecommendations(input)
+  const thought = retry
+    ? await thinkWhile('retry', token, work)
+    : await thinkThroughSteps(composeSelectionSteps(input), token, work)
   if (!thought) {
     return
   }
@@ -604,7 +645,7 @@ async function onRecommend() {
   }
   const token = await beginTurn()
   if (token !== null) {
-    await deliverRecommendations('recommend', input, token)
+    await deliverRecommendations(input, token, false)
   }
 }
 
@@ -615,7 +656,7 @@ async function onRetry() {
   }
   const token = await beginTurn()
   if (token !== null) {
-    await deliverRecommendations('retry', input, token)
+    await deliverRecommendations(input, token, true)
   }
 }
 
@@ -731,7 +772,9 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 class="msg-body thinking-line"
                 role="status"
               >
-                <span v-if="message.text">{{ message.text }}</span>
+                <Transition name="swap" mode="out-in">
+                  <span v-if="message.text" :key="message.text">{{ message.text }}</span>
+                </Transition>
                 <span class="thinking-dots" aria-hidden="true"><i /><i /><i /></span>
                 <span v-if="!message.text" class="sr-only">思考中</span>
               </p>

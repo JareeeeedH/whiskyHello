@@ -13,6 +13,7 @@ import {
   TYPING_MAX_MS,
   USER_TO_THINKING_MS,
   composeClosingMessage,
+  composeSelectionSteps,
   composeUnableMessage,
   describeBudgetAnswer,
   describeFreeTextAnswer,
@@ -40,7 +41,6 @@ const MOMENTS: ThinkingMoment[] = [
   'budget',
   'freeText',
   'profile',
-  'recommend',
   'retry',
 ]
 
@@ -188,8 +188,8 @@ describe('thinking pacing', () => {
     }
   })
 
-  it('always says something while summarizing, recommending or retrying', () => {
-    for (const moment of ['freeText', 'profile', 'recommend', 'retry'] as const) {
+  it('always says something while summarizing or retrying', () => {
+    for (const moment of ['freeText', 'profile', 'retry'] as const) {
       assert.ok(getThinkingTexts(moment).every((text) => text.length > 0), moment)
     }
   })
@@ -323,6 +323,78 @@ describe('composeClosingMessage', () => {
       '我也記下了：情境是放鬆獨飲。',
       '我先把今天的方向整理成一份偏好輪廓給你。',
     ])
+  })
+})
+
+describe('composeSelectionSteps', () => {
+  const first = () => 0
+  const last = () => 0.99
+
+  it('walks through every answer, ending on the user’s own words', () => {
+    const input: SommelierInput = {
+      taste: TASTE,
+      style: { body: 5, intensity: 5, smoothness: 8 },
+      occasion: 'date',
+      budget: { max: 2000 },
+      freeText: '今晚約會，不要太重',
+    }
+    assert.deepEqual(composeSelectionSteps(input, first), [
+      '先把泥煤壓低，泥土、海藻那類味道淡淡帶到就好…',
+      '鎖定果香明亮、麥芽香濃的方向，要喝得到蘋果、麥片…',
+      '再挑約會時好入口的…',
+      '喝感要圓潤順口…',
+      '再對照你說的「今晚約會，不要太重」…',
+    ])
+  })
+
+  it('says the same choices in other words', () => {
+    const input: SommelierInput = { taste: TASTE, style: MID_STYLE, occasion: 'date', freeText: '不要太重' }
+    assert.deepEqual(composeSelectionSteps(input, last), [
+      '先避開泥煤太重的，泥土、海藻只要輕輕帶過…',
+      '主軸放在果香明亮、麥芽香濃，找蘋果、麥片這類風味突出的…',
+      '約會喝的，要好入口、氣氛對的…',
+      '把你提到的「不要太重」也放進來考慮…',
+      '剩最後一步，確認兩支不要太像…',
+    ])
+  })
+
+  it('reads a heavy, peaty profile, closing with a final check', () => {
+    const input: SommelierInput = {
+      taste: { peat: 10, smoke: 9, spice: 5 },
+      style: { body: 8, intensity: 9, smoothness: 3 },
+      occasion: 'tasting',
+    }
+    assert.deepEqual(composeSelectionSteps(input, first), [
+      '鎖定泥煤夠份量、煙燻明顯的方向，要喝得到泥土、營火…',
+      '再挑值得專心細品、層次夠多的…',
+      '喝感要酒體厚實、風味鮮明…',
+      '最後確認兩支風格不重複…',
+    ])
+  })
+
+  it('always has at least 3 steps, focusing on the highest picks when none is high', () => {
+    assert.deepEqual(composeSelectionSteps({ taste: { fruit: 4, sweet: 6, oak: 5 }, style: MID_STYLE }, first), [
+      '鎖定甜香飽滿、橡木味足的方向，要喝得到蜂蜜、橡木…',
+      '再看看哪些酒款最貼近你整體的感覺…',
+      '最後確認兩支風格不重複…',
+    ])
+  })
+
+  it('quotes long free text briefly and skips blank free text', () => {
+    const long = composeSelectionSteps(
+      { taste: TASTE, style: MID_STYLE, freeText: '之前喝過\n麥卡倫12年很喜歡，想找類似的雪莉桶' },
+      first,
+    )
+    assert.ok(long.includes('再對照你說的「之前喝過 麥卡倫12年很喜歡…」…'))
+    const blank = composeSelectionSteps({ taste: TASTE, style: MID_STYLE, freeText: '   ' }, first)
+    assert.ok(blank.every((step) => !step.includes('「')))
+  })
+
+  it('never mentions the budget', () => {
+    for (const random of [first, last]) {
+      const steps = composeSelectionSteps({ taste: TASTE, style: MID_STYLE, budget: { max: 6000 } }, random)
+      assert.ok(steps.every((step) => !step.includes('預算') && !step.includes('NT$')))
+    }
   })
 })
 

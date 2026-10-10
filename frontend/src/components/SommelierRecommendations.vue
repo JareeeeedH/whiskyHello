@@ -9,6 +9,10 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
   best_match: '最適合你',
   alternative: '值得探索',
 }
+
+function formatIndex(index: number): string {
+  return `NO.${String(index + 1).padStart(2, '0')}`
+}
 </script>
 
 <template>
@@ -17,18 +21,23 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 
     <ol class="cards">
       <li
-        v-for="item in recommendations"
+        v-for="(item, index) in recommendations"
         :key="item.type"
         class="card"
-        :class="{ 'is-best': item.type === 'best_match' }"
+        :class="item.type === 'best_match' ? 'is-best' : 'is-alt'"
       >
-        <span class="card-label">{{ TYPE_LABELS[item.type] }}</span>
+        <p class="card-eyebrow">
+          <span>{{ formatIndex(index) }}</span>
+          <span aria-hidden="true">·</span>
+          <span>{{ TYPE_LABELS[item.type] }}</span>
+        </p>
         <h3 class="card-name" lang="en">{{ item.whiskyName }}</h3>
+        <span class="card-rule" aria-hidden="true" />
         <p class="card-reason">{{ item.reason }}</p>
 
         <div v-if="item.matches.length" class="card-section">
           <h4>符合你的偏好</h4>
-          <ul class="card-tags">
+          <ul class="card-matches">
             <li v-for="match in item.matches" :key="match">{{ match }}</li>
           </ul>
         </div>
@@ -46,7 +55,7 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 
 <style scoped>
 .recommendations-title {
-  margin: 0 0 0.85rem;
+  margin: 0 0 1rem;
   color: var(--wh-ink);
   font-family: var(--font-display);
   font-size: 1.25rem;
@@ -56,17 +65,15 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 
 .cards {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .card {
-  padding: 1.15rem 1.25rem;
-  border: 1px solid #ebe3d6;
-  border-radius: 16px;
-  background: #fff;
+  padding: 1.6rem 1.75rem 1.5rem;
+  border-radius: 18px;
   animation: card-reveal 480ms ease both;
 }
 
@@ -82,85 +89,147 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
 }
 
 .card.is-best {
-  border-color: #e3c48f;
-  box-shadow: 0 6px 18px rgba(146, 64, 14, 0.08);
+  border: 1px solid rgba(220, 184, 120, 0.28);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(220, 184, 120, 0.14), transparent 60%),
+    var(--wh-night);
+  box-shadow: 0 16px 36px rgba(17, 13, 17, 0.22);
+  color: var(--wh-cream);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.card-label {
-  display: inline-block;
-  padding: 0.12rem 0.6rem;
-  border-radius: 999px;
-  background: var(--wh-paper);
-  color: var(--wh-muted);
-  font-size: 0.74rem;
+.card.is-alt {
+  border: 1px solid #e8dcc6;
+  background: #f7f0e4;
+  color: var(--wh-ink);
+}
+
+.card-eyebrow {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.18em;
 }
 
-.card.is-best .card-label {
-  background: #fdf3df;
+.is-best .card-eyebrow {
+  color: var(--wh-gold-bright);
+}
+
+.is-alt .card-eyebrow {
   color: #8f5a22;
 }
 
 .card-name {
-  margin: 0.55rem 0 0;
-  color: var(--wh-ink);
+  margin: 0.7rem 0 0;
   font-family: var(--font-display);
-  font-size: 1.12rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
+.is-best .card-name {
+  font-size: 1.6rem;
+}
+
+.is-alt .card-name {
+  font-size: 1.3rem;
+}
+
+.card-rule {
+  display: block;
+  width: 2.5rem;
+  height: 1px;
+  margin: 0.95rem 0;
+  background: var(--wh-gold);
+}
+
 .card-reason {
-  margin: 0.45rem 0 0;
-  color: var(--wh-ink);
-  font-size: 0.92rem;
-  line-height: 1.7;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.is-best .card-reason {
+  color: rgba(241, 233, 220, 0.88);
+}
+
+.is-alt .card-reason {
+  color: var(--wh-ink-soft);
 }
 
 .card-section {
-  margin-top: 0.85rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--wh-line);
+  margin-top: 1.1rem;
 }
 
 .card-section h4 {
-  margin: 0 0 0.45rem;
-  color: var(--wh-muted);
-  font-size: 0.78rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  letter-spacing: 0.12em;
 }
 
-.card-tags {
+.is-best .card-section h4 {
+  color: var(--wh-mauve);
+}
+
+.is-alt .card-section h4 {
+  color: var(--wh-muted);
+}
+
+.card-matches {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.2rem 0;
   margin: 0;
   padding: 0;
   list-style: none;
+  font-size: 0.92rem;
+  line-height: 1.6;
 }
 
-.card-tags li {
-  padding: 0.15rem 0.65rem;
-  border: 1px solid #e3c48f;
-  border-radius: 999px;
-  background: #fdf3df;
-  color: #6f381c;
-  font-size: 0.82rem;
+.card-matches li + li::before {
+  content: '·';
+  margin: 0 0.6rem;
+}
+
+.is-best .card-matches {
+  color: var(--wh-gold-bright);
+}
+
+.is-alt .card-matches {
+  color: #8f5a22;
 }
 
 .card-notes {
   margin: 0;
-  padding-left: 1.1rem;
-  color: var(--wh-muted);
+  padding: 0;
+  list-style: none;
   font-size: 0.86rem;
-  line-height: 1.6;
+  line-height: 1.7;
+}
+
+.is-best .card-notes {
+  color: var(--wh-mauve);
+}
+
+.is-alt .card-notes {
+  color: var(--wh-muted);
 }
 
 @media (max-width: 640px) {
   .card {
-    padding: 1rem;
+    padding: 1.3rem 1.2rem 1.2rem;
+  }
+
+  .is-best .card-name {
+    font-size: 1.4rem;
+  }
+
+  .is-alt .card-name {
+    font-size: 1.2rem;
   }
 }
 

@@ -778,7 +778,12 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 <span class="thinking-dots" aria-hidden="true"><i /><i /><i /></span>
                 <span v-if="!message.text" class="sr-only">思考中</span>
               </p>
-              <div v-else-if="message.type === 'system'" key="system" class="msg-body is-wide">
+              <div
+                v-else-if="message.type === 'system'"
+                key="system"
+                class="msg-body is-wide"
+                :class="{ 'is-showcase': message.content === 'recommendations' }"
+              >
                 <SommelierPreferenceProfile
                   v-if="message.content === 'profile' && submittedInput"
                   :preference="submittedInput"
@@ -1329,6 +1334,10 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
 .from-sommelier .msg-body.is-wide {
   max-width: none;
   margin-top: 0.25rem;
+}
+
+.from-sommelier .msg-body.is-showcase {
+  grid-column: 1 / -1;
 }
 
 .question {

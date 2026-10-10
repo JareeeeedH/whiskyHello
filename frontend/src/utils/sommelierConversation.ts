@@ -89,10 +89,7 @@ export function getQuestion(kind: StepKind): QuestionPrompt {
         ? { title: '這次，你最想在威士忌中喝到哪些風味？', hint: '選 3～4 種就好，挑出這次最想感受到的味道。' }
         : { title: '再看看這幾種，有沒有也想喝到的？', hint: '兩組加起來選 3～5 種，這組沒有也沒關係。' }
     case 'rateTaste':
-      return {
-        title: '你希望這些風味在這杯威士忌中各有多明顯？',
-        hint: '1 是淡淡帶到即可，5 是明顯感受得到，10 是希望成為主要風味。',
-      }
+      return { title: '你希望這些風味在這杯威士忌中各有多明顯？' }
     case 'style':
       return STYLE_QUESTIONS[kind.key]
     case 'occasion':
@@ -180,7 +177,7 @@ export function getThinkingDurationMs(
 }
 
 /** Ratings at or above this read as "a focus"; at or below LOW_RATING as "keep it light". */
-const HIGH_RATING = 7
+export const HIGH_RATING = 7
 const LOW_RATING = 3
 
 type RatingBand = 'low' | 'mid' | 'high'
@@ -200,14 +197,15 @@ export function formatPrice(value: number): string {
   return `NT$\u00a0${formatAmount(value)}`
 }
 
+/** Non-breaking spaces keep the qualifier on the same line as the amount. */
 export function formatBudget(budget: SommelierBudget): string {
   if (budget.min !== undefined && budget.max !== undefined) {
     return `${formatPrice(budget.min)} – ${formatAmount(budget.max)}`
   }
   if (budget.min !== undefined) {
-    return `${formatPrice(budget.min)} 以上`
+    return `${formatPrice(budget.min)}\u00a0以上`
   }
-  return `${formatPrice(budget.max ?? 0)} 以內`
+  return `${formatPrice(budget.max ?? 0)}\u00a0左右`
 }
 
 const STYLE_PHRASES: Record<StyleKey, Record<RatingBand, string>> = {
@@ -242,7 +240,7 @@ export function composeClosingMessage(input: SommelierInput): string[] {
       .map((item) => STYLE_PHRASES[item.key][item.band]),
   )
   if (input.budget) {
-    parts.push(`預算大約 ${formatBudget(input.budget)}`)
+    parts.push(`預算 ${formatBudget(input.budget)}`)
   }
 
   return [
@@ -403,7 +401,7 @@ export function describeOccasionAnswer(choice: OccasionChoice): string[] {
 }
 
 export function describeBudgetAnswer(max: number): string[] {
-  return [`預算 ${formatPrice(max)}`]
+  return [`預算 ${formatBudget({ max })}`]
 }
 
 /** At most this many short reactions per conversation, so they never feel scripted. */

@@ -103,20 +103,25 @@ describe('sommelier preference dimensions', () => {
     assert.deepEqual(Object.values(STYLE_LABELS), ['酒體', '風味強度', '順口度'])
   })
 
-  it('rates on a 1–10 scale that starts at 5', () => {
+  it('rates on a 1–10 scale that starts at 1', () => {
     assert.equal(RATING_MIN, 1)
     assert.equal(RATING_MAX, 10)
-    assert.equal(RATING_DEFAULT, 5)
+    assert.equal(RATING_DEFAULT, 1)
   })
 
-  it('starts with no tastes picked, style at 5, no occasion, a NT$ 2,000 budget and no free text', () => {
+  it('starts with no tastes picked, style at 1, no occasion, a NT$ 2,500 budget and no free text', () => {
     assert.deepEqual(createEmptySommelierDraft(), {
       taste: {},
-      style: { body: 5, intensity: 5, smoothness: 5 },
+      style: { body: 1, intensity: 1, smoothness: 1 },
       occasion: null,
-      budget: 2000,
+      budget: 2500,
       freeText: '',
     })
+  })
+
+  it('offers budgets from NT$ 1,000 to NT$ 8,000', () => {
+    assert.equal(BUDGET_MIN, 1000)
+    assert.equal(BUDGET_MAX, 8000)
   })
 
   it('returns a fresh draft each time', () => {
@@ -124,7 +129,7 @@ describe('sommelier preference dimensions', () => {
     first.taste.sweet = 9
     first.style.body = 9
     assert.deepEqual(createEmptySommelierDraft().taste, {})
-    assert.equal(createEmptySommelierDraft().style.body, 5)
+    assert.equal(createEmptySommelierDraft().style.body, 1)
   })
 })
 
@@ -159,8 +164,8 @@ describe('rating words', () => {
 })
 
 describe('taste picks', () => {
-  it('starts a new pick at 5 and fills in nothing else', () => {
-    assert.deepEqual(toggleTastePick({}, 'floral'), { floral: 5 })
+  it('starts a new pick at 1 and fills in nothing else', () => {
+    assert.deepEqual(toggleTastePick({}, 'floral'), { floral: 1 })
   })
 
   it('removes the rating when a pick is undone', () => {
@@ -178,7 +183,7 @@ describe('taste picks', () => {
     const afterGroup1 = pickAll(['fruit', 'sweet'])
     const afterGroup2 = pickAll(['smoke'], afterGroup1)
     const backInGroup1 = toggleTastePick(afterGroup2, 'nutty')
-    assert.deepEqual(backInGroup1, { fruit: 5, sweet: 5, smoke: 5, nutty: 5 })
+    assert.deepEqual(backInGroup1, { fruit: 1, sweet: 1, smoke: 1, nutty: 1 })
   })
 
   it('allows a whole group with no picks', () => {
@@ -196,12 +201,12 @@ describe('taste picks', () => {
 
     const four = toggleTastePick(full, 'sweet')
     assert.equal(canPickMoreTastes(four), true)
-    assert.deepEqual(toggleTastePick(four, 'oak'), { fruit: 5, floral: 5, peat: 5, smoke: 5, oak: 5 })
+    assert.deepEqual(toggleTastePick(four, 'oak'), { fruit: 1, floral: 1, peat: 1, smoke: 1, oak: 1 })
   })
 
-  it('lets a re-pick start again at 5, never keeping the old rating', () => {
+  it('lets a re-pick start again at 1, never keeping the old rating', () => {
     const undone = toggleTastePick({ fruit: 9, floral: 6, peat: 2 }, 'fruit')
-    assert.deepEqual(toggleTastePick(undone, 'fruit'), { floral: 6, peat: 2, fruit: 5 })
+    assert.deepEqual(toggleTastePick(undone, 'fruit'), { floral: 6, peat: 2, fruit: 1 })
   })
 
   it('lists picked tastes in display order', () => {
@@ -337,7 +342,7 @@ describe('validateSommelierInput', () => {
     }
   })
 
-  for (const invalid of [900, 6100, 2500.5, Number.POSITIVE_INFINITY, '3000' as unknown as number]) {
+  for (const invalid of [900, 8100, 2500.5, Number.POSITIVE_INFINITY, '3000' as unknown as number]) {
     it(`rejects budget value ${String(invalid)}`, () => {
       const result = validateSommelierInput(draft({ budget: invalid }))
 

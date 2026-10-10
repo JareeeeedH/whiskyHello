@@ -11,8 +11,13 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
   alternative: '值得探索',
 }
 
+/** Must match the `.photo-frame` aspect-ratio. */
+const PHOTO_FRAME_ASPECT = 3 / 5
+
 /** Photos are hosted by third parties and may refuse to load; those fall back to the placeholder. */
 const failedImages = reactive(new Set<string>())
+/** Photos wider than the frame: they fill its height and lose only empty side margins. */
+const wideImages = reactive(new Set<string>())
 
 function formatIndex(index: number): string {
   return `NO.${String(index + 1).padStart(2, '0')}`
@@ -22,14 +27,10 @@ function photoUrl(item: WhiskyRecommendation): string | null {
   return item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null
 }
 
-function sourceHost(url: string | null): string | null {
-  if (!url) {
-    return null
-  }
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return null
+function onPhotoLoad(event: Event, url: string) {
+  const image = event.target as HTMLImageElement
+  if (image.naturalHeight && image.naturalWidth / image.naturalHeight > PHOTO_FRAME_ASPECT) {
+    wideImages.add(url)
   }
 }
 </script>
@@ -46,13 +47,18 @@ function sourceHost(url: string | null): string | null {
         :class="item.type === 'best_match' ? 'is-best' : 'is-alt'"
       >
         <figure class="card-photo">
-          <div v-if="photoUrl(item)" class="photo-frame">
+          <div
+            v-if="photoUrl(item)"
+            class="photo-frame"
+            :class="{ 'is-wide': wideImages.has(item.imageUrl!) }"
+          >
             <img
               :src="photoUrl(item)!"
               :alt="`${item.whiskyName} 酒瓶照片`"
               loading="lazy"
               decoding="async"
               referrerpolicy="no-referrer"
+              @load="onPhotoLoad($event, item.imageUrl!)"
               @error="failedImages.add(item.imageUrl!)"
             />
           </div>
@@ -65,11 +71,6 @@ function sourceHost(url: string | null): string | null {
             </svg>
             <span>暫無酒瓶照片</span>
           </div>
-          <figcaption v-if="photoUrl(item) && sourceHost(item.imageSourceUrl)">
-            <a :href="item.imageSourceUrl!" target="_blank" rel="noopener noreferrer nofollow">
-              圖片來源 · {{ sourceHost(item.imageSourceUrl) }}
-            </a>
-          </figcaption>
         </figure>
 
         <div class="card-body">
@@ -82,14 +83,14 @@ function sourceHost(url: string | null): string | null {
           <span class="card-rule" aria-hidden="true" />
           <p class="card-reason">{{ item.reason }}</p>
 
-          <div v-if="item.matches.length" class="card-section">
+          <div v-if="item.matches.length" class="card-section is-matches">
             <h4>符合你的偏好</h4>
             <ul class="card-matches">
-              <li v-for="match in item.matches" :key="match">{{ match }}</li>
+              <li v-for="(match, i) in item.matches" :key="match" :style="{ '--i': i }">{{ match }}</li>
             </ul>
           </div>
 
-          <div v-if="item.considerations.length" class="card-section">
+          <div v-if="item.considerations.length" class="card-section is-notes">
             <h4>可以留意</h4>
             <ul class="card-notes">
               <li v-for="note in item.considerations" :key="note">{{ note }}</li>
@@ -102,13 +103,54 @@ function sourceHost(url: string | null): string | null {
 </template>
 
 <style scoped>
+/*
+ * The reveal: the title, then the best match (from 0.3s) unfolds piece by piece,
+ * then the alternative (from 1.8s) repeats it at a quicker pace; about 3s in all.
+ * Each card sets --start and --pace; every step is delayed by start + pace × offset.
+ */
+.recommendations {
+  --ease-reveal: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes reveal-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 .recommendations-title {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
   margin: 0 0 1rem;
   color: var(--wh-ink);
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.4;
+  animation: reveal-rise 450ms var(--ease-reveal) both;
+}
+
+.recommendations-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 164, 106, 0.7), transparent);
+  transform-origin: left;
+  animation: reveal-draw 900ms var(--ease-reveal) 150ms both;
 }
 
 .cards {
@@ -120,29 +162,74 @@ function sourceHost(url: string | null): string | null {
 }
 
 .card {
+  --start: 0s;
+  --pace: 1;
+  position: relative;
   display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
+  grid-template-columns: 9.5rem minmax(0, 1fr);
   gap: 1.6rem;
   align-items: start;
   padding: 1.6rem 1.75rem 1.5rem;
   border-radius: 18px;
-  animation: card-reveal 480ms ease both;
+  animation: reveal-rise 600ms var(--ease-reveal) var(--start) both;
 }
 
+.card.is-best {
+  --start: 0.3s;
+}
+
+.card.is-alt {
+  --start: 1.8s;
+  --pace: 0.55;
+}
+
+/* Positioned so they paint above the best match's glow layer. */
 .card-body {
+  position: relative;
   min-width: 0;
 }
 
 .card-photo {
+  position: relative;
   margin: 0;
+  animation: reveal-rise 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.3s) both;
 }
 
-/* Most product shots are square with the bottle centred, so a near-square frame keeps it large. */
+.card-eyebrow {
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.4s) both;
+}
+
+.card-name {
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.5s) both;
+}
+
+.card-rule {
+  transform-origin: left;
+  animation: reveal-draw 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.7s) both;
+}
+
+.card-reason {
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.9s) both;
+}
+
+.card-section.is-matches h4 {
+  animation: reveal-fade 400ms ease calc(var(--start) + var(--pace) * 1.1s) both;
+}
+
+.card-matches li {
+  animation: reveal-rise 400ms var(--ease-reveal)
+    calc(var(--start) + var(--pace) * (1.15s + var(--i, 0) * 0.1s)) both;
+}
+
+.card-section.is-notes {
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 1.5s) both;
+}
+
+/* A slim, bottle-shaped frame (aspect ratio mirrored in PHOTO_FRAME_ASPECT). */
 .photo-frame {
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 5;
-  padding: 0.4rem;
+  aspect-ratio: 3 / 5;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -153,6 +240,14 @@ function sourceHost(url: string | null): string | null {
   height: 100%;
   object-fit: contain;
   mix-blend-mode: multiply;
+}
+
+/*
+ * Product shots are mostly square with the bottle centred and empty sides. Filling the
+ * frame's height trims only those side margins; the bottle keeps its top and bottom.
+ */
+.photo-frame.is-wide img {
+  object-fit: cover;
 }
 
 .is-best .photo-frame {
@@ -196,52 +291,24 @@ function sourceHost(url: string | null): string | null {
   opacity: 0.85;
 }
 
-.card-photo figcaption {
-  margin-top: 0.45rem;
-  font-size: 0.7rem;
-  line-height: 1.4;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.card-photo figcaption a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.card-photo figcaption a:hover,
-.card-photo figcaption a:focus-visible {
-  text-decoration: underline;
-}
-
-.is-best .card-photo figcaption {
-  color: var(--wh-mauve);
-}
-
-.is-alt .card-photo figcaption {
-  color: var(--wh-muted);
-}
-
-.card:nth-child(2) {
-  animation-delay: 600ms;
-}
-
-@keyframes card-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 .card.is-best {
   border: 1px solid rgba(220, 184, 120, 0.28);
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(220, 184, 120, 0.14), transparent 60%),
-    var(--wh-night);
+  background: var(--wh-night);
   box-shadow: 0 16px 36px rgba(17, 13, 17, 0.22);
   color: var(--wh-cream);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The warm glow comes up slowly, like a light turned on over the bottle. */
+.card.is-best::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(220, 184, 120, 0.16), transparent 60%);
+  pointer-events: none;
+  animation: reveal-fade 1400ms ease calc(var(--start) + 0.3s) both;
 }
 
 .card.is-alt {
@@ -365,15 +432,21 @@ function sourceHost(url: string | null): string | null {
 }
 
 @media (max-width: 640px) {
+  /* The bottle sits beside the name; the reason flows on underneath it, like a magazine layout. */
   .card {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.1rem;
-    padding: 1.3rem 1.2rem 1.2rem;
+    display: flow-root;
+    padding: 1.2rem 1.1rem 1.15rem;
   }
 
-  .photo-frame {
-    aspect-ratio: auto;
-    height: 12rem;
+  .card-photo {
+    float: left;
+    width: 5.75rem;
+    margin: 0 1rem 0.6rem 0;
+  }
+
+  /* A new block formatting context, so the rule sits beside the photo instead of under it. */
+  .card-rule {
+    display: flow-root;
   }
 
   .is-best .card-name {
@@ -386,7 +459,18 @@ function sourceHost(url: string | null): string | null {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
+  .recommendations-title,
+  .recommendations-title::after,
+  .card,
+  .card.is-best::before,
+  .card-photo,
+  .card-eyebrow,
+  .card-name,
+  .card-rule,
+  .card-reason,
+  .card-section.is-matches h4,
+  .card-matches li,
+  .card-section.is-notes {
     animation: none;
   }
 }

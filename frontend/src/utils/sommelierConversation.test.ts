@@ -105,10 +105,9 @@ describe('sommelier questions', () => {
     assert.match(getQuestion(PICK_GROUP_2).hint ?? '', /3～5/)
   })
 
-  it('asks how pronounced each picked taste should be, explaining the scale', () => {
+  it('asks how pronounced each picked taste should be; the sliders explain the scale', () => {
     assert.deepEqual(getQuestion({ type: 'rateTaste' }), {
       title: '你希望這些風味在這杯威士忌中各有多明顯？',
-      hint: '1 是淡淡帶到即可，5 是明顯感受得到，10 是希望成為主要風味。',
     })
   })
 
@@ -278,7 +277,7 @@ describe('user answers', () => {
   })
 
   it('repeats the budget and the free text', () => {
-    assert.deepEqual(describeBudgetAnswer(2000), ['預算 NT$\u00a02,000'])
+    assert.deepEqual(describeBudgetAnswer(2000), ['預算 NT$\u00a02,000\u00a0左右'])
     assert.deepEqual(describeFreeTextAnswer('今晚約會'), ['今晚約會'])
     assert.deepEqual(describeFreeTextAnswer(undefined), [SKIPPED_FREE_TEXT_ANSWER])
   })
@@ -286,8 +285,8 @@ describe('user answers', () => {
 
 describe('formatBudget', () => {
   it('formats max-only, min-only and ranged budgets', () => {
-    assert.equal(formatBudget({ max: 2000 }), 'NT$\u00a02,000 以內')
-    assert.equal(formatBudget({ min: 3000 }), 'NT$\u00a03,000 以上')
+    assert.equal(formatBudget({ max: 2000 }), 'NT$\u00a02,000\u00a0左右')
+    assert.equal(formatBudget({ min: 3000 }), 'NT$\u00a03,000\u00a0以上')
     assert.equal(formatBudget({ min: 1000, max: 2500 }), 'NT$\u00a01,000 – 2,500')
   })
 })
@@ -301,7 +300,7 @@ describe('composeClosingMessage', () => {
     }
     assert.deepEqual(composeClosingMessage(input), [
       '好，我大概知道今天的方向了。',
-      '果香、麥芽／穀物為主，泥煤淡淡帶到，酒體厚重，口感圓潤順口，預算大約 NT$\u00a04,000 以內。',
+      '果香、麥芽／穀物為主，泥煤淡淡帶到，酒體厚重，口感圓潤順口，預算 NT$\u00a04,000\u00a0左右。',
       '我先把今天的方向整理成一份偏好輪廓給你。',
     ])
   })
@@ -313,7 +312,7 @@ describe('composeClosingMessage', () => {
 
   it('stays short when every rating is in the middle', () => {
     const input: SommelierInput = { taste: MID_TASTE, style: MID_STYLE, budget: { max: 2000 } }
-    assert.equal(composeClosingMessage(input)[1], '預算大約 NT$\u00a02,000 以內。')
+    assert.equal(composeClosingMessage(input)[1], '預算 NT$\u00a02,000\u00a0左右。')
   })
 
   it('mentions the picked occasion', () => {

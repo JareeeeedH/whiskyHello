@@ -660,6 +660,23 @@ async function onRetry() {
   }
 }
 
+/** Clears the conversation and every answer, then starts over from the greeting. */
+function onRestart() {
+  flowToken++
+  clearTimers()
+  heldHeight.value = ''
+  draft.value = createEmptySommelierDraft()
+  messages.value = []
+  submittedInput.value = null
+  recommendations.value = []
+  errors.value = {}
+  activeStep.value = 1
+  phase.value = 'opening'
+  arriving.value = true
+  chatRef.value?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  void openConversation()
+}
+
 /** Returns to an earlier question, keeping every answer in the draft. */
 function rewindTo(step: ConversationStep, clearErrors = true) {
   const index = messages.value.findIndex(
@@ -926,6 +943,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               <label for="budget" class="budget-display">
                 <span class="budget-currency">NT$</span>
                 <span class="budget-amount">{{ formatAmount(draft.budget) }}</span>
+                <span class="budget-suffix">左右</span>
               </label>
               <input
                 id="budget"
@@ -935,7 +953,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 :min="BUDGET_MIN"
                 :max="BUDGET_MAX"
                 :step="BUDGET_STEP"
-                :aria-valuetext="formatPrice(draft.budget)"
+                :aria-valuetext="`${formatPrice(draft.budget)} 左右`"
                 :style="{ '--fill': fillPercent(draft.budget, BUDGET_MIN, BUDGET_MAX) }"
               />
               <div class="slider-hints" aria-hidden="true">
@@ -1031,7 +1049,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               label="幫我推薦"
               icon="pi pi-arrow-right"
               icon-pos="right"
-              class="primary-btn"
+              class="primary-btn is-gold"
               @click="onRecommend"
             />
           </div>
@@ -1052,6 +1070,18 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               icon-pos="right"
               class="primary-btn"
               @click="onRetry"
+            />
+          </div>
+
+          <div v-else-if="recommendations.length" class="reply-actions">
+            <Button
+              type="button"
+              label="再次探索"
+              icon="pi pi-refresh"
+              severity="secondary"
+              text
+              class="quiet-btn"
+              @click="onRestart"
             />
           </div>
 
@@ -1790,7 +1820,8 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   color: var(--wh-ink);
 }
 
-.budget-currency {
+.budget-currency,
+.budget-suffix {
   color: var(--wh-muted);
   font-size: 0.875rem;
   font-weight: 600;
@@ -1831,26 +1862,94 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   color: var(--wh-muted) !important;
 }
 
+/* Night-black with a gold hairline, like the best-match card; the arrow sits in a small gold ring. */
 .primary-btn {
+  --btn-bg: linear-gradient(180deg, #241c22 0%, var(--wh-night) 100%);
+  --btn-line: rgba(220, 184, 120, 0.6);
+  --btn-line-hover: rgba(220, 184, 120, 0.95);
+  --btn-shadow: 0 6px 16px rgba(17, 13, 17, 0.16);
+  --btn-shadow-hover: 0 10px 22px rgba(17, 13, 17, 0.24);
+  --btn-icon-line: rgba(220, 184, 120, 0.5);
+  --btn-icon-color: var(--wh-gold-bright);
+  --btn-icon-hover: rgba(220, 184, 120, 0.14);
+
   min-width: 7.5rem;
   min-height: 2.75rem;
-  border: 1px solid var(--wh-ink) !important;
-  background: var(--wh-ink) !important;
-  color: var(--wh-paper) !important;
+  gap: 0.85rem;
+  padding: 0.45rem 0.5rem 0.45rem 1.35rem !important;
+  border: 1px solid var(--btn-line) !important;
+  border-radius: 10px !important;
+  background: var(--btn-bg) !important;
+  box-shadow: inset 0 1px 0 rgba(241, 233, 220, 0.08), var(--btn-shadow);
+  color: var(--wh-cream) !important;
   font-weight: 600 !important;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.primary-btn :deep(.p-button-icon) {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--btn-icon-line);
+  border-radius: 50%;
+  color: var(--btn-icon-color);
+  font-size: 0.7rem;
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease;
 }
 
 .primary-btn:not(:disabled):hover {
-  border-color: #292524 !important;
-  background: #292524 !important;
+  border-color: var(--btn-line-hover) !important;
+  background: var(--btn-bg) !important;
+  box-shadow: inset 0 1px 0 rgba(241, 233, 220, 0.08), var(--btn-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.primary-btn:not(:disabled):hover :deep(.p-button-icon) {
+  background: var(--btn-icon-hover);
+  transform: translateX(3px);
+}
+
+.primary-btn:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+.primary-btn:focus-visible {
+  outline: 2px solid var(--wh-gold) !important;
+  outline-offset: 3px;
 }
 
 .primary-btn:disabled {
-  border-color: #d6d0c6 !important;
-  background: #e7e2d9 !important;
-  color: var(--wh-muted) !important;
+  border-color: #ddd3c3 !important;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--wh-faint) !important;
   opacity: 1;
+}
+
+.primary-btn:disabled :deep(.p-button-icon) {
+  border-color: #ddd3c3;
+  color: var(--wh-faint);
+}
+
+/* Reserved for the one step that matters most: asking for the recommendations. */
+.primary-btn.is-gold {
+  --btn-bg: linear-gradient(180deg, #e4c78d 0%, var(--wh-gold) 100%);
+  --btn-line: #b8914f;
+  --btn-line-hover: #a07a3c;
+  --btn-shadow: 0 8px 20px rgba(161, 98, 7, 0.2);
+  --btn-shadow-hover: 0 12px 26px rgba(161, 98, 7, 0.28);
+  --btn-icon-line: rgba(17, 13, 17, 0.35);
+  --btn-icon-color: var(--wh-night);
+  --btn-icon-hover: rgba(17, 13, 17, 0.08);
+
+  color: var(--wh-night) !important;
 }
 
 @media (max-width: 640px) {
@@ -1936,8 +2035,16 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   .modify-link,
   .reply,
   .choice-option,
-  .range::-webkit-slider-thumb {
+  .range::-webkit-slider-thumb,
+  .primary-btn,
+  .primary-btn :deep(.p-button-icon) {
     transition: none;
+  }
+
+  .primary-btn:not(:disabled):hover,
+  .primary-btn:not(:disabled):active,
+  .primary-btn:not(:disabled):hover :deep(.p-button-icon) {
+    transform: none;
   }
 
   .msg-enter-active,

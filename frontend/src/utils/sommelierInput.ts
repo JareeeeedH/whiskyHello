@@ -64,7 +64,7 @@ export const STYLE_SCALE_HINTS: Record<StyleKey, { min: string; max: string }> =
 
 export const RATING_MIN = 1
 export const RATING_MAX = 10
-export const RATING_DEFAULT = 5
+export const RATING_DEFAULT = 1
 
 /** What 1 and 10 mean for a taste: how pronounced it should be, not how much it is liked. */
 export const TASTE_SCALE_HINTS = { min: '淡淡帶到即可', max: '希望成為主要風味' } as const
@@ -101,9 +101,9 @@ export const OCCASION_OPTIONS: readonly { value: OccasionChoice; icon: string; l
 ]
 
 export const BUDGET_MIN = 1000
-export const BUDGET_MAX = 6000
+export const BUDGET_MAX = 8000
 export const BUDGET_STEP = 100
-export const BUDGET_DEFAULT = 2000
+export const BUDGET_DEFAULT = 2500
 
 export function createEmptySommelierDraft(): SommelierInputDraft {
   return {

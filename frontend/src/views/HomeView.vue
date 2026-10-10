@@ -5,6 +5,8 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import NewsCard from '../components/NewsCard.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import WhiskyDrop from '../components/WhiskyDrop.vue'
+import { vReveal } from '../directives/reveal'
 import { getRandomNews } from '../data/news'
 import { fetchLatestReviews } from '../services/reviewService'
 import type { PublicReview } from '../types/review'
@@ -130,15 +132,16 @@ function goAuctions() {
 
     <section class="taste section" aria-labelledby="home-taste-heading">
       <div class="section-inner">
-        <p class="eyebrow">Sommelier</p>
-        <h2 id="home-taste-heading">別急著找酒，先找到你的口味</h2>
-        <p class="section-desc taste-desc">
+        <p v-reveal class="eyebrow">Sommelier</p>
+        <h2 id="home-taste-heading" v-reveal="1">別急著找酒，先找到你的口味</h2>
+        <p v-reveal="2" class="section-desc taste-desc">
           從你喜歡的風味出發，探索泥煤、甜香與木質調，與侍酒師一起慢慢描繪出屬於你的口味。
         </p>
         <ol class="capability-list taste-steps">
           <li
             v-for="(step, index) in sommelierSteps"
             :key="step.title"
+            v-reveal="index"
             class="capability-item"
           >
             <span class="capability-index" aria-hidden="true">
@@ -150,7 +153,7 @@ function goAuctions() {
             </div>
           </li>
         </ol>
-        <div class="taste-cta">
+        <div v-reveal class="taste-cta">
           <Button
             label="與侍酒師聊聊"
             icon="pi pi-arrow-right"
@@ -167,12 +170,12 @@ function goAuctions() {
       <div class="section-inner explore-grid">
         <div class="left-panel">
           <div class="search-panel">
-            <p class="eyebrow">Whisky Discovery</p>
-            <h2 id="home-discovery-heading">從一杯酒，慢慢認識自己的口味</h2>
-            <p class="section-desc">
+            <p v-reveal class="eyebrow">Whisky Discovery</p>
+            <h2 id="home-discovery-heading" v-reveal="1">從一杯酒，慢慢認識自己的口味</h2>
+            <p v-reveal="2" class="section-desc">
               搜尋酒款、閱讀評論，也看看其他酒友正在喝什麼。每一次探索，都讓你更了解自己喜歡的威士忌。
             </p>
-            <form class="search-box" @submit.prevent="goSearchEntry">
+            <form v-reveal="3" class="search-box" @submit.prevent="goSearchEntry">
               <InputText
                 v-model="searchHint"
                 placeholder="例如 Macallan、Ardbeg、Lagavulin..."
@@ -190,8 +193,8 @@ function goAuctions() {
           @focusin="pauseReviewMarquee"
           @focusout="resumeReviewMarquee"
         >
-          <p class="eyebrow">Friend Reviews</p>
-          <h2>酒友最近喝了什麼。</h2>
+          <p v-reveal="1" class="eyebrow">Friend Reviews</p>
+          <h2 v-reveal="2">酒友最近喝了什麼。</h2>
 
           <p v-if="reviewsLoading" class="review-state" role="status">
             載入評論中…
@@ -199,7 +202,7 @@ function goAuctions() {
           <p v-else-if="latestFriendReviews.length === 0" class="review-state">
             目前還沒有評論
           </p>
-          <div v-else class="review-marquee" aria-label="酒友最新評論流動列表">
+          <div v-else v-reveal="3" class="review-marquee" aria-label="酒友最新評論流動列表">
             <div class="review-marquee-viewport">
               <div
                 class="review-marquee-track"
@@ -251,15 +254,16 @@ function goAuctions() {
 
     <section class="auction section" aria-labelledby="home-auction-heading">
       <div class="section-inner auction-inner">
-        <p class="eyebrow">Auction House</p>
-        <h2 id="home-auction-heading">發現稀有酒款，也看見威士忌市場</h2>
-        <p class="section-desc">
+        <p v-reveal class="eyebrow">Auction House</p>
+        <h2 id="home-auction-heading" v-reveal="1">發現稀有酒款，也看見威士忌市場</h2>
+        <p v-reveal="2" class="section-desc">
           探索限量、收藏與稀有酒款競標，掌握即時價格、出價與結標結果。
         </p>
-        <p class="section-desc">
+        <p v-reveal="3" class="section-desc">
           從「想喝什麼」到「市場上正在發生什麼」，WhiskyHello 連結你的品味與威士忌市場。
         </p>
         <Button
+          v-reveal="4"
           label="探索 Auction House"
           icon="pi pi-arrow-right"
           icon-pos="right"
@@ -273,19 +277,20 @@ function goAuctions() {
     <section class="news section" aria-labelledby="home-news-heading">
       <div class="section-inner">
         <div class="news-header">
-          <p class="eyebrow">Whisky News</p>
-          <h2 id="home-news-heading">掌握值得關注的威士忌世界</h2>
-          <p class="section-desc">
+          <p v-reveal class="eyebrow">Whisky News</p>
+          <h2 id="home-news-heading" v-reveal="1">掌握值得關注的威士忌世界</h2>
+          <p v-reveal="2" class="section-desc">
             從酒廠、品牌、新品，到拍賣與市場趨勢，整理全球值得關注的威士忌資訊。
           </p>
         </div>
 
         <div v-if="featuredNews" class="news-layout">
-          <NewsCard :item="featuredNews" featured class="news-featured" />
+          <NewsCard v-reveal :item="featuredNews" featured class="news-featured" />
           <div class="news-side">
             <NewsCard
-              v-for="item in sideNews"
+              v-for="(item, index) in sideNews"
               :key="item.id"
+              v-reveal="index + 1"
               :item="item"
             />
           </div>
@@ -294,13 +299,15 @@ function goAuctions() {
     </section>
 
     <section class="sommelier section">
+      <WhiskyDrop />
       <div class="section-inner sommelier-inner">
-        <p class="eyebrow sommelier-eyebrow">Next Dram</p>
-        <h2>下一杯，喝什麼？</h2>
-        <p class="sommelier-lead">
+        <p v-reveal class="eyebrow sommelier-eyebrow">Next Dram</p>
+        <h2 v-reveal="1">下一杯，喝什麼？</h2>
+        <p v-reveal="2" class="sommelier-lead">
           從你的口味開始，和 WhiskyHello 一起找到下一杯值得探索的威士忌。
         </p>
         <Button
+          v-reveal="3"
           label="與侍酒師聊聊"
           severity="secondary"
           outlined
@@ -511,6 +518,19 @@ function goAuctions() {
   height: 1px;
   background: currentColor;
   opacity: 0.7;
+  transform-origin: left;
+}
+
+/* The gold rules draw in from the left just after their text rises in (see v-reveal). */
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.eyebrow.is-revealed::before,
+.capability-item.is-revealed::before {
+  animation: rule-draw 700ms cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--reveal-delay, 0ms) + 200ms) backwards;
 }
 
 .section h2 {
@@ -567,6 +587,7 @@ function goAuctions() {
   width: 2.5rem;
   height: 1px;
   background: var(--wh-gold);
+  transform-origin: left;
 }
 
 .capability-index {
@@ -900,6 +921,7 @@ function goAuctions() {
 
 /* ——— Closing CTA ——— */
 .sommelier {
+  position: relative;
   padding-top: 7rem;
   padding-bottom: 7rem;
   background:
@@ -927,7 +949,9 @@ function goAuctions() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .review-marquee-track {
+  .review-marquee-track,
+  .eyebrow.is-revealed::before,
+  .capability-item.is-revealed::before {
     animation: none;
   }
 

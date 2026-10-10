@@ -1,16 +1,16 @@
 import { Router } from 'express'
-import { createPreference } from '../controllers/sommelierController'
+import { createRecommendations } from '../controllers/sommelierController'
 import { sommelierRateLimit } from '../middlewares/rateLimit'
 import { validate } from '../middlewares/validate'
-import { preferenceRequestSchema } from '../validations/sommelierValidation'
+import { recommendationRequestSchema } from '../validations/sommelierValidation'
 
 const router = Router()
 
 router.post(
-  '/sommelier/preference',
+  '/sommelier/recommendations',
   sommelierRateLimit,
-  validate(preferenceRequestSchema),
-  createPreference,
+  validate(recommendationRequestSchema),
+  createRecommendations,
 )
 
 export default router

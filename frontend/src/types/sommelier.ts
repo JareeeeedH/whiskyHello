@@ -29,7 +29,10 @@ export interface SommelierBudget {
   max?: number
 }
 
-/** Validated conversation output; the body of POST /api/v1/sommelier/preference. */
+/**
+ * Validated conversation output: shown as the preference profile, and the body
+ * of POST /api/v1/sommelier/recommendations.
+ */
 export interface SommelierInput {
   taste: TasteProfile
   style: StyleProfile
@@ -60,7 +63,7 @@ export type SommelierInputResult =
   | { ok: true; value: SommelierInput }
   | { ok: false; errors: SommelierInputErrors }
 
-/** Picked in the conversation; an occasion stated in freeText overrides it. */
+/** Picked in the conversation. */
 export type PreferenceOccasion =
   | 'relaxing'
   | 'tasting'
@@ -70,21 +73,17 @@ export type PreferenceOccasion =
   | 'gift'
   | 'celebration'
 
-/** Context the backend extracts from freeText. */
-export type SommelierMood = 'positive' | 'neutral' | 'low' | 'stressed'
+export type RecommendationType = 'best_match' | 'alternative'
 
-export type SommelierCompanion = 'alone' | 'friend' | 'date' | 'partner' | 'family'
-
-/** Output of POST /api/v1/sommelier/preference: ratings as entered, plus budget and context. */
-export interface Preference {
-  taste: TasteProfile
-  style: StyleProfile
-  budget?: SommelierBudget
-  occasion?: PreferenceOccasion
-  mood?: SommelierMood
-  companion?: SommelierCompanion
+export interface WhiskyRecommendation {
+  type: RecommendationType
+  whiskyName: string
+  reason: string
+  matches: string[]
+  considerations: string[]
 }
 
-export interface PreferenceResponse {
-  preference: Preference
-}
+/** Output of POST /api/v1/sommelier/recommendations; `ok` lists best_match then alternative. */
+export type RecommendationResult =
+  | { status: 'ok'; recommendations: WhiskyRecommendation[] }
+  | { status: 'unable'; message?: string }

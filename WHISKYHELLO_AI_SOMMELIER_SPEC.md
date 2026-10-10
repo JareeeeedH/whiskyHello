@@ -2,17 +2,16 @@
 
 > 所屬範圍：Phase 2｜AI Whisky Sommelier（見 `WHISKYHELLO_SPEC.md` 第 11 節）
 >
-> 本文件範圍：Step 1｜User Input、Step 2｜Preference Extraction
+> 本文件範圍：Step 1｜User Input、Step 2｜Whisky Recommendation
 >
 > 文件狀態：草案（Draft）
 
 ---
 
-## 1. Step 1 目的
+## 1. 目的
 
-讓使用者提供「這一次想喝什麼」的需求，作為後續 AI Whisky Sommelier 流程的輸入。
-
-Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或結果顯示。
+- Step 1：讓使用者提供「這一次想喝什麼」的需求，並在前端整理成偏好輪廓；不呼叫 API
+- Step 2：使用者看過偏好輪廓後，由 LLM 依需求推薦兩款威士忌（見第 4 節）
 
 ---
 
@@ -74,7 +73,7 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 | 🎉 慶祝時刻 | `celebration` |
 | ✨ 沒有特定情境 | 不送出 `occasion` |
 
-舊版的 `beginner`、`premium` 已移除，API 不再接受，LLM 也不再萃取。
+舊版的 `beginner`、`premium` 已移除，API 不再接受。情境只來自使用者的選擇，`freeText` 不會覆蓋。
 
 ### 2.5 欄位規則
 
@@ -123,10 +122,13 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 
 - Thinking State 與 Sommelier 回應為固定文案（deterministic templates），依題目與回答內容選用，不呼叫 LLM、不新增任何 API 請求
 - Sommelier 回應只複述已提供的資訊，不推薦酒款、不推測使用者沒提供的內容
-- 已回答的內容可以「修改」，回到該題並保留所有回答；重新作答後，之後的對話重新進行
-- 最後一題完成或跳過後，立即送出 3.1 的 Step 1 Input（Step 2）；Thinking State 至少維持最短時間，API 較慢時持續到回應為止（超過 4 秒改顯示「還在整理，馬上就好…」）
-- Step 2 成功後，Sommelier 依 Preference 產生收尾訊息（評分 >= 7 的風味「為主」、<= 3 的「淡淡帶到」），接著顯示「查看偏好輪廓」；點擊後經 Thinking State 顯示偏好輪廓（風味附評分與口語標籤）
-- Step 2 失敗時，Sommelier 以訊息說明錯誤，並提供「重試」與「修改需求」
+- 已回答的內容可以「修改」，回到該題並保留所有回答；重新作答後，之後的對話重新進行（已顯示的偏好輪廓與推薦一併清除）
+- 最後一題完成或跳過後，Frontend 驗證並整理出 3.1 的 Input，經 Thinking State 後，Sommelier 依 Input 產生收尾訊息（評分 >= 7 的風味「為主」、<= 3 的「淡淡帶到」、喝感、預算、情境），接著顯示「查看偏好輪廓」
+- 點擊「查看偏好輪廓」後，經 Thinking State 顯示偏好輪廓（風味附評分與口語標籤、喝感、預算、情境；有填補充說明時一併顯示），並提供「修改需求」與「幫我推薦」
+- 點擊「幫我推薦」才呼叫 Step 2 API（4.5）；Thinking State 至少維持最短時間，API 較慢時持續到回應為止（超過 4 秒改顯示「還在幫你比對，再等我一下…」）
+- `status: "ok"`：顯示兩張推薦卡（4.6），之後只提供「修改需求」
+- `status: "unable"`：Sommelier 說明這次找不到合適的酒款（附上 LLM 的簡短原因），提供「修改需求」
+- API 失敗時，Sommelier 以訊息說明錯誤，並提供「重試」與「修改需求」
 
 ---
 
@@ -134,7 +136,7 @@ Step 1 只負責收集與整理使用者需求，不包含推薦、AI 呼叫或�
 
 ### 3.1 Input
 
-`POST /api/v1/sommelier/preference`：
+Step 1 整理出的 Input，也是 Step 2 API（`POST /api/v1/sommelier/recommendations`）的 Request Body：
 
 ```ts
 type SommelierInput = {
@@ -169,134 +171,138 @@ type SommelierInput = {
 
 ### 3.2 Output
 
-Step 1 的輸出為驗證並整理後的使用者需求，結構與 Input 相同：
+Step 1 的輸出為驗證並整理後的使用者需求，結構與 Input 相同，偏好輪廓直接以它顯示：
 
 - `taste` 只包含使用者選取的風味，依 2.1 的順序排列
 - 未填的選填欄位不出現在輸出中
 - `freeText` 已去除前後空白
 
+Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證結果。
+
 ---
 
-## 4. Step 2｜Preference Extraction
+## 4. Step 2｜Whisky Recommendation
 
 ### 4.1 目的
 
-讀取 Step 1 的 `freeText`，使用 LLM 將自然語言中可辨識的情境轉成結構化資料，並與 Step 1 的使用者輸入合併，產生後續流程使用的 `Preference`。
+依 Step 1 的 Input，由 LLM 推薦兩款威士忌：最適合的一款（`best_match`）與值得探索（`alternative`），各附個人化的推薦理由。
 
-LLM 由 Backend 呼叫（依 `WHISKYHELLO_SPEC.md` 第 11 節資料流），Frontend 不直接呼叫 LLM。
+- LLM 由 Backend 呼叫（依 `WHISKYHELLO_SPEC.md` 第 11 節資料流），Frontend 不直接呼叫 LLM
+- 整份 Input 一次送給 LLM，不另外萃取 `freeText`
+- LLM 自由推薦真實存在的酒款，不限於本站資料，也不連結站內頁面
+- 不儲存 Input 與推薦結果
 
-### 4.2 LLM Extraction
+### 4.2 LLM 呼叫
 
-風味與喝感由使用者以 Slider 明確設定，LLM 不萃取、不修改。從 `freeText` 只萃取以下欄位：
+- OpenAI Responses API，模型為 `OPENAI_MODEL`，`store: false`
+- Structured Outputs：`json_schema`、`strict: true`
+- Input 以 JSON 字串送出；`freeText` 視為資料，不是指令
+- 逾時 40 秒，不自動重試（失敗時由使用者按「重試」）
 
-| 欄位 | 說明 | 值 |
-|---|---|---|
-| `budget` | 價格範圍（`min`、`max`） | 數字，>= 0 |
-| `occasion` | 飲酒情境 | 4.3 |
-| `mood` | 使用者當下心情 | 4.4 |
-| `companion` | 和誰一起喝 | 4.5 |
+### 4.3 LLM 對欄位的理解
 
-### 4.3 Occasion
-
-與 2.4 相同的 7 個值：
-
-| 值 | 說明 |
+| 欄位 | 意義 |
 |---|---|
-| `relaxing` | 放鬆、獨飲 |
-| `tasting` | 專心品飲、細細品嚐 |
-| `social` | 朋友聚會、小酌 |
-| `meal` | 搭配餐點 |
-| `date` | 伴侶、約會 |
-| `gift` | 送禮 |
-| `celebration` | 慶祝、特別的日子 |
+| `taste` | 每個已選風味希望多明顯：1 只要淡淡帶到、5 明顯感受得到、10 希望成為主要風味。未出現的風味是「未指定」，不是排除 |
+| `style.body` | 1 輕盈 → 10 厚重；不是酒精濃度 |
+| `style.intensity` | 1 柔和 → 10 強烈；不是酒精濃度 |
+| `style.smoothness` | 1 粗獷／刺激 → 10 圓潤／順口 |
+| `occasion` | 2.4 的情境 |
+| `budget` | 每瓶價格，新台幣 |
+| `freeText` | 補充：喜歡或不喜歡的酒款、更細的風味、明確排除、特殊需求、想嘗試新東西等 |
 
-### 4.4 Mood
+- 三個 Style 各自獨立判斷；評分是使用者的目標，不是任何酒款的實測分數
+- 結構化欄位為主，`freeText` 用來補充；兩者衝突時以結構化欄位為準，除非 `freeText` 明確排除某些東西，並在 `considerations` 說明取捨
+- 不推測使用者沒提供的內容
 
-| 值 | 說明 |
-|---|---|
-| `positive` | 心情好、開心、想慶祝 |
-| `neutral` | 平常、沒有特別情緒 |
-| `low` | 低落、疲憊 |
-| `stressed` | 壓力大、焦慮 |
+### 4.4 推薦規則
 
-### 4.5 Companion
+- 只推薦有把握確實存在、正式發售的酒款；不捏造酒款、版本或風味資訊
+- `whiskyName` 使用官方英文全名（含年份或版本），例如 `Glenfiddich 12 Year Old`
+- `alternative` 盡量與 `best_match` 來自不同酒廠，並同樣符合需求
+- 參考預算挑選在台灣常見售價範圍內的酒款，但不寫價格，也不聲稱符合預算；`considerations` 不提價格或預算
+- 不給配對分數或百分比
+- `reason`、`matches`、`considerations` 使用台灣繁體中文：
+  - `reason`：1–2 句，說明為什麼適合這位使用者
+  - `matches`：2–4 個短句，列出符合的偏好
+  - `considerations`：0–2 個短句，列出可能與偏好不同的地方；沒有時為空陣列
+- 無法推薦兩款合適的真實酒款時（例如需求與威士忌無關），回 `status: "unable"`，以一句繁體中文在 `message` 說明原因
 
-| 值 | 說明 |
-|---|---|
-| `alone` | 一個人 |
-| `friend` | 朋友 |
-| `date` | 約會對象 |
-| `partner` | 伴侶 |
-| `family` | 家人 |
+### 4.5 API
 
-### 4.6 Extraction Rules
+`POST /api/v1/sommelier/recommendations`，Request Body 為 3.1 的 Input，依 2.5 驗證（不合法回 400，不呼叫 LLM）。
 
-- 有明確語意才萃取
-- 無法對應既有欄位或既有值時，不要猜測，也不要自行建立新欄位或新值
-- 不因單一情緒直接推導不存在的口味偏好
-- 使用者沒有提供的資訊不出現
-- LLM 回傳不在定義內的欄位或值時，Backend 一律捨棄，不寫入 Preference
-
-LLM Extraction 結果（所有欄位皆可省略）：
+成功（200）：
 
 ```ts
-{
-  budget?: { min?: number; max?: number }
-  occasion?: string
-  mood?: string
-  companion?: string
+type RecommendationResult =
+  | {
+      status: 'ok'
+      recommendations: [WhiskyRecommendation, WhiskyRecommendation]   // best_match、alternative 依序
+    }
+  | {
+      status: 'unable'
+      message?: string                       // LLM 的簡短原因；沒有時省略
+    }
+
+type WhiskyRecommendation = {
+  type: 'best_match' | 'alternative'
+  whiskyName: string
+  reason: string
+  matches: string[]
+  considerations: string[]
 }
 ```
-
-### 4.7 Merge Rules
-
-| 欄位 | 規則 |
-|---|---|
-| `taste` | 只來自 Step 1，原樣保留；未選取的風味不補值 |
-| `style` | 只來自 Step 1，原樣保留 |
-| `budget` | `min`、`max` 各自判斷：LLM 有萃取的值覆蓋 Step 1；LLM 未提及的值保留 Step 1 |
-| `occasion` | LLM 有萃取時覆蓋 Step 1 的選擇；否則保留 Step 1（「沒有特定情境」時不出現） |
-| `mood` | 只來自 LLM |
-| `companion` | 只來自 LLM |
-
-沒有 `freeText` 時不呼叫 LLM，`Preference` 直接由 Step 1 輸入轉換。
-
-### 4.8 Output｜Preference
-
-```ts
-type Preference = {
-  taste: Partial<Record<TasteKey, number>>   // 3–5 個已選風味，各 1–10
-  style: {
-    body: number
-    intensity: number
-    smoothness: number
-  }
-  budget?: {
-    min?: number
-    max?: number
-  }
-  occasion?: string                          // 4.3 Occasion
-  mood?: string                              // 4.4 Mood
-  companion?: string                         // 4.5 Companion
-}
-```
-
-- `taste`、`style` 一定存在；`taste` 不含未選取的風味
-- 沒有資料的選填欄位不出現
-- `budget` 沒有 `min` 也沒有 `max` 時不出現
 
 範例：
 
 ```json
 {
-  "taste": { "fruit": 9, "floral": 6, "maltGrain": 7, "peat": 2 },
-  "style": { "body": 8, "intensity": 6, "smoothness": 9 },
-  "budget": { "max": 2000 },
-  "occasion": "date",
-  "mood": "positive",
-  "companion": "date"
+  "status": "ok",
+  "recommendations": [
+    {
+      "type": "best_match",
+      "whiskyName": "Glenmorangie The Original 10 Year Old",
+      "reason": "果香與花香明亮，麥芽甜感柔和，口感圓潤，很適合約會時輕鬆享用。",
+      "matches": ["果香明顯", "帶有花香", "口感圓潤順口"],
+      "considerations": ["酒體偏中等，不算厚重"]
+    },
+    {
+      "type": "alternative",
+      "whiskyName": "Aberlour 12 Year Old Double Cask Matured",
+      "reason": "雪莉桶帶來果乾與甜香，酒體比較飽滿，喝起來依然順口。",
+      "matches": ["果香豐富", "酒體飽滿", "順口"],
+      "considerations": []
+    }
+  ]
 }
 ```
+
+Backend 驗證 LLM 回傳：
+
+- `status: "ok"` 時兩款都必須有非空的 `whiskyName` 與 `reason`；`matches`、`considerations` 去除空白項目
+- 兩款名稱正規化（不分大小寫、忽略空白與標點）後不可相同
+- `status: "unable"` 時忽略酒款欄位
+
+錯誤（Body 為 `{ "message": string }`，不含 OpenAI 的錯誤細節）：
+
+| 狀況 | 狀態碼 |
+|---|---|
+| Input 不合法 | 400 |
+| 請求過於頻繁 | 429 |
+| 未設定 OpenAI | 503 |
+| OpenAI 逾時 | 504 |
+| OpenAI 失敗、拒答、回傳不完整、不是 JSON 或未通過上述驗證 | 502 |
+
+### 4.6 推薦卡
+
+依序顯示兩張卡片：
+
+- 標籤：「最適合你」（`best_match`）、「值得探索」（`alternative`）
+- 酒款名稱、推薦理由
+- 「符合你的偏好」：`matches`
+- 「可以留意」：`considerations`，沒有時不顯示
+- 不顯示價格、分數與預算提醒
 
 ---
 
@@ -304,17 +310,9 @@ type Preference = {
 
 以下項目需另行確認，本文件不定義：
 
-### Step 1
-
-- 預算幣別與單位
 - `budget.min` 是否必須 <= `budget.max`
-- 使用者需求是否需要儲存
-
-### Step 2
-
-- LLM 呼叫失敗、逾時或回傳格式錯誤時的處理方式
-- 合併後 `budget.min` 大於 `budget.max` 時的處理方式
-- `Preference` 是否保留原始 `freeText` 供後續 Step 使用
+- 使用者需求與推薦結果是否需要儲存
 - `freeText` 支援的語言
-- Preference 是否需要儲存
-- Step 2 之後的流程、API Endpoint 與推薦方式
+- 推薦是否改用獨立的模型設定
+- 推薦結果是否連結到站內酒款頁面
+- 是否提供「換一組推薦」

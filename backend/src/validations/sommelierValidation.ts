@@ -66,7 +66,7 @@ const budgetValue = (label: string) =>
       'number.infinity': `Budget ${label} must be a number`,
     })
 
-export const preferenceRequestSchema = Joi.object({
+export const recommendationRequestSchema = Joi.object({
   taste: tasteSchema,
   style: styleSchema,
   occasion: Joi.string()
@@ -92,4 +92,4 @@ export const preferenceRequestSchema = Joi.object({
     }),
 })
 
-export type PreferenceRequestBody = SommelierInput
+export type RecommendationRequestBody = SommelierInput

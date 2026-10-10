@@ -180,7 +180,7 @@ function normalizeStyle(style: unknown): StyleProfile | null {
   return result
 }
 
-/** Validates the conversation values and produces the request body for the Preference API. */
+/** Validates the conversation values into the preference profile and recommendation request body. */
 export function validateSommelierInput(draft: SommelierInputDraft): SommelierInputResult {
   const errors: SommelierInputErrors = {}
 

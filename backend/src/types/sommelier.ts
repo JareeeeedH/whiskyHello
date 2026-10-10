@@ -26,7 +26,7 @@ export const STYLE_KEYS = ['body', 'intensity', 'smoothness'] as const
 export const PREFERENCE_SCALE_MIN = 1
 export const PREFERENCE_SCALE_MAX = 10
 
-/** Picked by the user in the conversation, or extracted from freeText. */
+/** Picked by the user in the conversation. */
 export const OCCASIONS = [
   'relaxing',
   'tasting',
@@ -37,15 +37,9 @@ export const OCCASIONS = [
   'celebration',
 ] as const
 
-export const MOODS = ['positive', 'neutral', 'low', 'stressed'] as const
-
-export const COMPANIONS = ['alone', 'friend', 'date', 'partner', 'family'] as const
-
 export type TasteKey = (typeof TASTE_KEYS)[number]
 export type StyleKey = (typeof STYLE_KEYS)[number]
 export type Occasion = (typeof OCCASIONS)[number]
-export type Mood = (typeof MOODS)[number]
-export type Companion = (typeof COMPANIONS)[number]
 
 /**
  * Only the 3–5 tastes the user picked and rated. A missing key means "not specified":
@@ -59,7 +53,7 @@ export interface PreferenceBudget {
   max?: number
 }
 
-/** Validated request body for POST /api/v1/sommelier/preference. */
+/** Validated request body for POST /api/v1/sommelier/recommendations. */
 export interface SommelierInput {
   taste: TasteProfile
   style: StyleProfile
@@ -69,20 +63,17 @@ export interface SommelierInput {
   freeText?: string
 }
 
-/** Context the LLM extracted from freeText, after backend validation dropped invalid values. */
-export interface PreferenceExtraction {
-  budget?: PreferenceBudget
-  occasion?: Occasion
-  mood?: Mood
-  companion?: Companion
+export type RecommendationType = 'best_match' | 'alternative'
+
+export interface WhiskyRecommendation {
+  type: RecommendationType
+  whiskyName: string
+  reason: string
+  matches: string[]
+  considerations: string[]
 }
 
-/** Final Preference: ratings as entered (unpicked tastes stay absent), plus budget, occasion and freeText context. */
-export interface Preference {
-  taste: TasteProfile
-  style: StyleProfile
-  budget?: PreferenceBudget
-  occasion?: Occasion
-  mood?: Mood
-  companion?: Companion
-}
+/** `ok` always carries best_match then alternative; `unable` means the LLM found no suitable pair. */
+export type RecommendationResult =
+  | { status: 'ok'; recommendations: [WhiskyRecommendation, WhiskyRecommendation] }
+  | { status: 'unable'; message?: string }

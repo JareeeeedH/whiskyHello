@@ -5,15 +5,17 @@ import Textarea from 'primevue/textarea'
 import SiteFooter from '../components/SiteFooter.vue'
 import SommelierAvatar from '../components/SommelierAvatar.vue'
 import SommelierPreferenceProfile from '../components/SommelierPreferenceProfile.vue'
-import { SommelierApiError, fetchPreference } from '../services/sommelierService'
+import SommelierRecommendations from '../components/SommelierRecommendations.vue'
+import { SommelierApiError, fetchRecommendations } from '../services/sommelierService'
 import type {
   OccasionChoice,
-  Preference,
+  RecommendationResult,
   SommelierInput,
   SommelierInputDraft,
   SommelierInputErrors,
   SommelierInputField,
   TasteKey,
+  WhiskyRecommendation,
 } from '../types/sommelier'
 import {
   BUDGET_MAX,
@@ -49,6 +51,7 @@ import {
   SOMMELIER_ARRIVAL_TEXT,
   USER_TO_THINKING_MS,
   composeClosingMessage,
+  composeUnableMessage,
   describeBudgetAnswer,
   describeOccasionAnswer,
   describeFreeTextAnswer,
@@ -70,10 +73,10 @@ import {
 } from '../utils/sommelierConversation'
 
 /**
- * opening → answering ⇄ responding → closing → done. `error` replaces
- * `closing` when the Preference API fails; `responding` covers every Sommelier turn.
+ * opening → answering ⇄ responding → closing → profile → done. `error` replaces
+ * `done` when the recommendation API fails; `responding` covers every Sommelier turn.
  */
-type Phase = 'opening' | 'answering' | 'responding' | 'closing' | 'error' | 'done'
+type Phase = 'opening' | 'answering' | 'responding' | 'closing' | 'profile' | 'error' | 'done'
 
 interface SommelierMessage {
   id: number
@@ -106,15 +109,15 @@ interface ThinkingMessage {
 interface SystemMessage {
   id: number
   type: 'system'
-  content: 'profile'
+  content: 'profile' | 'recommendations'
 }
 
 type ChatMessage = SommelierMessage | UserMessage | ThinkingMessage | SystemMessage
 type NewMessage = ChatMessage extends infer T ? (T extends ChatMessage ? Omit<T, 'id'> : never) : never
 type Author = 'sommelier' | 'user'
 
-type PreferenceOutcome =
-  | { ok: true; preference: Preference }
+type RecommendationOutcome =
+  | { ok: true; result: RecommendationResult }
   | { ok: false; message: string; details: string[] }
 
 const FREE_TEXT_MAX_LENGTH = 1000
@@ -128,8 +131,8 @@ const FREE_TEXT_PLACEHOLDER = ['例如：', ...FREE_TEXT_EXAMPLES.map((example) 
 const REPLY_EXIT_MS = 180
 const SCROLL_MARGIN_TOP = 16
 const SCROLL_MARGIN_BOTTOM = 24
-const PREFERENCE_ERROR_FALLBACK = '偏好整理暫時無法使用，請稍後再試'
-const PREFERENCE_ERROR_INTRO = '抱歉，剛剛整理的時候出了點問題。'
+const RECOMMENDATION_ERROR_FALLBACK = '推薦暫時無法使用，請稍後再試'
+const RECOMMENDATION_ERROR_INTRO = '抱歉，剛剛挑酒的時候出了點問題。'
 
 /** The first question of each kind that a validation error sends the user back to. */
 const FIELD_STEP_TYPES: Record<SommelierInputField, StepKind['type']> = {
@@ -147,8 +150,9 @@ const phase = ref<Phase>('opening')
 const arriving = ref(true)
 const activeStep = ref<ConversationStep>(1)
 const errors = ref<SommelierInputErrors>({})
+/** The validated answers: shown as the preference profile and sent for recommendations. */
 const submittedInput = ref<SommelierInput | null>(null)
-const preference = ref<Preference | null>(null)
+const recommendations = ref<WhiskyRecommendation[]>([])
 const chatRef = ref<HTMLElement | null>(null)
 const headerRef = ref<HTMLElement | null>(null)
 const replyRef = ref<HTMLElement | null>(null)
@@ -164,11 +168,7 @@ let focusReplyOnEnter = false
 
 const totalSteps = CONVERSATION_STEPS.length
 const freeTextStep = stepOf('freeText')
-const progressStep = computed(() =>
-  phase.value === 'closing' || phase.value === 'error' || phase.value === 'done'
-    ? totalSteps
-    : activeStep.value,
-)
+const progressStep = computed(() => (submittedInput.value ? totalSteps : activeStep.value))
 const progressLabel = computed(() => `${padStep(progressStep.value)} / ${padStep(totalSteps)}`)
 const progressWidth = computed(() => `${(progressStep.value / totalSteps) * 100}%`)
 const activeKind = computed(() => kindAt(activeStep.value))
@@ -526,57 +526,13 @@ async function onAnswerFreeText(includeFreeText: boolean) {
   }
   addMessage({ type: 'user', step: freeTextStep, lines: describeFreeTextAnswer(input.freeText) })
   submittedInput.value = input
-  await deliverPreference('freeText', input, token)
-}
-
-async function requestPreference(input: SommelierInput): Promise<PreferenceOutcome> {
-  try {
-    return { ok: true, preference: await fetchPreference(input) }
-  } catch (error) {
-    if (error instanceof SommelierApiError) {
-      return { ok: false, message: error.message, details: error.details }
-    }
-    return { ok: false, message: PREFERENCE_ERROR_FALLBACK, details: [] }
-  }
-}
-
-/** Calls the Preference API while the Sommelier is thinking, then closes with a summary or an error. */
-async function deliverPreference(moment: ThinkingMoment, input: SommelierInput, token: number) {
-  const thought = await thinkWhile(moment, token, requestPreference(input))
+  const closing = composeClosingMessage(input)
+  const thought = await thinkWhile('freeText', token, Promise.resolve(), closing.join(''))
   if (!thought) {
     return
   }
-
-  const outcome = thought.result
-  if (outcome.ok) {
-    preference.value = outcome.preference
-    replaceMessage(thought.id, {
-      type: 'sommelier',
-      lines: composeClosingMessage(outcome.preference),
-      anchor: true,
-    })
-    await showReply('closing', token)
-  } else {
-    replaceMessage(thought.id, {
-      type: 'sommelier',
-      lines: [PREFERENCE_ERROR_INTRO, outcome.message],
-      details: outcome.details,
-      tone: 'error',
-      anchor: true,
-    })
-    await showReply('error', token)
-  }
-}
-
-async function onRetry() {
-  const input = submittedInput.value
-  if (phase.value !== 'error' || !input) {
-    return
-  }
-  const token = await beginTurn()
-  if (token !== null) {
-    await deliverPreference('retry', input, token)
-  }
+  replaceMessage(thought.id, { type: 'sommelier', lines: closing, anchor: true })
+  await showReply('closing', token)
 }
 
 async function onShowProfile() {
@@ -592,7 +548,75 @@ async function onShowProfile() {
     return
   }
   replaceMessage(thought.id, { type: 'system', content: 'profile' })
-  await showReply('done', token, false)
+  await showReply('profile', token, false)
+}
+
+async function requestRecommendations(input: SommelierInput): Promise<RecommendationOutcome> {
+  try {
+    return { ok: true, result: await fetchRecommendations(input) }
+  } catch (error) {
+    if (error instanceof SommelierApiError) {
+      return { ok: false, message: error.message, details: error.details }
+    }
+    return { ok: false, message: RECOMMENDATION_ERROR_FALLBACK, details: [] }
+  }
+}
+
+/** Calls the recommendation API while the Sommelier is thinking, then shows the cards, a reason or an error. */
+async function deliverRecommendations(moment: ThinkingMoment, input: SommelierInput, token: number) {
+  const thought = await thinkWhile(moment, token, requestRecommendations(input))
+  if (!thought) {
+    return
+  }
+
+  const outcome = thought.result
+  if (!outcome.ok) {
+    replaceMessage(thought.id, {
+      type: 'sommelier',
+      lines: [RECOMMENDATION_ERROR_INTRO, outcome.message],
+      details: outcome.details,
+      tone: 'error',
+      anchor: true,
+    })
+    await showReply('error', token)
+    return
+  }
+
+  if (outcome.result.status === 'ok') {
+    recommendations.value = outcome.result.recommendations
+    replaceMessage(thought.id, { type: 'system', content: 'recommendations' })
+    await showReply('done', token, false)
+    return
+  }
+
+  replaceMessage(thought.id, {
+    type: 'sommelier',
+    lines: composeUnableMessage(outcome.result.message),
+    anchor: true,
+  })
+  await showReply('done', token)
+}
+
+async function onRecommend() {
+  const input = submittedInput.value
+  if (phase.value !== 'profile' || !input) {
+    return
+  }
+  const token = await beginTurn()
+  if (token !== null) {
+    await deliverRecommendations('recommend', input, token)
+  }
+}
+
+async function onRetry() {
+  const input = submittedInput.value
+  if (phase.value !== 'error' || !input) {
+    return
+  }
+  const token = await beginTurn()
+  if (token !== null) {
+    await deliverRecommendations('retry', input, token)
+  }
 }
 
 /** Returns to an earlier question, keeping every answer in the draft. */
@@ -608,7 +632,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   clearTimers()
   heldHeight.value = ''
   submittedInput.value = null
-  preference.value = null
+  recommendations.value = []
   if (clearErrors) {
     errors.value = {}
   }
@@ -712,7 +736,14 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 <span v-if="!message.text" class="sr-only">思考中</span>
               </p>
               <div v-else-if="message.type === 'system'" key="system" class="msg-body is-wide">
-                <SommelierPreferenceProfile v-if="preference" :preference="preference" />
+                <SommelierPreferenceProfile
+                  v-if="message.content === 'profile' && submittedInput"
+                  :preference="submittedInput"
+                />
+                <SommelierRecommendations
+                  v-else-if="message.content === 'recommendations'"
+                  :recommendations="recommendations"
+                />
               </div>
               <div
                 v-else
@@ -935,6 +966,25 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               icon-pos="right"
               class="primary-btn"
               @click="onShowProfile"
+            />
+          </div>
+
+          <div v-else-if="phase === 'profile'" class="reply-actions">
+            <Button
+              type="button"
+              label="修改需求"
+              severity="secondary"
+              text
+              class="quiet-btn"
+              @click="rewindTo(freeTextStep)"
+            />
+            <Button
+              type="button"
+              label="幫我推薦"
+              icon="pi pi-arrow-right"
+              icon-pos="right"
+              class="primary-btn"
+              @click="onRecommend"
             />
           </div>
 

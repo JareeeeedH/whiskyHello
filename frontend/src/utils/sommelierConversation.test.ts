@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import type { OccasionChoice, Preference, StyleProfile, TasteProfile } from '../types/sommelier.ts'
+import type { OccasionChoice, SommelierInput, StyleProfile, TasteProfile } from '../types/sommelier.ts'
 import {
   CONVERSATION_STEPS,
   SKIPPED_FREE_TEXT_ANSWER,
@@ -13,6 +13,7 @@ import {
   TYPING_MAX_MS,
   USER_TO_THINKING_MS,
   composeClosingMessage,
+  composeUnableMessage,
   describeBudgetAnswer,
   describeFreeTextAnswer,
   describeOccasionAnswer,
@@ -38,8 +39,9 @@ const MOMENTS: ThinkingMoment[] = [
   'occasion',
   'budget',
   'freeText',
-  'retry',
   'profile',
+  'recommend',
+  'retry',
 ]
 
 const TASTE: TasteProfile = { fruit: 9, floral: 6, maltGrain: 7, peat: 2 }
@@ -186,8 +188,8 @@ describe('thinking pacing', () => {
     }
   })
 
-  it('always says something while the Preference request or retry is running', () => {
-    for (const moment of ['freeText', 'retry', 'profile'] as const) {
+  it('always says something while summarizing, recommending or retrying', () => {
+    for (const moment of ['freeText', 'profile', 'recommend', 'retry'] as const) {
       assert.ok(getThinkingTexts(moment).every((text) => text.length > 0), moment)
     }
   })
@@ -292,12 +294,12 @@ describe('formatBudget', () => {
 
 describe('composeClosingMessage', () => {
   it('summarizes the main tastes, light tastes, non-neutral style and budget', () => {
-    const preference: Preference = {
+    const input: SommelierInput = {
       taste: TASTE,
       style: { body: 8, intensity: 6, smoothness: 9 },
       budget: { max: 4000 },
     }
-    assert.deepEqual(composeClosingMessage(preference), [
+    assert.deepEqual(composeClosingMessage(input), [
       '好，我大概知道今天的方向了。',
       '果香、麥芽／穀物為主，泥煤淡淡帶到，酒體厚重，口感圓潤順口，預算大約 NT$\u00a04,000 以內。',
       '我先把今天的方向整理成一份偏好輪廓給你。',
@@ -305,27 +307,38 @@ describe('composeClosingMessage', () => {
   })
 
   it('never treats unpicked tastes as light', () => {
-    const preference: Preference = { taste: { fruit: 9, floral: 7, oak: 8 }, style: MID_STYLE }
-    assert.equal(composeClosingMessage(preference)[1], '果香、花香、木質／橡木為主。')
+    const input: SommelierInput = { taste: { fruit: 9, floral: 7, oak: 8 }, style: MID_STYLE }
+    assert.equal(composeClosingMessage(input)[1], '果香、花香、木質／橡木為主。')
   })
 
   it('stays short when every rating is in the middle', () => {
-    const preference: Preference = { taste: MID_TASTE, style: MID_STYLE, budget: { max: 2000 } }
-    assert.equal(composeClosingMessage(preference)[1], '預算大約 NT$\u00a02,000 以內。')
+    const input: SommelierInput = { taste: MID_TASTE, style: MID_STYLE, budget: { max: 2000 } }
+    assert.equal(composeClosingMessage(input)[1], '預算大約 NT$\u00a02,000 以內。')
   })
 
-  it('mentions occasion, companion and mood', () => {
-    const preference: Preference = {
-      taste: MID_TASTE,
-      style: MID_STYLE,
-      occasion: 'relaxing',
-      companion: 'alone',
-      mood: 'low',
-    }
-    assert.deepEqual(composeClosingMessage(preference), [
+  it('mentions the picked occasion', () => {
+    const input: SommelierInput = { taste: MID_TASTE, style: MID_STYLE, occasion: 'relaxing' }
+    assert.deepEqual(composeClosingMessage(input), [
       '好，我大概知道今天的方向了。',
-      '我也記下了：情境是放鬆獨飲、一個人慢慢喝、有點累。',
+      '我也記下了：情境是放鬆獨飲。',
       '我先把今天的方向整理成一份偏好輪廓給你。',
+    ])
+  })
+})
+
+describe('composeUnableMessage', () => {
+  it('puts the LLM reason between the apology and the suggestion', () => {
+    assert.deepEqual(composeUnableMessage('這次的需求和威士忌無關。'), [
+      '這次的條件比較特別，我暫時挑不到合適的兩支。',
+      '這次的需求和威士忌無關。',
+      '要不要調整一下需求，再讓我挑一次？',
+    ])
+  })
+
+  it('still reads naturally without a reason', () => {
+    assert.deepEqual(composeUnableMessage(undefined), [
+      '這次的條件比較特別，我暫時挑不到合適的兩支。',
+      '要不要調整一下需求，再讓我挑一次？',
     ])
   })
 })

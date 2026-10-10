@@ -96,11 +96,11 @@ export const emailCodeRateLimit = [
   }),
 ]
 
-/** Sommelier preference endpoint: may call a paid LLM API, so cap per-client usage. */
+/** Sommelier recommendation endpoint: calls a paid LLM API, so cap per-client usage. */
 export const sommelierRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: env.isProduction ? 30 : 100,
-  message: 'Too many preference requests, please try again later',
+  message: 'Too many recommendation requests, please try again later',
 })
 
 /** Critic review translation: cache misses call a paid LLM API, so cap per-client usage. */

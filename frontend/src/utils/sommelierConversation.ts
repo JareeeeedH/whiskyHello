@@ -1,11 +1,9 @@
 import type {
   OccasionChoice,
-  Preference,
   PreferenceOccasion,
   SommelierBudget,
-  SommelierCompanion,
+  SommelierInput,
   SommelierInputDraft,
-  SommelierMood,
   StyleKey,
   StyleProfile,
   TasteKey,
@@ -25,8 +23,8 @@ import { PREFERENCE_OCCASION_LABELS } from './sommelierPreference.ts'
 
 /**
  * Scripted Sommelier lines and pacing for the conversation.
- * Everything here is deterministic UX copy; only the closing message reads
- * the real Preference, and nothing here calls the LLM.
+ * Everything here is deterministic UX copy built from the user's own answers;
+ * nothing here calls the LLM.
  */
 
 /** 1-based position of a question in the conversation. */
@@ -111,7 +109,7 @@ export const USER_TO_THINKING_MS = 500
 export const BETWEEN_MESSAGES_MS = 750
 /** Pause before the reply input slides in under a new question. */
 export const QUESTION_TO_INPUT_MS = 400
-/** After this long, a still-pending Preference request swaps to a reassuring thinking line. */
+/** After this long, a still-pending recommendation request swaps to a reassuring thinking line. */
 export const LONG_WAIT_MS = 4000
 
 /** Range of the base thinking time, before typing time and jitter are added. */
@@ -130,10 +128,11 @@ export interface ThinkingCue {
   durationMs: number
 }
 
-export type ThinkingMoment = 'opening' | StepKind['type'] | 'retry' | 'profile'
+export type ThinkingMoment = 'opening' | StepKind['type'] | 'profile' | 'recommend' | 'retry'
 
 /**
- * Keyed by the kind of question just answered; `freeText` covers the Preference request.
+ * Keyed by the kind of question just answered; `freeText` leads to the closing
+ * message, `recommend` and `retry` cover the recommendation request.
  * One line is picked at random each time; '' shows the dots on their own.
  */
 const THINKING_CUES: Record<ThinkingMoment, { texts: string[]; durationMs: number }> = {
@@ -147,11 +146,15 @@ const THINKING_CUES: Record<ThinkingMoment, { texts: string[]; durationMs: numbe
     texts: ['嗯，我大概抓到你的方向了…', '好，我差不多有個方向了…', '讓我把這些拼起來…'],
     durationMs: 1700,
   },
-  retry: { texts: ['再試一次，稍等我一下…', '我再整理一次…'], durationMs: 1400 },
   profile: { texts: ['我幫你整理一下……', '稍等，我把它寫下來…'], durationMs: 1400 },
+  recommend: {
+    texts: ['我在幫你挑酒…', '讓我想想哪兩支最適合…', '我翻一下酒單…'],
+    durationMs: 1700,
+  },
+  retry: { texts: ['再試一次，稍等我一下…', '我再挑一次…'], durationMs: 1400 },
 }
 
-export const LONG_WAIT_TEXT = '還在整理，馬上就好…'
+export const LONG_WAIT_TEXT = '還在幫你比對，再等我一下…'
 
 export function getThinkingTexts(moment: ThinkingMoment): readonly string[] {
   return THINKING_CUES[moment].texts
@@ -210,20 +213,6 @@ const STYLE_PHRASES: Record<StyleKey, Record<RatingBand, string>> = {
   smoothness: { low: '口感粗獷有勁', mid: '順口度適中', high: '口感圓潤順口' },
 }
 
-const MOOD_CONTEXT: Partial<Record<SommelierMood, string>> = {
-  positive: '心情不錯',
-  low: '有點累',
-  stressed: '壓力有點大',
-}
-
-const COMPANION_CONTEXT: Record<SommelierCompanion, string> = {
-  alone: '一個人慢慢喝',
-  friend: '和朋友一起',
-  date: '和約會對象一起',
-  partner: '和伴侶一起',
-  family: '和家人一起',
-}
-
 /** Rated tastes in a band; unrated tastes are unspecified and never counted. */
 function tastesInBand(taste: TasteProfile, band: RatingBand): string[] {
   return TASTE_KEYS.filter((key) => {
@@ -232,12 +221,12 @@ function tastesInBand(taste: TasteProfile, band: RatingBand): string[] {
   }).map((key) => TASTE_LABELS[key])
 }
 
-/** The Sommelier's wrap-up, built from the returned Preference. */
-export function composeClosingMessage(preference: Preference): string[] {
+/** The Sommelier's wrap-up, built from the validated answers. */
+export function composeClosingMessage(input: SommelierInput): string[] {
   const parts: string[] = []
 
-  const high = tastesInBand(preference.taste, 'high')
-  const low = tastesInBand(preference.taste, 'low')
+  const high = tastesInBand(input.taste, 'high')
+  const low = tastesInBand(input.taste, 'low')
   if (high.length > 0) {
     parts.push(`${high.join('、')}為主`)
   }
@@ -245,31 +234,28 @@ export function composeClosingMessage(preference: Preference): string[] {
     parts.push(`${low.join('、')}淡淡帶到`)
   }
   parts.push(
-    ...STYLE_KEYS.map((key) => ({ key, band: ratingBand(preference.style[key]) }))
+    ...STYLE_KEYS.map((key) => ({ key, band: ratingBand(input.style[key]) }))
       .filter((item) => item.band !== 'mid')
       .map((item) => STYLE_PHRASES[item.key][item.band]),
   )
-  if (preference.budget) {
-    parts.push(`預算大約 ${formatBudget(preference.budget)}`)
-  }
-
-  const context: string[] = []
-  if (preference.occasion) {
-    context.push(`情境是${PREFERENCE_OCCASION_LABELS[preference.occasion]}`)
-  }
-  if (preference.companion) {
-    context.push(COMPANION_CONTEXT[preference.companion])
-  }
-  const mood = preference.mood ? MOOD_CONTEXT[preference.mood] : undefined
-  if (mood) {
-    context.push(mood)
+  if (input.budget) {
+    parts.push(`預算大約 ${formatBudget(input.budget)}`)
   }
 
   return [
     '好，我大概知道今天的方向了。',
     ...(parts.length > 0 ? [`${parts.join('，')}。`] : []),
-    ...(context.length > 0 ? [`我也記下了：${context.join('、')}。`] : []),
+    ...(input.occasion ? [`我也記下了：情境是${PREFERENCE_OCCASION_LABELS[input.occasion]}。`] : []),
     '我先把今天的方向整理成一份偏好輪廓給你。',
+  ]
+}
+
+/** When the LLM finds no suitable pair; its short reason sits in the middle when given. */
+export function composeUnableMessage(reason: string | undefined): string[] {
+  return [
+    '這次的條件比較特別，我暫時挑不到合適的兩支。',
+    ...(reason ? [reason] : []),
+    '要不要調整一下需求，再讓我挑一次？',
   ]
 }
 

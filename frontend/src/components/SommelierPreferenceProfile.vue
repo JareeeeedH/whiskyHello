@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Preference } from '../types/sommelier'
+import type { SommelierInput } from '../types/sommelier'
 import {
   STYLE_KEYS,
   STYLE_LABELS,
@@ -9,14 +9,10 @@ import {
   describeTasteLevel,
 } from '../utils/sommelierInput'
 import { formatBudget } from '../utils/sommelierConversation'
-import {
-  COMPANION_LABELS,
-  MOOD_LABELS,
-  PREFERENCE_OCCASION_LABELS,
-} from '../utils/sommelierPreference'
+import { PREFERENCE_OCCASION_LABELS } from '../utils/sommelierPreference'
 
 const props = defineProps<{
-  preference: Preference
+  preference: SommelierInput
 }>()
 
 /** Only the tastes the user picked and rated; the rest are unspecified, not low. */
@@ -56,22 +52,12 @@ const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.t
         <dt>飲酒情境</dt>
         <dd>
           <span v-if="preference.occasion">{{ PREFERENCE_OCCASION_LABELS[preference.occasion] }}</span>
-          <span v-else class="muted">未提及</span>
+          <span v-else class="muted">沒有特定情境</span>
         </dd>
       </div>
-      <div>
-        <dt>心情</dt>
-        <dd>
-          <span v-if="preference.mood">{{ MOOD_LABELS[preference.mood] }}</span>
-          <span v-else class="muted">未提及</span>
-        </dd>
-      </div>
-      <div>
-        <dt>同伴</dt>
-        <dd>
-          <span v-if="preference.companion">{{ COMPANION_LABELS[preference.companion] }}</span>
-          <span v-else class="muted">未提及</span>
-        </dd>
+      <div v-if="preference.freeText">
+        <dt>補充說明</dt>
+        <dd class="free-text">{{ preference.freeText }}</dd>
       </div>
     </dl>
   </section>
@@ -153,6 +139,13 @@ const ratedTastes = computed(() => TASTE_KEYS.filter((key) => props.preference.t
 
 .muted {
   color: var(--wh-faint);
+}
+
+.profile-list dd.free-text {
+  display: block;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
 }
 
 @media (max-width: 640px) {

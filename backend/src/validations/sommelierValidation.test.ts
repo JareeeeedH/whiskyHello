@@ -3,7 +3,7 @@ import { describe, it } from 'node:test'
 import { OCCASIONS, STYLE_KEYS, TASTE_KEYS, TASTE_PICKS_MAX, TASTE_PICKS_MIN } from '../types/sommelier'
 import {
   FREE_TEXT_MAX_LENGTH,
-  preferenceRequestSchema,
+  recommendationRequestSchema,
 } from './sommelierValidation'
 
 /** 4 picks across both groups. */
@@ -16,10 +16,10 @@ function body(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 
 /** Validates the way the route middleware does. */
 function validateLikeRoute(input: unknown) {
-  return preferenceRequestSchema.validate(input, { abortEarly: false, stripUnknown: true })
+  return recommendationRequestSchema.validate(input, { abortEarly: false, stripUnknown: true })
 }
 
-describe('preferenceRequestSchema', () => {
+describe('recommendationRequestSchema', () => {
   it('has the 10 taste keys, picking 3–5 in total', () => {
     assert.deepEqual(TASTE_KEYS, [
       'fruit',
@@ -64,7 +64,7 @@ describe('preferenceRequestSchema', () => {
   })
 
   it('accepts a full input and trims freeText', () => {
-    const { error, value } = preferenceRequestSchema.validate(
+    const { error, value } = recommendationRequestSchema.validate(
       body({ budget: { max: 3000 }, freeText: '  想找適合晚上慢慢喝的酒  ' }),
     )
     assert.equal(error, undefined)
@@ -74,7 +74,7 @@ describe('preferenceRequestSchema', () => {
 
   it('accepts ratings at the 1 and 10 boundaries', () => {
     for (const rating of [1, 10]) {
-      const { error } = preferenceRequestSchema.validate(
+      const { error } = recommendationRequestSchema.validate(
         body({
           taste: { ...taste, fruit: rating, peat: rating },
           style: { ...style, body: rating },
@@ -97,13 +97,13 @@ describe('preferenceRequestSchema', () => {
   })
 
   it('keeps budget min and max as before', () => {
-    const { error, value } = preferenceRequestSchema.validate(body({ budget: { min: 1000, max: 3000 } }))
+    const { error, value } = recommendationRequestSchema.validate(body({ budget: { min: 1000, max: 3000 } }))
     assert.equal(error, undefined)
     assert.deepEqual(value.budget, { min: 1000, max: 3000 })
   })
 
   it('strips unknown fields, including legacy ones', () => {
-    const { error, value } = preferenceRequestSchema.validate(
+    const { error, value } = recommendationRequestSchema.validate(
       body({ dislikes: ['peaty'], intensity: { peaty: 50 }, mood: 'positive' }),
       { stripUnknown: true },
     )

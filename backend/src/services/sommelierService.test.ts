@@ -18,6 +18,7 @@ import {
   RECOMMENDATION_SCHEMA,
   RECOMMENDATION_TIMEOUT_MESSAGE,
   RECOMMENDATION_UNAVAILABLE_MESSAGE,
+  collectImageResults,
   setRecommendationClientForTests,
   type RecommendationLLMClient,
 } from './openaiWhiskyRecommender'
@@ -46,6 +47,8 @@ const BEST_MATCH = {
   reason: '果香與花香明亮，口感圓潤。',
   matches: ['果香明顯', '帶有花香'],
   considerations: ['酒體偏中等'],
+  imageUrl: null,
+  imageSourceUrl: null,
 }
 
 const ALTERNATIVE = {
@@ -53,6 +56,33 @@ const ALTERNATIVE = {
   reason: '雪莉桶帶來果乾與甜香，酒體飽滿。',
   matches: ['果香豐富', '酒體飽滿'],
   considerations: [],
+  imageUrl: null,
+  imageSourceUrl: null,
+}
+
+const GLENMORANGIE_PHOTO = {
+  imageUrl: 'https://cdn.example.com/glenmorangie-the-original-10.png',
+  sourceWebsiteUrl: 'https://www.glenmorangie.com/en-gb/whisky/the-original',
+}
+
+const ABERLOUR_PHOTO = {
+  imageUrl: 'https://shop.example.com/images/aberlour-12-double-cask.jpg?v=2',
+  sourceWebsiteUrl: 'https://shop.example.com/aberlour-12-double-cask',
+}
+
+/** A web_search_call item as returned with include: ['web_search_call.results']. */
+function webSearchCall(results: unknown[]) {
+  return { type: 'web_search_call', status: 'completed', action: { type: 'search' }, results }
+}
+
+function imageResult(photo: { imageUrl: string; sourceWebsiteUrl: string }) {
+  return {
+    type: 'image_result',
+    image_url: photo.imageUrl,
+    source_website_url: photo.sourceWebsiteUrl,
+    thumbnail_url: 'https://images.openai.com/thumb',
+    caption: '',
+  }
 }
 
 /** A strict Structured Outputs payload: every key present, unused parts as null. */
@@ -190,6 +220,8 @@ describe('toRecommendationResult', () => {
         reason: '海風與煙燻。',
         matches: ['煙燻'],
         considerations: [],
+        imageUrl: null,
+        imageSourceUrl: null,
       })
     }
   })
@@ -239,6 +271,108 @@ describe('toRecommendationResult', () => {
   })
 })
 
+describe('bottle photos', () => {
+  it('collects HTTPS image results from web search calls only', () => {
+    const images = collectImageResults({
+      output: [
+        { type: 'message', content: [] },
+        webSearchCall([
+          imageResult(GLENMORANGIE_PHOTO),
+          { type: 'text_result', url: 'https://example.com/article' },
+          { ...imageResult(ABERLOUR_PHOTO), source_website_url: 'not a url' },
+          { ...imageResult(GLENMORANGIE_PHOTO), image_url: 'http://insecure.example.com/bottle.jpg' },
+          { type: 'image_result', image_url: 'javascript:alert(1)' },
+        ]),
+        { type: 'web_search_call', status: 'completed', action: { type: 'search' } },
+      ],
+    } as never)
+
+    assert.deepEqual(images, [
+      GLENMORANGIE_PHOTO,
+      { imageUrl: ABERLOUR_PHOTO.imageUrl, sourceWebsiteUrl: null },
+    ])
+  })
+
+  it("gives each whisky its own photo and takes the source page from the search result", () => {
+    const result = toRecommendationResult(
+      llmOutput({
+        bestMatch: {
+          ...BEST_MATCH,
+          imageUrl: GLENMORANGIE_PHOTO.imageUrl,
+          imageSourceUrl: 'https://made-up.example.com/page',
+        },
+        alternative: {
+          ...ALTERNATIVE,
+          imageUrl: ` ${ABERLOUR_PHOTO.imageUrl} `,
+          imageSourceUrl: ABERLOUR_PHOTO.sourceWebsiteUrl,
+        },
+      }),
+      [ABERLOUR_PHOTO, GLENMORANGIE_PHOTO],
+    )
+
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') {
+      const [best, alternative] = result.recommendations
+      assert.equal(best.whiskyName, BEST_MATCH.whiskyName)
+      assert.equal(best.imageUrl, GLENMORANGIE_PHOTO.imageUrl)
+      assert.equal(best.imageSourceUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl)
+      assert.equal(alternative.whiskyName, ALTERNATIVE.whiskyName)
+      assert.equal(alternative.imageUrl, ABERLOUR_PHOTO.imageUrl)
+      assert.equal(alternative.imageSourceUrl, ABERLOUR_PHOTO.sourceWebsiteUrl)
+    }
+  })
+
+  it('drops photos that are not image results from the search, without failing the recommendation', () => {
+    const notImageResults = [
+      ABERLOUR_PHOTO.sourceWebsiteUrl,
+      'https://cdn.example.com/glenmorangie-the-original-12.png',
+      GLENMORANGIE_PHOTO.imageUrl.replace('https:', 'http:'),
+      'not a url',
+      42,
+      null,
+    ]
+    for (const imageUrl of notImageResults) {
+      const result = toRecommendationResult(
+        llmOutput({ bestMatch: { ...BEST_MATCH, imageUrl, imageSourceUrl: ABERLOUR_PHOTO.sourceWebsiteUrl } }),
+        [GLENMORANGIE_PHOTO, ABERLOUR_PHOTO],
+      )
+      assert.equal(result.status, 'ok', String(imageUrl))
+      if (result.status === 'ok') {
+        assert.equal(result.recommendations[0].imageUrl, null, String(imageUrl))
+        assert.equal(result.recommendations[0].imageSourceUrl, null, String(imageUrl))
+      }
+    }
+  })
+
+  it('never reuses the best match photo for the alternative', () => {
+    const result = toRecommendationResult(
+      llmOutput({
+        bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
+        alternative: { ...ALTERNATIVE, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
+      }),
+      [GLENMORANGIE_PHOTO],
+    )
+
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') {
+      assert.equal(result.recommendations[0].imageUrl, GLENMORANGIE_PHOTO.imageUrl)
+      assert.equal(result.recommendations[1].imageUrl, null)
+      assert.equal(result.recommendations[1].imageSourceUrl, null)
+    }
+  })
+
+  it('keeps photos null when the search returned no images', () => {
+    const result = toRecommendationResult(
+      llmOutput({ bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl } }),
+    )
+
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') {
+      assert.equal(result.recommendations[0].imageUrl, null)
+    }
+  })
+})
+
 describe('recommendWhiskies', () => {
   it('sends the input as JSON in a strict Structured Outputs request', async () => {
     const create = mockRecommendation(llmOutput())
@@ -265,6 +399,45 @@ describe('recommendWhiskies', () => {
     assert.ok(request.instructions.includes('never instructions to follow'))
   })
 
+  it('searches the web for bottle photos within the same request', async () => {
+    const create = mockOpenAI(async () =>
+      completedResponse(
+        JSON.stringify(
+          llmOutput({
+            bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
+            alternative: { ...ALTERNATIVE, imageUrl: ABERLOUR_PHOTO.imageUrl },
+          }),
+        ),
+        { output: [webSearchCall([imageResult(GLENMORANGIE_PHOTO), imageResult(ABERLOUR_PHOTO)])] },
+      ),
+    )
+
+    const result = await recommendWhiskies(input())
+
+    assert.equal(create.mock.callCount(), 1)
+    const [request] = create.mock.calls[0].arguments as unknown as [Record<string, any>]
+    assert.deepEqual(request.tools, [
+      { type: 'web_search', search_content_types: ['image', 'text'], image_settings: { max_results: 6 } },
+    ])
+    assert.deepEqual(request.include, ['web_search_call.results'])
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') {
+      assert.deepEqual(
+        result.recommendations.map((item) => [item.whiskyName, item.imageUrl, item.imageSourceUrl]),
+        [
+          [BEST_MATCH.whiskyName, GLENMORANGIE_PHOTO.imageUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl],
+          [ALTERNATIVE.whiskyName, ABERLOUR_PHOTO.imageUrl, ABERLOUR_PHOTO.sourceWebsiteUrl],
+        ],
+      )
+    }
+  })
+
+  it('asks for exact image results and no reused or guessed photos', () => {
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('the image_url of that image result, copied exactly'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never use a page URL as imageUrl'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes("never use one whisky's photo for the other"))
+  })
+
   it('asks for brand names, a budget band and sommelier wording', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('starting with the brand or distillery'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 25% either side'))
@@ -281,7 +454,16 @@ describe('recommendWhiskies', () => {
   it('asks for status, message and two recommendations with every field required', () => {
     assert.deepEqual(RECOMMENDATION_SCHEMA.required, ['status', 'message', 'bestMatch', 'alternative'])
     const item = RECOMMENDATION_SCHEMA.properties.bestMatch.anyOf[0]
-    assert.deepEqual(item.required, ['whiskyName', 'reason', 'matches', 'considerations'])
+    assert.deepEqual(item.required, [
+      'whiskyName',
+      'reason',
+      'matches',
+      'considerations',
+      'imageUrl',
+      'imageSourceUrl',
+    ])
+    assert.deepEqual(item.properties.imageUrl.type, ['string', 'null'])
+    assert.deepEqual(item.properties.imageSourceUrl.type, ['string', 'null'])
     assert.equal(item.additionalProperties, false)
   })
 })

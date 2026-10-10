@@ -11,6 +11,7 @@ import { AppError } from '../utils/AppError'
 import {
   RECOMMENDATION_MALFORMED_MESSAGE,
   requestWhiskyRecommendations,
+  type WebImageResult,
 } from './openaiWhiskyRecommender'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -60,7 +61,27 @@ function toTextList(value: unknown): string[] {
   return value.map(toText).filter(Boolean)
 }
 
-function toRecommendation(raw: unknown, type: RecommendationType): WhiskyRecommendation {
+const NO_IMAGE = { imageUrl: null, imageSourceUrl: null }
+
+/**
+ * Keeps a photo only when it is exactly one of the HTTPS image results the web search
+ * returned, so a guessed, edited or page URL never reaches the UI. Its source page comes
+ * from that same result. A missing photo is never an error.
+ */
+function toImage(
+  rawImageUrl: unknown,
+  imageResults: WebImageResult[],
+): Pick<WhiskyRecommendation, 'imageUrl' | 'imageSourceUrl'> {
+  const imageUrl = toText(rawImageUrl)
+  const result = imageUrl ? imageResults.find((image) => image.imageUrl === imageUrl) : undefined
+  return result ? { imageUrl: result.imageUrl, imageSourceUrl: result.sourceWebsiteUrl } : NO_IMAGE
+}
+
+function toRecommendation(
+  raw: unknown,
+  type: RecommendationType,
+  imageResults: WebImageResult[],
+): WhiskyRecommendation {
   if (!isPlainObject(raw)) {
     throw malformed()
   }
@@ -75,6 +96,7 @@ function toRecommendation(raw: unknown, type: RecommendationType): WhiskyRecomme
     reason,
     matches: toTextList(raw.matches),
     considerations: toTextList(raw.considerations),
+    ...toImage(raw.imageUrl, imageResults),
   }
 }
 
@@ -83,8 +105,14 @@ export function normalizeWhiskyName(name: string): string {
   return name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 }
 
-/** Validates raw LLM output (§4.5); anything that does not fit is a 502, never a partial result. */
-export function toRecommendationResult(raw: unknown): RecommendationResult {
+/**
+ * Validates raw LLM output (§4.5); anything that does not fit is a 502, never a partial
+ * result. Photos are optional and fall back to null instead.
+ */
+export function toRecommendationResult(
+  raw: unknown,
+  imageResults: WebImageResult[] = [],
+): RecommendationResult {
   if (!isPlainObject(raw)) {
     throw malformed()
   }
@@ -97,15 +125,20 @@ export function toRecommendationResult(raw: unknown): RecommendationResult {
     throw malformed()
   }
 
-  const bestMatch = toRecommendation(raw.bestMatch, 'best_match')
-  const alternative = toRecommendation(raw.alternative, 'alternative')
+  const bestMatch = toRecommendation(raw.bestMatch, 'best_match', imageResults)
+  const alternative = toRecommendation(raw.alternative, 'alternative', imageResults)
   if (normalizeWhiskyName(bestMatch.whiskyName) === normalizeWhiskyName(alternative.whiskyName)) {
     throw malformed()
+  }
+  if (alternative.imageUrl && alternative.imageUrl === bestMatch.imageUrl) {
+    Object.assign(alternative, NO_IMAGE)
   }
   return { status: 'ok', recommendations: [bestMatch, alternative] }
 }
 
 export async function recommendWhiskies(input: SommelierInput): Promise<RecommendationResult> {
-  const raw = await requestWhiskyRecommendations(JSON.stringify(toLLMInput(input)))
-  return toRecommendationResult(raw)
+  const { output, imageResults } = await requestWhiskyRecommendations(
+    JSON.stringify(toLLMInput(input)),
+  )
+  return toRecommendationResult(output, imageResults)
 }

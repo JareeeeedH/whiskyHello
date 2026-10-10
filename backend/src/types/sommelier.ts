@@ -71,6 +71,10 @@ export interface WhiskyRecommendation {
   reason: string
   matches: string[]
   considerations: string[]
+  /** An image_url the web search returned for this bottle; null when none fits. */
+  imageUrl: string | null
+  /** The page the photo was found on, kept for checking its source and licence. */
+  imageSourceUrl: string | null
 }
 
 /** `ok` always carries best_match then alternative; `unable` means the LLM found no suitable pair. */

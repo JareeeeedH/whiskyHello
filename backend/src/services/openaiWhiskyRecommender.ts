@@ -2,6 +2,7 @@ import OpenAI, { APIConnectionTimeoutError, APIError } from 'openai'
 import type {
   Response as OpenAIResponse,
   ResponseCreateParamsNonStreaming,
+  WebSearchTool,
 } from 'openai/resources/responses/responses'
 import { resolveOpenAIConfig } from '../config/env'
 import { AppError } from '../utils/AppError'
@@ -26,15 +27,33 @@ export type RecommendationLLMClient = {
   }
 }
 
+/** An `image_result` from `web_search_call.results`; the SDK types do not describe it yet. */
+export interface WebImageResult {
+  imageUrl: string
+  sourceWebsiteUrl: string | null
+}
+
+/** Web search with image results, which the SDK's WebSearchTool type does not list yet. */
+const WEB_SEARCH_TOOL: WebSearchTool & {
+  search_content_types: Array<'text' | 'image'>
+  image_settings: { max_results: number }
+} = {
+  type: 'web_search',
+  search_content_types: ['image', 'text'],
+  image_settings: { max_results: 6 },
+}
+
 const RECOMMENDATION_ITEM_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['whiskyName', 'reason', 'matches', 'considerations'],
+  required: ['whiskyName', 'reason', 'matches', 'considerations', 'imageUrl', 'imageSourceUrl'],
   properties: {
     whiskyName: { type: 'string' },
     reason: { type: 'string' },
     matches: { type: 'array', items: { type: 'string' } },
     considerations: { type: 'array', items: { type: 'string' } },
+    imageUrl: { type: ['string', 'null'] },
+    imageSourceUrl: { type: ['string', 'null'] },
   },
 } as const
 
@@ -82,6 +101,12 @@ Recommendations:
   - matches: 2–4 short phrases naming the user's preferences it meets.
   - considerations: 0–2 short phrases on trade-offs against the preferences; an empty array if none.
 
+Bottle photos:
+- Use web search only for bottle photos, never to choose whiskies or to look up tasting notes or prices. Only after choosing both whiskies, search once per whisky by its full whiskyName. The photos never change which whiskies you recommend.
+- From the image results, pick one that clearly shows that exact whisky's bottle, with matching brand, name and age or edition. Prefer the brand's official site or a reputable retailer.
+- imageUrl: the image_url of that image result, copied exactly. imageSourceUrl: its source_website_url.
+- Never use a page URL as imageUrl, never build, edit or guess a URL, and never use one whisky's photo for the other. If no image result clearly fits, set both to null.
+
 Status:
 - If you can confidently recommend two different real whiskies, set status to "ok" and message to null.
 - Otherwise set status to "unable", explain briefly in one Traditional Chinese sentence in message, and set bestMatch and alternative to null. Never invent a whisky or an uncertain fact just to fill both.`
@@ -124,11 +149,50 @@ function hasRefusal(response: OpenAIResponse): boolean {
   )
 }
 
+function isHttpsUrl(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false
+  }
+  try {
+    return new URL(value).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/** Collects the image results the web search actually returned, so bottle photos can be checked against them. */
+export function collectImageResults(response: Pick<OpenAIResponse, 'output'>): WebImageResult[] {
+  const images: WebImageResult[] = []
+  for (const item of response.output ?? []) {
+    const results = item.type === 'web_search_call' ? (item as { results?: unknown }).results : undefined
+    if (!Array.isArray(results)) {
+      continue
+    }
+    for (const result of results) {
+      if (result?.type === 'image_result' && isHttpsUrl(result.image_url)) {
+        images.push({
+          imageUrl: result.image_url,
+          sourceWebsiteUrl: isHttpsUrl(result.source_website_url) ? result.source_website_url : null,
+        })
+      }
+    }
+  }
+  return images
+}
+
+export interface RecommendationResponse {
+  /** The parsed Structured Outputs JSON, still untrusted. */
+  output: unknown
+  imageResults: WebImageResult[]
+}
+
 /**
- * Calls the OpenAI Responses API with Structured Outputs and returns the parsed
- * JSON. The result is untrusted: callers must validate it before use.
+ * Calls the OpenAI Responses API with web search and Structured Outputs, and returns
+ * the parsed JSON plus the image results it was based on. Callers must validate both.
  */
-export async function requestWhiskyRecommendations(preferenceJson: string): Promise<unknown> {
+export async function requestWhiskyRecommendations(
+  preferenceJson: string,
+): Promise<RecommendationResponse> {
   const { apiKey, model } = resolveOpenAIConfig()
   if (!model) {
     throw new AppError(503, RECOMMENDATION_NOT_CONFIGURED_MESSAGE)
@@ -142,6 +206,8 @@ export async function requestWhiskyRecommendations(preferenceJson: string): Prom
       instructions: RECOMMENDATION_INSTRUCTIONS,
       input: preferenceJson,
       store: false,
+      tools: [WEB_SEARCH_TOOL],
+      include: ['web_search_call.results'],
       text: {
         format: {
           type: 'json_schema',
@@ -166,10 +232,12 @@ export async function requestWhiskyRecommendations(preferenceJson: string): Prom
     throw new AppError(502, RECOMMENDATION_MALFORMED_MESSAGE)
   }
 
+  let output: unknown
   try {
-    return JSON.parse(response.output_text) as unknown
+    output = JSON.parse(response.output_text)
   } catch {
     console.error('OpenAI whisky recommendation returned non-JSON output')
     throw new AppError(502, RECOMMENDATION_MALFORMED_MESSAGE)
   }
+  return { output, imageResults: collectImageResults(response) }
 }

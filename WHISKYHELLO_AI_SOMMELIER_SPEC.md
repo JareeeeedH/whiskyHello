@@ -197,6 +197,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 
 - OpenAI Responses API，模型為 `OPENAI_MODEL`，`store: false`
 - Structured Outputs：`json_schema`、`strict: true`
+- 同一次請求啟用 `web_search`（`search_content_types: ["image", "text"]`、`image_settings.max_results: 6`），並 `include: ["web_search_call.results"]` 取得圖片搜尋結果；只用來找酒瓶照片，不另外呼叫 OpenAI
 - Input 以 JSON 字串送出；`freeText` 視為資料，不是指令
 - 逾時 40 秒，不自動重試（失敗時由使用者按「重試」）
 
@@ -230,6 +231,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
   - `reason`：1–2 句，說明為什麼適合這位使用者
   - `matches`：2–4 個短句，列出符合的偏好
   - `considerations`：0–2 個短句，列出與偏好之間的取捨；沒有時為空陣列
+- 酒瓶照片：先決定兩款酒，再以完整 `whiskyName` 各搜尋一次；照片不影響推薦哪兩款。挑品牌、名稱、年份或版本都吻合且看得清楚瓶身的圖片，優先官方網站或可信賴的商品頁。`imageUrl` 原樣使用該圖片結果的 `image_url`，`imageSourceUrl` 為其 `source_website_url`；不可把網頁網址當圖片、不可自行拼接或猜測網址、兩款不可共用照片；找不到合適的圖片時兩者皆為 `null`
 - 無法有把握地推薦兩款不同的真實酒款時，回 `status: "unable"`，以一句繁體中文在 `message` 說明原因；不為了湊滿兩款而虛構
 
 ### 4.5 API
@@ -255,6 +257,8 @@ type WhiskyRecommendation = {
   reason: string
   matches: string[]
   considerations: string[]
+  imageUrl: string | null         // 圖片搜尋結果的 image_url；沒有可信圖片時為 null
+  imageSourceUrl: string | null   // 圖片來源頁，供查證來源與授權
 }
 ```
 
@@ -269,14 +273,18 @@ type WhiskyRecommendation = {
       "whiskyName": "Glenmorangie The Original 10 Year Old",
       "reason": "果香與花香明亮，麥芽甜感柔和，口感圓潤，很適合約會時輕鬆享用。",
       "matches": ["果香明顯", "帶有花香", "口感圓潤順口"],
-      "considerations": ["酒體偏中等，不算厚重"]
+      "considerations": ["酒體偏中等，不算厚重"],
+      "imageUrl": "https://cdn.example.com/glenmorangie-the-original-10.png",
+      "imageSourceUrl": "https://www.example.com/glenmorangie-the-original-10"
     },
     {
       "type": "alternative",
       "whiskyName": "Aberlour 12 Year Old Double Cask Matured",
       "reason": "雪莉桶帶來果乾與甜香，酒體比較飽滿，喝起來依然順口。",
       "matches": ["果香豐富", "酒體飽滿", "順口"],
-      "considerations": []
+      "considerations": [],
+      "imageUrl": null,
+      "imageSourceUrl": null
     }
   ]
 }
@@ -286,6 +294,7 @@ Backend 驗證 LLM 回傳：
 
 - `status: "ok"` 時兩款都必須有非空的 `whiskyName` 與 `reason`；`matches`、`considerations` 去除空白項目
 - 兩款名稱正規化（不分大小寫、忽略空白與標點）後不可相同
+- `imageUrl` 必須與這次 `web_search_call.results` 中某個 `image_result` 的 HTTPS `image_url` 完全相同，否則兩個圖片欄位改為 `null`；`imageSourceUrl` 取自同一筆結果的 `source_website_url`（不是 HTTPS 時為 `null`）；兩款圖片相同時，`alternative` 改為 `null`。圖片問題不會讓推薦失敗
 - `status: "unable"` 時忽略酒款欄位
 
 錯誤（Body 為 `{ "message": string }`，不含 OpenAI 的錯誤細節）：
@@ -303,6 +312,8 @@ Backend 驗證 LLM 回傳：
 依序顯示兩張卡片（第二張約晚 0.6 秒淡入），以酒單風格呈現，寬度與整個對話區相同，和對話中的卡片區隔：
 
 - 首選為深色卡、酒名較大；第二張為米白卡
+- 桌面版左側為酒瓶照片、右側為推薦資訊；手機版照片在上。照片以 `object-fit: contain` 完整呈現瓶身，`loading="lazy"`、`referrerpolicy="no-referrer"`，`alt` 為「酒款名稱 酒瓶照片」
+- 照片下方顯示「圖片來源 · 網域」，連到 `imageSourceUrl`；`imageUrl` 為 `null` 或圖片載入失敗時，顯示酒瓶線條圖與「暫無酒瓶照片」
 - 標籤：「NO.01 · 最適合你」（`best_match`）、「NO.02 · 值得探索」（`alternative`）
 - 酒款名稱、金色短線、推薦理由
 - 「符合你的偏好」：`matches`，以「·」分隔成一行
@@ -321,3 +332,4 @@ Backend 驗證 LLM 回傳：
 - 推薦是否改用獨立的模型設定
 - 推薦結果是否連結到站內酒款頁面
 - 是否提供「換一組推薦」
+- 酒瓶照片的使用授權：照片直接引用第三方網站，取得網址不代表取得商業使用授權

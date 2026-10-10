@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { reactive } from 'vue'
 import type { RecommendationType, WhiskyRecommendation } from '../types/sommelier'
 
 defineProps<{
@@ -10,8 +11,26 @@ const TYPE_LABELS: Record<RecommendationType, string> = {
   alternative: '值得探索',
 }
 
+/** Photos are hosted by third parties and may refuse to load; those fall back to the placeholder. */
+const failedImages = reactive(new Set<string>())
+
 function formatIndex(index: number): string {
   return `NO.${String(index + 1).padStart(2, '0')}`
+}
+
+function photoUrl(item: WhiskyRecommendation): string | null {
+  return item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null
+}
+
+function sourceHost(url: string | null): string | null {
+  if (!url) {
+    return null
+  }
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
 }
 </script>
 
@@ -26,27 +45,56 @@ function formatIndex(index: number): string {
         class="card"
         :class="item.type === 'best_match' ? 'is-best' : 'is-alt'"
       >
-        <p class="card-eyebrow">
-          <span>{{ formatIndex(index) }}</span>
-          <span aria-hidden="true">·</span>
-          <span>{{ TYPE_LABELS[item.type] }}</span>
-        </p>
-        <h3 class="card-name" lang="en">{{ item.whiskyName }}</h3>
-        <span class="card-rule" aria-hidden="true" />
-        <p class="card-reason">{{ item.reason }}</p>
+        <figure class="card-photo">
+          <div v-if="photoUrl(item)" class="photo-frame">
+            <img
+              :src="photoUrl(item)!"
+              :alt="`${item.whiskyName} 酒瓶照片`"
+              loading="lazy"
+              decoding="async"
+              referrerpolicy="no-referrer"
+              @error="failedImages.add(item.imageUrl!)"
+            />
+          </div>
+          <div v-else class="photo-frame is-empty">
+            <svg viewBox="0 0 40 96" aria-hidden="true">
+              <path
+                d="M16 4h8v18c0 4 8 8 8 18v48a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V40c0-10 8-14 8-18z"
+              />
+              <path d="M8 52h24M8 74h24" />
+            </svg>
+            <span>暫無酒瓶照片</span>
+          </div>
+          <figcaption v-if="photoUrl(item) && sourceHost(item.imageSourceUrl)">
+            <a :href="item.imageSourceUrl!" target="_blank" rel="noopener noreferrer nofollow">
+              圖片來源 · {{ sourceHost(item.imageSourceUrl) }}
+            </a>
+          </figcaption>
+        </figure>
 
-        <div v-if="item.matches.length" class="card-section">
-          <h4>符合你的偏好</h4>
-          <ul class="card-matches">
-            <li v-for="match in item.matches" :key="match">{{ match }}</li>
-          </ul>
-        </div>
+        <div class="card-body">
+          <p class="card-eyebrow">
+            <span>{{ formatIndex(index) }}</span>
+            <span aria-hidden="true">·</span>
+            <span>{{ TYPE_LABELS[item.type] }}</span>
+          </p>
+          <h3 class="card-name" lang="en">{{ item.whiskyName }}</h3>
+          <span class="card-rule" aria-hidden="true" />
+          <p class="card-reason">{{ item.reason }}</p>
 
-        <div v-if="item.considerations.length" class="card-section">
-          <h4>可以留意</h4>
-          <ul class="card-notes">
-            <li v-for="note in item.considerations" :key="note">{{ note }}</li>
-          </ul>
+          <div v-if="item.matches.length" class="card-section">
+            <h4>符合你的偏好</h4>
+            <ul class="card-matches">
+              <li v-for="match in item.matches" :key="match">{{ match }}</li>
+            </ul>
+          </div>
+
+          <div v-if="item.considerations.length" class="card-section">
+            <h4>可以留意</h4>
+            <ul class="card-notes">
+              <li v-for="note in item.considerations" :key="note">{{ note }}</li>
+            </ul>
+          </div>
         </div>
       </li>
     </ol>
@@ -72,9 +120,106 @@ function formatIndex(index: number): string {
 }
 
 .card {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 1.6rem;
+  align-items: start;
   padding: 1.6rem 1.75rem 1.5rem;
   border-radius: 18px;
   animation: card-reveal 480ms ease both;
+}
+
+.card-body {
+  min-width: 0;
+}
+
+.card-photo {
+  margin: 0;
+}
+
+/* Most product shots are square with the bottle centred, so a near-square frame keeps it large. */
+.photo-frame {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  padding: 0.4rem;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Product shots usually sit on white; multiply blends that white into the plate. */
+.photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.is-best .photo-frame {
+  background: #f3ebdd;
+}
+
+.is-alt .photo-frame {
+  border: 1px solid #ebdfc9;
+  background: #fffaf2;
+}
+
+.photo-frame.is-empty {
+  align-content: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.is-best .photo-frame.is-empty {
+  border: 1px solid rgba(220, 184, 120, 0.22);
+  background: rgba(241, 233, 220, 0.05);
+  color: var(--wh-gold-bright);
+}
+
+.is-alt .photo-frame.is-empty {
+  color: #b39566;
+}
+
+.photo-frame.is-empty svg {
+  width: 2.2rem;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+.photo-frame.is-empty span {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.card-photo figcaption {
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.card-photo figcaption a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-photo figcaption a:hover,
+.card-photo figcaption a:focus-visible {
+  text-decoration: underline;
+}
+
+.is-best .card-photo figcaption {
+  color: var(--wh-mauve);
+}
+
+.is-alt .card-photo figcaption {
+  color: var(--wh-muted);
 }
 
 .card:nth-child(2) {
@@ -221,7 +366,14 @@ function formatIndex(index: number): string {
 
 @media (max-width: 640px) {
   .card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
     padding: 1.3rem 1.2rem 1.2rem;
+  }
+
+  .photo-frame {
+    aspect-ratio: auto;
+    height: 12rem;
   }
 
   .is-best .card-name {

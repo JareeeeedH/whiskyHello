@@ -81,6 +81,10 @@ export interface WhiskyRecommendation {
   reason: string
   matches: string[]
   considerations: string[]
+  /** A bottle photo found by web search; null when none fits. */
+  imageUrl: string | null
+  /** The page the photo came from, kept for checking its source and licence. */
+  imageSourceUrl: string | null
 }
 
 /** Output of POST /api/v1/sommelier/recommendations; `ok` lists best_match then alternative. */

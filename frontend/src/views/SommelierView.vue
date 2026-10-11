@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import SiteFooter from '../components/SiteFooter.vue'
 import SommelierAvatar from '../components/SommelierAvatar.vue'
 import SommelierPreferenceProfile from '../components/SommelierPreferenceProfile.vue'
 import SommelierRecommendations from '../components/SommelierRecommendations.vue'
-import { SommelierApiError, fetchRecommendations } from '../services/sommelierService'
+import {
+  GUEST_LIMIT_CODE,
+  SommelierApiError,
+  fetchRecommendations,
+} from '../services/sommelierService'
 import type {
   OccasionChoice,
   RecommendationResult,
@@ -75,6 +80,8 @@ import {
   type StepKind,
   type ThinkingMoment,
 } from '../utils/sommelierConversation'
+
+const router = useRouter()
 
 /**
  * opening → answering ⇄ responding → closing → profile → done. `error` replaces
@@ -590,6 +597,10 @@ async function requestRecommendations(input: SommelierInput): Promise<Recommenda
   try {
     return { ok: true, result: await fetchRecommendations(input) }
   } catch (error) {
+    // Guests who used up today's free recommendations go straight to login (then home).
+    if (error instanceof SommelierApiError && error.code === GUEST_LIMIT_CODE) {
+      void router.push({ name: 'login' })
+    }
     if (error instanceof SommelierApiError) {
       return { ok: false, message: error.message, details: error.details }
     }

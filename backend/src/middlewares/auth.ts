@@ -11,6 +11,19 @@ function isAuthPayload(value: unknown): value is AuthPayload {
   return typeof (value as AuthPayload).userId === 'string'
 }
 
+/** Lets guests through without `req.user`; a token that is sent must still be valid. */
+export function optionalAuthenticate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (!req.headers.authorization) {
+    next()
+    return
+  }
+  authenticate(req, res, next)
+}
+
 export function authenticate(
   req: Request,
   res: Response,

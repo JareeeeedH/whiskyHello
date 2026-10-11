@@ -297,12 +297,25 @@ Backend 驗證 LLM 回傳：
 - `imageUrl` 必須與這次 `web_search_call.results` 中某個 `image_result` 的 HTTPS `image_url` 完全相同，否則兩個圖片欄位改為 `null`；`imageSourceUrl` 取自同一筆結果的 `source_website_url`（不是 HTTPS 時為 `null`）；兩款圖片相同時，`alternative` 改為 `null`。圖片問題不會讓推薦失敗
 - `status: "unable"` 時忽略酒款欄位
 
-錯誤（Body 為 `{ "message": string }`，不含 OpenAI 的錯誤細節）：
+使用次數（正式環境；開發環境放寬，方便測試）：
+
+- 未登入：每個 IP 每天 2 次；已登入：每個帳號每天 20 次（帶了 token 但無效時回 401）
+- 全站每天合計 300 次
+- 「一天」以台灣時間 00:00 歸零；只有回 200（含 `unable`）才扣次數，驗證失敗、OpenAI 失敗或逾時不扣
+- 次數存在伺服器記憶體，重啟後歸零
+- 另有每個 IP 每 15 分鐘 30 次的短時間限制
+- 未登入者用完次數時，前端直接導向登入頁（登入後回首頁）；已登入者或全站額滿時顯示訊息
+
+錯誤（Body 為 `{ "message": string }`，不含 OpenAI 的錯誤細節；次數用完時另含 `code`）：
 
 | 狀況 | 狀態碼 |
 |---|---|
 | Input 不合法 | 400 |
+| token 無效或過期 | 401 |
 | 請求過於頻繁 | 429 |
+| 未登入者今日次數用完 | 429，`code: "SOMMELIER_GUEST_LIMIT"` |
+| 已登入者今日次數用完 | 429，`code: "SOMMELIER_MEMBER_LIMIT"` |
+| 全站今日額滿 | 429，`code: "SOMMELIER_SITE_LIMIT"` |
 | 未設定 OpenAI | 503 |
 | OpenAI 逾時 | 504 |
 | OpenAI 失敗、拒答、回傳不完整、不是 JSON 或未通過上述驗證 | 502 |

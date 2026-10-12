@@ -20,6 +20,7 @@ import { fetchWhiskyTranslation } from '../services/translationService'
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
 import { applyPageMeta } from '../utils/applyPageMeta'
+import { chineseDistilleryName } from '../utils/distilleryNames'
 import { NOT_FOUND_META, whiskyPageMeta } from '../utils/pageMeta'
 import {
   NOTE_TRANSLATION_TEXT,
@@ -84,6 +85,7 @@ watch(
 )
 
 const whiskyId = computed(() => whisky.value?.id ?? '')
+const distilleryNameZh = computed(() => (whisky.value ? chineseDistilleryName(whisky.value.name) : undefined))
 
 const imageFailed = ref(false)
 watch(() => whisky.value?.imageUrl, () => { imageFailed.value = false })
@@ -398,6 +400,7 @@ watch(
         </div>
 
         <div class="summary">
+          <p v-if="distilleryNameZh" class="distillery-zh">{{ distilleryNameZh }}</p>
           <h1>{{ whisky.name }}</h1>
           <p v-if="whisky.subtitle" class="subtitle">{{ whisky.subtitle }}</p>
 
@@ -724,6 +727,15 @@ watch(
 .image-fallback {
   color: #94a3b8;
   font-size: 0.875rem;
+}
+
+.distillery-zh {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #b45309;
 }
 
 .summary h1 {

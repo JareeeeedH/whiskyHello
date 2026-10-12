@@ -1,4 +1,5 @@
 import type { Whisky } from '../types/whisky.ts'
+import { chineseDistilleryName } from './distilleryNames.ts'
 
 export const SITE_URL = 'https://whiskyhello.com'
 export const SITE_NAME = 'WhiskyHello 威你好'
@@ -77,7 +78,9 @@ export function canonicalUrl(path: string): string {
 
 /** Built only from fields the dataset actually has; missing facts are left out. */
 export function whiskyPageMeta(whisky: Whisky): PageMeta {
-  const name = whisky.name.trim() || `酒款 #${whisky.id}`
+  const englishName = whisky.name.trim()
+  const chineseName = chineseDistilleryName(englishName)
+  const name = englishName ? (chineseName ? `${chineseName} ${englishName}` : englishName) : `酒款 #${whisky.id}`
   const label = truncate(whisky.subtitle ? `${name} ${whisky.subtitle}` : name, WHISKY_LABEL_MAX_LENGTH)
   const facts = [
     whisky.points !== undefined ? `知名評論家評分 ${whisky.points} 分` : '',

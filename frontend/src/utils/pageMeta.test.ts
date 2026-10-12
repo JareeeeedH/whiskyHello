@@ -41,16 +41,21 @@ describe('page meta', () => {
       points: 82,
       note: 'Nose: sherry.',
     })
-    assert.equal(meta.title, 'Macallan 12 yo 評價與風味｜WhiskyHello')
+    assert.equal(meta.title, '麥卡倫 Macallan 12 yo 評價與風味｜WhiskyHello')
     assert.equal(
       meta.description,
-      'Macallan 12 yo (40%, OB, 2020) 的評價與風味：知名評論家評分 82 分，附品飲筆記，也看看酒友怎麼評價。',
+      '麥卡倫 Macallan 12 yo (40%, OB, 2020) 的評價與風味：知名評論家評分 82 分，附品飲筆記，也看看酒友怎麼評價。',
     )
   })
 
   it('leaves out facts the whisky does not have', () => {
     const meta = whiskyPageMeta({ id: '2', name: 'Ardbeg 10 yo' })
-    assert.equal(meta.description, 'Ardbeg 10 yo 的評價與風味，也看看酒友怎麼評價。')
+    assert.equal(meta.description, '雅柏 Ardbeg 10 yo 的評價與風味，也看看酒友怎麼評價。')
+  })
+
+  it('keeps the English name alone for unlisted distilleries', () => {
+    const meta = whiskyPageMeta({ id: '4', name: 'Glen Keith 20 yo' })
+    assert.equal(meta.title, 'Glen Keith 20 yo 評價與風味｜WhiskyHello')
   })
 
   it('keeps long whisky descriptions short', () => {

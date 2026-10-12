@@ -16,6 +16,7 @@ import {
 } from '../services/reviewService'
 import CriticReviewBody from '../components/CriticReviewBody.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import SommelierAvatar from '../components/SommelierAvatar.vue'
 import { fetchWhiskyTranslation } from '../services/translationService'
 import { useAuthStore } from '../stores/auth'
 import type { PublicReview } from '../types/review'
@@ -548,6 +549,18 @@ watch(
           </ul>
         </template>
       </section>
+
+      <aside class="sommelier-cta" aria-labelledby="sommelier-cta-title">
+        <span class="sommelier-cta-avatar"><SommelierAvatar /></span>
+        <div class="sommelier-cta-body">
+          <p class="sommelier-cta-eyebrow">SOMMELIER</p>
+          <h2 id="sommelier-cta-title" class="sommelier-cta-title">找到你的下一杯</h2>
+          <p class="sommelier-cta-text">聊聊口味與預算，讓侍酒師為你挑選。</p>
+        </div>
+        <RouterLink to="/sommelier" class="sommelier-cta-link">
+          與侍酒師聊聊 <span aria-hidden="true">→</span>
+        </RouterLink>
+      </aside>
     </template>
 
     <section v-else class="not-found">
@@ -1317,9 +1330,107 @@ watch(
   color: #64748b;
 }
 
+.sommelier-cta {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  margin-top: 2rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid rgba(220, 184, 120, 0.45);
+  border-radius: 16px;
+  background: linear-gradient(160deg, #1c1917 0%, var(--wh-night) 100%);
+  color: var(--wh-cream);
+}
+
+.sommelier-cta-avatar {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-self: start;
+}
+
+.sommelier-cta-eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--wh-gold);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.sommelier-cta-title {
+  margin: 0 0 0.35rem;
+  color: #fafaf9;
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.sommelier-cta-text {
+  margin: 0;
+  color: #d6d3d1;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.sommelier-cta-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #b8914f;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #e4c78d 0%, var(--wh-gold) 100%);
+  color: var(--wh-night);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+.sommelier-cta-link:hover {
+  border-color: #a07a3c;
+  transform: translateY(-1px);
+}
+
+.sommelier-cta-link:focus-visible {
+  outline: 2px solid var(--wh-gold-bright);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sommelier-cta-link {
+    transition: none;
+  }
+
+  .sommelier-cta-link:hover {
+    transform: none;
+  }
+}
+
 @media (max-width: 720px) {
   .detail {
     padding: 1rem 1rem 2rem;
+  }
+
+  .sommelier-cta {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    padding: 1.25rem;
+  }
+
+  .sommelier-cta-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .sommelier-cta-link {
+    grid-column: 1 / -1;
   }
 
   .hero {

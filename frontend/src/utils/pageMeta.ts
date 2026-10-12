@@ -17,14 +17,14 @@ export interface PageMeta {
 }
 
 export const HOME_META: PageMeta = {
-  title: '威士忌推薦｜WhiskyHello｜懂你的口味，找到下一杯威士忌',
+  title: 'WhiskyHello 威你好｜懂你的口味，找到下一杯威士忌',
   description: '從風味、預算與飲酒情境出發，與侍酒師聊聊，找到更適合你的威士忌。',
 }
 
 export const SOMMELIER_META: PageMeta = {
-  title: '威士忌推薦｜與侍酒師聊聊你的口味｜WhiskyHello',
+  title: '威士忌推薦｜依口味與預算挑選適合你的威士忌｜WhiskyHello',
   description:
-    '從你的風味偏好、預算與飲酒情境開始，與 WhiskyHello 侍酒師聊聊，探索適合你的威士忌方向。',
+    '不知道該買哪支威士忌？告訴侍酒師你喜歡的風味、預算與飲酒情境，為你推薦最適合的一支和另一支值得探索的選擇，並說明理由。',
 }
 
 export const WHISKIES_META: PageMeta = {

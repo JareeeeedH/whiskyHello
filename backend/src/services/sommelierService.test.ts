@@ -40,7 +40,7 @@ const TASTE: TasteProfile = {
   peat: 2,
 }
 
-const STYLE: StyleProfile = { body: 8, intensity: 6, smoothness: 9 }
+const STYLE: StyleProfile = { body: 8 }
 
 const BEST_MATCH = {
   whiskyName: 'Glenmorangie The Original 10 Year Old',
@@ -159,10 +159,10 @@ afterEach(() => {
 })
 
 describe('toLLMInput', () => {
-  it('keeps the picked tastes, style, occasion, budget and freeText as entered', () => {
+  it('keeps the picked tastes, style, occasion and budget as entered', () => {
     assert.deepEqual(
-      toLLMInput(input({ occasion: 'date', budget: { max: 2000 }, freeText: '  不要太甜  ' })),
-      { taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 }, freeText: '不要太甜' },
+      toLLMInput(input({ occasion: 'date', budget: { max: 2000 } })),
+      { taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 } },
     )
   })
 
@@ -181,7 +181,6 @@ describe('toLLMInput', () => {
         taste: { ...TASTE, salty: 9 } as TasteProfile,
         style: { ...STYLE, sweetness: 3 } as StyleProfile,
         budget: {},
-        freeText: '   ',
       }),
     )
 
@@ -377,9 +376,7 @@ describe('recommendWhiskies', () => {
   it('sends the input as JSON in a strict Structured Outputs request', async () => {
     const create = mockRecommendation(llmOutput())
 
-    const result = await recommendWhiskies(
-      input({ occasion: 'date', budget: { max: 2000 }, freeText: '  今晚約會，不要太重  ' }),
-    )
+    const result = await recommendWhiskies(input({ occasion: 'date', budget: { max: 2000 } }))
 
     assert.equal(result.status, 'ok')
     assert.equal(create.mock.callCount(), 1)
@@ -390,7 +387,6 @@ describe('recommendWhiskies', () => {
       style: STYLE,
       occasion: 'date',
       budget: { max: 2000 },
-      freeText: '今晚約會，不要太重',
     })
     assert.equal(request.store, false)
     assert.equal(request.text.format.type, 'json_schema')
@@ -436,11 +432,12 @@ describe('recommendWhiskies', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('the image_url of that image result, copied exactly'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never use a page URL as imageUrl'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes("never use one whisky's photo for the other"))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('search once more for that whisky with a different query'))
   })
 
   it('asks for brand names, a budget band and sommelier wording', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('starting with the brand or distillery'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 25% either side'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 10% either side'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm requirement for both whiskies'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('closest flavor fit within the range'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Do not default to a famous bottle'))
@@ -545,8 +542,8 @@ describe('POST /api/v1/sommelier/recommendations', () => {
     const result = await post({
       taste: { ...TASTE, sweet: 0, oak: 4.5 },
       style: { body: 11 },
+      occasion: 'party',
       budget: { min: -1 },
-      freeText: '想喝甜的',
     })
 
     assert.equal(result.status, 400)
@@ -586,7 +583,7 @@ describe('POST /api/v1/sommelier/recommendations', () => {
   it('returns two recommendations, best match first', async () => {
     const create = mockRecommendation(llmOutput())
 
-    const result = await post({ taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 }, freeText: '' })
+    const result = await post({ taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 } })
 
     assert.equal(result.status, 200)
     assert.equal(create.mock.callCount(), 1)
@@ -599,10 +596,24 @@ describe('POST /api/v1/sommelier/recommendations', () => {
     })
   })
 
+  it('ignores the retired intensity, smoothness and freeText fields from older pages', async () => {
+    const create = mockRecommendation(llmOutput())
+
+    const result = await post({
+      taste: TASTE,
+      style: { ...STYLE, intensity: 6, smoothness: 9 },
+      freeText: '今晚約會，不要太重',
+    })
+
+    assert.equal(result.status, 200)
+    const [request] = create.mock.calls[0].arguments as unknown as [Record<string, any>]
+    assert.deepEqual(JSON.parse(request.input), { taste: TASTE, style: STYLE })
+  })
+
   it('returns unable as a successful response', async () => {
     mockRecommendation(UNABLE_OUTPUT)
 
-    const result = await post({ taste: TASTE, style: STYLE, freeText: '幫我寫一首詩' })
+    const result = await post({ taste: TASTE, style: STYLE })
 
     assert.equal(result.status, 200)
     assert.deepEqual(result.body, { status: 'unable', message: '這次的需求和威士忌無關。' })

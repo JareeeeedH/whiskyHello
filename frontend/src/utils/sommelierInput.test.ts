@@ -28,7 +28,7 @@ import {
 
 const [GROUP_1 = [], GROUP_2 = []] = TASTE_GROUPS
 const TASTE: TasteProfile = { fruit: 9, floral: 6, maltGrain: 7, peat: 2 }
-const STYLE = { body: 8, intensity: 6, smoothness: 9 }
+const STYLE = { body: 8 }
 
 function draft(overrides: Partial<SommelierInputDraft> = {}): SommelierInputDraft {
   return { ...createEmptySommelierDraft(), taste: { ...TASTE }, style: { ...STYLE }, occasion: 'none', ...overrides }
@@ -98,9 +98,9 @@ describe('sommelier preference dimensions', () => {
     )
   })
 
-  it('has the 3 style dimensions', () => {
-    assert.deepEqual(STYLE_KEYS, ['body', 'intensity', 'smoothness'])
-    assert.deepEqual(Object.values(STYLE_LABELS), ['酒體', '風味強度', '順口度'])
+  it('has body as the only style dimension', () => {
+    assert.deepEqual(STYLE_KEYS, ['body'])
+    assert.deepEqual(Object.values(STYLE_LABELS), ['酒體'])
   })
 
   it('rates on a 1–10 scale that starts at 1', () => {
@@ -109,13 +109,12 @@ describe('sommelier preference dimensions', () => {
     assert.equal(RATING_DEFAULT, 1)
   })
 
-  it('starts with no tastes picked, style at 1, no occasion, a NT$ 2,500 budget and no free text', () => {
+  it('starts with no tastes picked, body at 1, no occasion and a NT$ 2,500 budget', () => {
     assert.deepEqual(createEmptySommelierDraft(), {
       taste: {},
-      style: { body: 1, intensity: 1, smoothness: 1 },
+      style: { body: 1 },
       occasion: null,
       budget: 2500,
-      freeText: '',
     })
   })
 
@@ -158,8 +157,8 @@ describe('rating words', () => {
     assert.equal(describeStyleRating('body', 1), '很輕盈')
     assert.equal(describeStyleRating('body', 4), '偏輕盈')
     assert.equal(describeStyleRating('body', 5), '適中')
-    assert.equal(describeStyleRating('intensity', 7), '偏強烈')
-    assert.equal(describeStyleRating('smoothness', 10), '很圓潤／順口')
+    assert.equal(describeStyleRating('body', 7), '偏厚重')
+    assert.equal(describeStyleRating('body', 10), '很厚重')
   })
 })
 
@@ -215,10 +214,8 @@ describe('taste picks', () => {
 })
 
 describe('validateSommelierInput', () => {
-  it('sends the rated tastes, all style ratings and the budget; unpicked tastes stay absent', () => {
-    const result = validateSommelierInput(
-      draft({ budget: 3500, freeText: '  今天工作很累，想一個人慢慢喝，希望不要太刺激。  ' }),
-    )
+  it('sends the rated tastes, the body rating and the budget; unpicked tastes stay absent', () => {
+    const result = validateSommelierInput(draft({ budget: 3500 }))
 
     assert.deepEqual(result, {
       ok: true,
@@ -226,7 +223,6 @@ describe('validateSommelierInput', () => {
         taste: TASTE,
         style: STYLE,
         budget: { max: 3500 },
-        freeText: '今天工作很累，想一個人慢慢喝，希望不要太刺激。',
       },
     })
     if (result.ok) {
@@ -270,16 +266,17 @@ describe('validateSommelierInput', () => {
 
   it('accepts the 1 and 10 boundaries', () => {
     const result = validateSommelierInput(
-      draft({ taste: { ...TASTE, fruit: 1, peat: 10 }, style: { body: 1, intensity: 10, smoothness: 1 } }),
+      draft({ taste: { ...TASTE, fruit: 1, peat: 10 }, style: { body: 1 } }),
     )
     assert.equal(result.ok, true)
+    assert.equal(validateSommelierInput(draft({ style: { body: 10 } })).ok, true)
   })
 
   it('drops keys that are not taste or style dimensions, including retired ones', () => {
     const result = validateSommelierInput(
       draft({
         taste: { ...TASTE, salty: 9, driedFruit: 8 } as SommelierInputDraft['taste'],
-        style: { ...STYLE, sweetness: 3 } as SommelierInputDraft['style'],
+        style: { ...STYLE, sweetness: 3, intensity: 6, smoothness: 9 } as SommelierInputDraft['style'],
       }),
     )
     assert.deepEqual(result.ok && result.value.taste, TASTE)
@@ -303,9 +300,8 @@ describe('validateSommelierInput', () => {
     })
   }
 
-  it('rejects a missing style dimension', () => {
-    const { smoothness: _smoothness, ...style } = STYLE
-    const result = validateSommelierInput(draft({ style: style as SommelierInputDraft['style'] }))
+  it('rejects a missing body rating', () => {
+    const result = validateSommelierInput(draft({ style: {} as SommelierInputDraft['style'] }))
     assert.equal(result.ok, false)
   })
 
@@ -350,15 +346,4 @@ describe('validateSommelierInput', () => {
       if (!result.ok) assert.ok(result.errors.budget)
     })
   }
-
-  it('omits freeText when skipped or whitespace-only', () => {
-    for (const freeText of ['', ' \n\t ']) {
-      const result = validateSommelierInput(draft({ freeText }))
-
-      assert.equal(result.ok, true)
-      if (result.ok) {
-        assert.equal('freeText' in result.value, false)
-      }
-    }
-  })
 })

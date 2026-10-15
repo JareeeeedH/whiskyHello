@@ -37,7 +37,6 @@ function copyRatings<K extends string>(
 
 /** The validated input as sent to the LLM: known keys only, empty optional fields left out. */
 export function toLLMInput(input: SommelierInput): SommelierInput {
-  const freeText = input.freeText?.trim()
   const budget = input.budget && (input.budget.min !== undefined || input.budget.max !== undefined)
     ? input.budget
     : undefined
@@ -46,7 +45,6 @@ export function toLLMInput(input: SommelierInput): SommelierInput {
     style: copyRatings(STYLE_KEYS, input.style) as StyleProfile,
     ...(input.occasion ? { occasion: input.occasion } : {}),
     ...(budget ? { budget } : {}),
-    ...(freeText ? { freeText } : {}),
   }
 }
 
@@ -136,9 +134,36 @@ export function toRecommendationResult(
   return { status: 'ok', recommendations: [bestMatch, alternative] }
 }
 
+/** TEMP diagnostics for missing bottle photos; logs only whisky names, URLs and counts. Remove once diagnosed. */
+function logPhotoOutcome(output: unknown, imageResults: WebImageResult[], result: RecommendationResult): void {
+  if (result.status !== 'ok' || !isPlainObject(output)) {
+    return
+  }
+  const rawItems = [output.bestMatch, output.alternative]
+  result.recommendations.forEach((item, index) => {
+    const raw = rawItems[index]
+    const aiUrl = isPlainObject(raw) ? toText(raw.imageUrl) : ''
+    let outcome: string
+    if (item.imageUrl) {
+      outcome = `ok ${item.imageUrl}`
+    } else if (!aiUrl) {
+      outcome = 'AI returned no photo'
+    } else if (imageResults.some((image) => image.imageUrl === aiUrl)) {
+      outcome = 'same photo as best match, dropped'
+    } else {
+      const basePath = aiUrl.split('?')[0]
+      const nearMatch = imageResults.some((image) => image.imageUrl.split('?')[0] === basePath)
+      outcome = `AI URL not in search results${nearMatch ? ' (same path, query differs)' : ''}: ${aiUrl.slice(0, 300)}`
+    }
+    console.info(`[sommelier photo] ${item.whiskyName}: ${outcome} (image results: ${imageResults.length})`)
+  })
+}
+
 export async function recommendWhiskies(input: SommelierInput): Promise<RecommendationResult> {
   const { output, imageResults } = await requestWhiskyRecommendations(
     JSON.stringify(toLLMInput(input)),
   )
-  return toRecommendationResult(output, imageResults)
+  const result = toRecommendationResult(output, imageResults)
+  logPhotoOutcome(output, imageResults, result)
+  return result
 }

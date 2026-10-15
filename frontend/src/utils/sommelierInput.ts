@@ -40,7 +40,7 @@ export const TASTE_EXAMPLES: Record<TasteKey, string> = {
   smoke: '營火、煙燻培根、焦木',
 }
 
-/** The conversation shows the tastes in two groups of five, one group at a time. */
+/** The conversation shows the tastes in two sections of five, both in one question. */
 export const TASTE_GROUPS: readonly (readonly TasteKey[])[] = [TASTE_KEYS.slice(0, 5), TASTE_KEYS.slice(5)]
 
 /** Picks are counted across both groups. */
@@ -49,8 +49,6 @@ export const TASTE_PICKS_MAX = 5
 
 export const STYLE_LABELS: Record<StyleKey, string> = {
   body: '酒體',
-  intensity: '風味強度',
-  smoothness: '順口度',
 }
 
 export const STYLE_KEYS = Object.keys(STYLE_LABELS) as StyleKey[]
@@ -58,8 +56,6 @@ export const STYLE_KEYS = Object.keys(STYLE_LABELS) as StyleKey[]
 /** What 1 and 10 mean for each style slider. */
 export const STYLE_SCALE_HINTS: Record<StyleKey, { min: string; max: string }> = {
   body: { min: '輕盈', max: '厚重' },
-  intensity: { min: '柔和', max: '強烈' },
-  smoothness: { min: '粗獷／刺激', max: '圓潤／順口' },
 }
 
 export const RATING_MIN = 1
@@ -108,10 +104,9 @@ export const BUDGET_DEFAULT = 2500
 export function createEmptySommelierDraft(): SommelierInputDraft {
   return {
     taste: {},
-    style: { body: RATING_DEFAULT, intensity: RATING_DEFAULT, smoothness: RATING_DEFAULT },
+    style: { body: RATING_DEFAULT },
     occasion: null,
     budget: BUDGET_DEFAULT,
-    freeText: '',
   }
 }
 
@@ -203,10 +198,6 @@ export function validateSommelierInput(draft: SommelierInputDraft): SommelierInp
     errors.budget = `預算需介於 ${BUDGET_MIN}–${BUDGET_MAX}`
   }
 
-  if (typeof draft.freeText !== 'string') {
-    errors.freeText = '補充說明格式不正確'
-  }
-
   if (!taste || !style || Object.keys(errors).length > 0) {
     return { ok: false, errors }
   }
@@ -216,11 +207,6 @@ export function validateSommelierInput(draft: SommelierInputDraft): SommelierInp
     style,
     ...(draft.occasion && draft.occasion !== 'none' ? { occasion: draft.occasion } : {}),
     budget: { max: draft.budget },
-  }
-
-  const freeText = draft.freeText.trim()
-  if (freeText) {
-    value.freeText = freeText
   }
 
   return { ok: true, value }

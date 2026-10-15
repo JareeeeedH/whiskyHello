@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { OCCASIONS, STYLE_KEYS, TASTE_KEYS, TASTE_PICKS_MAX, TASTE_PICKS_MIN } from '../types/sommelier'
-import {
-  FREE_TEXT_MAX_LENGTH,
-  recommendationRequestSchema,
-} from './sommelierValidation'
+import { recommendationRequestSchema } from './sommelierValidation'
 
 /** 4 picks across both groups. */
 const taste = { fruit: 9, floral: 6, maltGrain: 7, peat: 2 }
@@ -37,7 +34,7 @@ describe('recommendationRequestSchema', () => {
     assert.equal(TASTE_PICKS_MAX, 5)
   })
 
-  it('accepts 3, 4 or 5 rated tastes from either group and 3 style ratings', () => {
+  it('accepts 3, 4 or 5 rated tastes from either group and a body rating', () => {
     for (const picked of [
       { fruit: 9, sweet: 6, floral: 3 },
       taste,
@@ -63,13 +60,18 @@ describe('recommendationRequestSchema', () => {
     }
   })
 
-  it('accepts a full input and trims freeText', () => {
-    const { error, value } = recommendationRequestSchema.validate(
-      body({ budget: { max: 3000 }, freeText: '  想找適合晚上慢慢喝的酒  ' }),
+  it('accepts a full input', () => {
+    const { error, value } = recommendationRequestSchema.validate(body({ occasion: 'date', budget: { max: 3000 } }))
+    assert.equal(error, undefined)
+    assert.deepEqual(value, { taste, style, occasion: 'date', budget: { max: 3000 } })
+  })
+
+  it('strips the retired intensity, smoothness and freeText fields', () => {
+    const { error, value } = validateLikeRoute(
+      body({ style: { ...style, intensity: 6, smoothness: 9 }, freeText: '想找適合晚上慢慢喝的酒' }),
     )
     assert.equal(error, undefined)
-    assert.deepEqual(value.budget, { max: 3000 })
-    assert.equal(value.freeText, '想找適合晚上慢慢喝的酒')
+    assert.deepEqual(value, { taste, style })
   })
 
   it('accepts ratings at the 1 and 10 boundaries', () => {
@@ -138,8 +140,8 @@ describe('recommendationRequestSchema', () => {
     ['taste rating on the old 0–100 scale', body({ taste: { ...taste, maltGrain: 65 } })],
     ['taste rating as a string', body({ taste: { ...taste, fruit: '5' } })],
     ['style rating 0', body({ style: { ...style, body: 0 } })],
-    ['style rating 11', body({ style: { ...style, intensity: 11 } })],
-    ['style rating with decimals', body({ style: { ...style, smoothness: 7.5 } })],
+    ['style rating 11', body({ style: { ...style, body: 11 } })],
+    ['style rating with decimals', body({ style: { ...style, body: 7.5 } })],
     ['style rating as a string', body({ style: { ...style, body: 'heavy' } })],
     ['an unknown occasion', body({ occasion: 'party' })],
     ['a retired occasion', body({ occasion: 'beginner' })],
@@ -147,8 +149,6 @@ describe('recommendationRequestSchema', () => {
     ['a non-string occasion', body({ occasion: 1 })],
     ['negative budget', body({ budget: { min: -1 } })],
     ['non-numeric budget', body({ budget: { max: 'cheap' } })],
-    ['non-string freeText', body({ freeText: 123 })],
-    ['freeText over the length limit', body({ freeText: 'a'.repeat(FREE_TEXT_MAX_LENGTH + 1) })],
   ]
 
   for (const [name, invalid] of invalidBodies) {

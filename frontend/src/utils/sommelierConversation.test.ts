@@ -3,8 +3,6 @@ import { describe, it } from 'node:test'
 import type { OccasionChoice, SommelierInput, StyleProfile, TasteProfile } from '../types/sommelier.ts'
 import {
   CONVERSATION_STEPS,
-  SKIPPED_FREE_TEXT_ANSWER,
-  SKIPPED_TASTE_GROUP_ANSWER,
   SOMMELIER_ARRIVAL_MS,
   SOMMELIER_ARRIVAL_TEXT,
   THINKING_JITTER_MS,
@@ -16,7 +14,6 @@ import {
   composeSelectionSteps,
   composeUnableMessage,
   describeBudgetAnswer,
-  describeFreeTextAnswer,
   describeOccasionAnswer,
   describeStyleAnswer,
   describeTastePicks,
@@ -39,17 +36,15 @@ const MOMENTS: ThinkingMoment[] = [
   'style',
   'occasion',
   'budget',
-  'freeText',
-  'profile',
+  'closing',
   'retry',
 ]
 
 const TASTE: TasteProfile = { fruit: 9, floral: 6, maltGrain: 7, peat: 2 }
 const MID_TASTE: TasteProfile = { fruit: 5, sweet: 5, nutty: 5, oak: 5 }
-const MID_STYLE: StyleProfile = { body: 5, intensity: 5, smoothness: 5 }
+const MID_STYLE: StyleProfile = { body: 5 }
 
-const PICK_GROUP_1: StepKind = { type: 'pickTaste', group: 0 }
-const PICK_GROUP_2: StepKind = { type: 'pickTaste', group: 1 }
+const PICK_TASTES: StepKind = { type: 'pickTaste' }
 
 describe('sommelier greeting', () => {
   it('follows the time of day', () => {
@@ -69,7 +64,7 @@ describe('sommelier greeting', () => {
   })
 
   it('stays separate from the first question', () => {
-    const first = getQuestion(PICK_GROUP_1).title
+    const first = getQuestion(PICK_TASTES).title
     for (const hour of [2, 8, 14, 21]) {
       assert.equal(getSommelierGreeting(hour).includes(first), false)
     }
@@ -77,32 +72,24 @@ describe('sommelier greeting', () => {
 })
 
 describe('conversation steps', () => {
-  it('picks from both groups, rates all picks together, then style, budget and free text', () => {
+  it('picks every taste in one question, rates all picks together, then body, occasion and budget', () => {
     assert.deepEqual(CONVERSATION_STEPS, [
-      { type: 'pickTaste', group: 0 },
-      { type: 'pickTaste', group: 1 },
+      { type: 'pickTaste' },
       { type: 'rateTaste' },
       { type: 'style', key: 'body' },
-      { type: 'style', key: 'intensity' },
-      { type: 'style', key: 'smoothness' },
       { type: 'occasion' },
       { type: 'budget' },
-      { type: 'freeText' },
     ])
   })
 
   it('has no separate confirm step before rating', () => {
-    assert.equal(CONVERSATION_STEPS.findIndex((kind) => kind.type === 'rateTaste'), 2)
+    assert.equal(CONVERSATION_STEPS.findIndex((kind) => kind.type === 'rateTaste'), 1)
   })
 })
 
 describe('sommelier questions', () => {
-  it('asks which tastes to find in the whisky, suggesting 3–4', () => {
-    assert.deepEqual(getQuestion(PICK_GROUP_1), {
-      title: '這次，你最想在威士忌中喝到哪些風味？',
-      hint: '選 3～4 種就好，挑出這次最想感受到的味道。',
-    })
-    assert.match(getQuestion(PICK_GROUP_2).hint ?? '', /3～5/)
+  it('names the taste question for screen readers, with no hint', () => {
+    assert.deepEqual(getQuestion(PICK_TASTES), { title: '這次，你最想在威士忌中喝到哪些風味？' })
   })
 
   it('asks how pronounced each picked taste should be; the sliders explain the scale', () => {
@@ -128,14 +115,9 @@ describe('sommelier questions', () => {
     })
   })
 
-  it('keeps the style, budget and free-text questions', () => {
+  it('keeps the body and budget questions', () => {
     assert.equal(getQuestion({ type: 'style', key: 'body' }).title, '你喜歡什麼樣的酒體？')
-    assert.equal(getQuestion({ type: 'style', key: 'intensity' }).hint, '指的是整體風味的強弱，不是酒精濃度。')
     assert.equal(getQuestion({ type: 'budget' }).title, '這次大概想把預算控制在哪裡？')
-    assert.equal(
-      getQuestion({ type: 'freeText' }).hint,
-      '可以告訴我今晚的心情、場合，或任何你想補充的需求。',
-    )
   })
 })
 
@@ -174,12 +156,11 @@ describe('thinking pacing', () => {
   })
 
   it('picks the thinking line at random from each moment’s pool', () => {
-    assert.equal(getThinkingCue('freeText', () => 0).text, '嗯，我大概抓到你的方向了…')
-    assert.equal(getThinkingCue('freeText', () => 0.999).text, '讓我把這些拼起來…')
-    assert.equal(getThinkingCue('profile', () => 0).text, '我幫你整理一下……')
+    assert.equal(getThinkingCue('closing', () => 0).text, '嗯，我大概抓到你的方向了…')
+    assert.equal(getThinkingCue('closing', () => 0.999).text, '讓我把這些拼起來…')
   })
 
-  it('offers 2–3 lines for every answer, retry and profile', () => {
+  it('offers 2–3 lines for every answer, the closing and retry', () => {
     for (const moment of MOMENTS.filter((item) => item !== 'opening')) {
       const texts = getThinkingTexts(moment)
       assert.ok(texts.length >= 2 && texts.length <= 3, `${moment}: ${texts.length}`)
@@ -188,7 +169,7 @@ describe('thinking pacing', () => {
   })
 
   it('always says something while summarizing or retrying', () => {
-    for (const moment of ['freeText', 'profile', 'retry'] as const) {
+    for (const moment of ['closing', 'retry'] as const) {
       assert.ok(getThinkingTexts(moment).every((text) => text.length > 0), moment)
     }
   })
@@ -197,26 +178,28 @@ describe('thinking pacing', () => {
 describe('getAcknowledgement', () => {
   const first = () => 0
   const values = (
-    overrides: Partial<{ taste: TasteProfile; style: StyleProfile; occasion: OccasionChoice | null; budget: number }> = {},
+    overrides: Partial<{ taste: TasteProfile; style: StyleProfile; occasion: OccasionChoice | null }> = {},
   ) => ({
     taste: MID_TASTE,
     style: MID_STYLE,
     occasion: null,
-    budget: 2000,
     ...overrides,
   })
 
   it('reacts to a distinctive pair of picks', () => {
-    assert.equal(getAcknowledgement(PICK_GROUP_1, values({ taste: { fruit: 5, floral: 5 } }), first), '果香加花香，很清新的組合。')
-    assert.equal(getAcknowledgement(PICK_GROUP_2, values({ taste: { peat: 5, smoke: 5 } }), first), '喔，喜歡有煙燻個性的。')
+    assert.equal(getAcknowledgement(PICK_TASTES, values({ taste: { fruit: 5, floral: 5, oak: 5 } }), first), '果香加花香，很清新的組合。')
+    assert.equal(getAcknowledgement(PICK_TASTES, values({ taste: { sweet: 5, peat: 5, smoke: 5 } }), first), '喔，喜歡有煙燻個性的。')
+  })
+
+  it('reacts to the first listed pair when the picks contain two', () => {
+    assert.equal(
+      getAcknowledgement(PICK_TASTES, values({ taste: { fruit: 5, floral: 5, peat: 5, smoke: 5 } }), first),
+      '果香加花香，很清新的組合。',
+    )
   })
 
   it('stays quiet for an ordinary set of picks', () => {
-    assert.equal(getAcknowledgement(PICK_GROUP_1, values({ taste: { fruit: 5, nutty: 5 } }), first), null)
-  })
-
-  it('only reacts to picks in the group just answered', () => {
-    assert.equal(getAcknowledgement(PICK_GROUP_1, values({ taste: { sweet: 5, peat: 5, smoke: 5 } }), first), null)
+    assert.equal(getAcknowledgement(PICK_TASTES, values({ taste: { fruit: 5, nutty: 5, peat: 5 } }), first), null)
   })
 
   it('reacts to a very pronounced taste first, else a very light one', () => {
@@ -227,11 +210,11 @@ describe('getAcknowledgement', () => {
     assert.equal(getAcknowledgement(rate, values({ taste: { fruit: 6, floral: 7, oak: 3 } }), first), null)
   })
 
-  it('reacts to a style rating only outside the middle band', () => {
-    const style = (key: 'body' | 'intensity' | 'smoothness'): StepKind => ({ type: 'style', key })
-    assert.equal(getAcknowledgement(style('body'), values({ style: { ...MID_STYLE, body: 2 } }), first), '好，那我們走清爽一點的路線。')
-    assert.equal(getAcknowledgement(style('intensity'), values({ style: { ...MID_STYLE, intensity: 9 } }), first), '要夠勁的，沒問題。')
-    assert.equal(getAcknowledgement(style('smoothness'), values(), first), null)
+  it('reacts to a body rating only outside the middle band', () => {
+    const body: StepKind = { type: 'style', key: 'body' }
+    assert.equal(getAcknowledgement(body, values({ style: { body: 2 } }), first), '好，那我們走清爽一點的路線。')
+    assert.equal(getAcknowledgement(body, values({ style: { body: 9 } }), first), '喜歡飽滿厚實的，了解。')
+    assert.equal(getAcknowledgement(body, values(), first), null)
   })
 
   it('reacts to a few special occasions only', () => {
@@ -242,33 +225,22 @@ describe('getAcknowledgement', () => {
     assert.equal(getAcknowledgement(occasion, values({ occasion: 'none' }), first), null)
   })
 
-  it('reacts to a very high or very low budget', () => {
-    const budget: StepKind = { type: 'budget' }
-    assert.equal(getAcknowledgement(budget, values({ budget: 5000 }), first), '這個預算可以挑到很不錯的酒。')
-    assert.equal(getAcknowledgement(budget, values({ budget: 1500 }), first), '這個價位也有不少好喝的選擇。')
-    assert.equal(getAcknowledgement(budget, values({ budget: 3000 }), first), null)
-  })
-
-  it('never reacts to the free text', () => {
-    assert.equal(getAcknowledgement({ type: 'freeText' }, values(), first), null)
+  it('never reacts to the budget, which leads straight to the closing message', () => {
+    assert.equal(getAcknowledgement({ type: 'budget' }, values(), first), null)
   })
 })
 
 describe('user answers', () => {
-  it('lists the picks of a group, or skips an empty group', () => {
-    assert.deepEqual(describeTastePicks(['fruit', 'sweet', 'floral']), ['果香 · 甜香 · 花香'])
-    assert.deepEqual(describeTastePicks([]), [SKIPPED_TASTE_GROUP_ANSWER])
+  it('lists the picked tastes', () => {
+    assert.deepEqual(describeTastePicks(['fruit', 'sweet', 'floral', 'peat']), ['果香 · 甜香 · 花香 · 泥煤'])
   })
 
   it('lists every picked taste with its rating, and only those', () => {
     assert.deepEqual(describeTasteRatings(TASTE), ['果香 9 · 花香 6 · 麥芽／穀物 7 · 泥煤 2'])
   })
 
-  it('answers one style question at a time, out of 10', () => {
-    const style: StyleProfile = { body: 7, intensity: 6, smoothness: 9 }
-    assert.deepEqual(describeStyleAnswer(style, 'body'), ['酒體 7 / 10'])
-    assert.deepEqual(describeStyleAnswer(style, 'intensity'), ['風味強度 6 / 10'])
-    assert.deepEqual(describeStyleAnswer(style, 'smoothness'), ['順口度 9 / 10'])
+  it('answers the body question out of 10', () => {
+    assert.deepEqual(describeStyleAnswer({ body: 7 }, 'body'), ['酒體 7 / 10'])
   })
 
   it('repeats the occasion with its icon', () => {
@@ -276,10 +248,8 @@ describe('user answers', () => {
     assert.deepEqual(describeOccasionAnswer('none'), ['✨ 沒有特定情境'])
   })
 
-  it('repeats the budget and the free text', () => {
+  it('repeats the budget', () => {
     assert.deepEqual(describeBudgetAnswer(2000), ['預算 NT$\u00a02,000\u00a0左右'])
-    assert.deepEqual(describeFreeTextAnswer('今晚約會'), ['今晚約會'])
-    assert.deepEqual(describeFreeTextAnswer(undefined), [SKIPPED_FREE_TEXT_ANSWER])
   })
 })
 
@@ -295,13 +265,12 @@ describe('composeClosingMessage', () => {
   it('summarizes the main tastes, light tastes, non-neutral style and budget', () => {
     const input: SommelierInput = {
       taste: TASTE,
-      style: { body: 8, intensity: 6, smoothness: 9 },
+      style: { body: 8 },
       budget: { max: 4000 },
     }
     assert.deepEqual(composeClosingMessage(input), [
       '好，我大概知道今天的方向了。',
-      '果香、麥芽／穀物為主，泥煤淡淡帶到，酒體厚重，口感圓潤順口，預算 NT$\u00a04,000\u00a0左右。',
-      '我先把今天的方向整理成一份偏好輪廓給你。',
+      '果香、麥芽／穀物為主，泥煤淡淡帶到，酒體厚重，預算 NT$\u00a04,000\u00a0左右。',
     ])
   })
 
@@ -320,7 +289,6 @@ describe('composeClosingMessage', () => {
     assert.deepEqual(composeClosingMessage(input), [
       '好，我大概知道今天的方向了。',
       '我也記下了：情境是放鬆獨飲。',
-      '我先把今天的方向整理成一份偏好輪廓給你。',
     ])
   })
 })
@@ -329,30 +297,28 @@ describe('composeSelectionSteps', () => {
   const first = () => 0
   const last = () => 0.99
 
-  it('walks through every answer, ending on the user’s own words', () => {
+  it('walks through every answer, closing with a final check', () => {
     const input: SommelierInput = {
       taste: TASTE,
-      style: { body: 5, intensity: 5, smoothness: 8 },
+      style: { body: 8 },
       occasion: 'date',
       budget: { max: 2000 },
-      freeText: '今晚約會，不要太重',
     }
     assert.deepEqual(composeSelectionSteps(input, first), [
       '先把泥煤壓低，泥土、海藻那類味道淡淡帶到就好…',
       '鎖定果香明亮、麥芽香濃的方向，要喝得到蘋果、麥片…',
       '再挑約會時好入口的…',
-      '喝感要圓潤順口…',
-      '再對照你說的「今晚約會，不要太重」…',
+      '喝感要酒體厚實…',
+      '最後確認兩支風格不重複…',
     ])
   })
 
   it('says the same choices in other words', () => {
-    const input: SommelierInput = { taste: TASTE, style: MID_STYLE, occasion: 'date', freeText: '不要太重' }
+    const input: SommelierInput = { taste: TASTE, style: MID_STYLE, occasion: 'date' }
     assert.deepEqual(composeSelectionSteps(input, last), [
       '先避開泥煤太重的，泥土、海藻只要輕輕帶過…',
       '主軸放在果香明亮、麥芽香濃，找蘋果、麥片這類風味突出的…',
       '約會喝的，要好入口、氣氛對的…',
-      '把你提到的「不要太重」也放進來考慮…',
       '剩最後一步，確認兩支不要太像…',
     ])
   })
@@ -360,13 +326,13 @@ describe('composeSelectionSteps', () => {
   it('reads a heavy, peaty profile, closing with a final check', () => {
     const input: SommelierInput = {
       taste: { peat: 10, smoke: 9, spice: 5 },
-      style: { body: 8, intensity: 9, smoothness: 3 },
+      style: { body: 8 },
       occasion: 'tasting',
     }
     assert.deepEqual(composeSelectionSteps(input, first), [
       '鎖定泥煤夠份量、煙燻明顯的方向，要喝得到泥土、營火…',
       '再挑值得專心細品、層次夠多的…',
-      '喝感要酒體厚實、風味鮮明…',
+      '喝感要酒體厚實…',
       '最後確認兩支風格不重複…',
     ])
   })
@@ -377,16 +343,6 @@ describe('composeSelectionSteps', () => {
       '再看看哪些酒款最貼近你整體的感覺…',
       '最後確認兩支風格不重複…',
     ])
-  })
-
-  it('quotes long free text briefly and skips blank free text', () => {
-    const long = composeSelectionSteps(
-      { taste: TASTE, style: MID_STYLE, freeText: '之前喝過\n麥卡倫12年很喜歡，想找類似的雪莉桶' },
-      first,
-    )
-    assert.ok(long.includes('再對照你說的「之前喝過 麥卡倫12年很喜歡…」…'))
-    const blank = composeSelectionSteps({ taste: TASTE, style: MID_STYLE, freeText: '   ' }, first)
-    assert.ok(blank.every((step) => !step.includes('「')))
   })
 
   it('never mentions the budget', () => {

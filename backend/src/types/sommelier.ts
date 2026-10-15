@@ -17,7 +17,7 @@ export const TASTE_PICKS_MIN = 3
 export const TASTE_PICKS_MAX = 5
 
 /** Drinking-style dimensions rated by the user. */
-export const STYLE_KEYS = ['body', 'intensity', 'smoothness'] as const
+export const STYLE_KEYS = ['body'] as const
 
 /**
  * Every taste and style rating is an integer on this scale. For a taste it is how
@@ -60,7 +60,6 @@ export interface SommelierInput {
   /** Omitted when the user picks "no particular occasion". */
   occasion?: Occasion
   budget?: PreferenceBudget
-  freeText?: string
 }
 
 export type RecommendationType = 'best_match' | 'alternative'

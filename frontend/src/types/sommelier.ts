@@ -12,7 +12,7 @@ export type TasteKey =
   | 'smoke'
 
 /** Drinking-style dimensions, each asked and rated 1–10 on its own. */
-export type StyleKey = 'body' | 'intensity' | 'smoothness'
+export type StyleKey = 'body'
 
 /**
  * Only the 3–5 picked tastes, each rated by how pronounced it should be:
@@ -21,7 +21,7 @@ export type StyleKey = 'body' | 'intensity' | 'smoothness'
  */
 export type TasteProfile = Partial<Record<TasteKey, number>>
 
-/** body 1 輕盈–10 厚重, intensity 1 柔和–10 強烈, smoothness 1 粗獷–10 圓潤; always an integer. */
+/** body 1 輕盈–10 厚重; always an integer. */
 export type StyleProfile = Record<StyleKey, number>
 
 export interface SommelierBudget {
@@ -39,7 +39,6 @@ export interface SommelierInput {
   /** Omitted for "no particular occasion". */
   occasion?: PreferenceOccasion
   budget?: Pick<SommelierBudget, 'max'>
-  freeText?: string
 }
 
 /** One occasion, or 'none' for "no particular occasion". */
@@ -52,10 +51,9 @@ export interface SommelierInputDraft {
   /** null until the occasion question is answered. */
   occasion: OccasionChoice | null
   budget: number
-  freeText: string
 }
 
-export type SommelierInputField = 'taste' | 'style' | 'occasion' | 'budget' | 'freeText'
+export type SommelierInputField = 'taste' | 'style' | 'occasion' | 'budget'
 
 export type SommelierInputErrors = Partial<Record<SommelierInputField, string>>
 

@@ -10,9 +10,6 @@ import {
 } from '../types/sommelier'
 import type { SommelierInput } from '../types/sommelier'
 
-/** Upper bound on text forwarded to the LLM. */
-export const FREE_TEXT_MAX_LENGTH = 1000
-
 const ratingValue = (label: string) =>
   Joi.number()
     .strict()
@@ -82,14 +79,6 @@ export const recommendationRequestSchema = Joi.object({
   }).messages({
     'object.base': 'Budget must be an object',
   }),
-  freeText: Joi.string()
-    .trim()
-    .allow('')
-    .max(FREE_TEXT_MAX_LENGTH)
-    .messages({
-      'string.base': 'Free text must be a string',
-      'string.max': `Free text must be at most ${FREE_TEXT_MAX_LENGTH} characters`,
-    }),
 })
 
 export type RecommendationRequestBody = SommelierInput

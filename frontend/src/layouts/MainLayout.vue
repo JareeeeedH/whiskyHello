@@ -153,7 +153,7 @@ function onLogout() {
           >
             Auction
           </RouterLink>
-          <RouterLink to="/sommelier" active-class="is-active">Sommelier</RouterLink>
+          <RouterLink to="/sommelier" active-class="is-active">Sommelier.ai</RouterLink>
         </div>
 
         <div class="nav-account">
@@ -251,7 +251,7 @@ function onLogout() {
             :tabindex="isMobileNavOpen ? undefined : -1"
             @click="closeMobileNav"
           >
-            Sommelier
+            Sommelier.ai
           </RouterLink>
 
           <template v-if="authStore.isAuthenticated">

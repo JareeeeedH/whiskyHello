@@ -44,55 +44,51 @@ function applyHotSearch(term: string) {
 <template>
   <main class="whisky-view">
     <section class="discovery-hero" aria-labelledby="whisky-discovery-title">
-      <div class="discovery-hero-glow" aria-hidden="true" />
       <div class="discovery-hero-inner">
         <header class="page-header">
-          <p class="eyebrow">Whisky Discovery</p>
           <h1 id="whisky-discovery-title">探索威士忌</h1>
           <p class="lead">找到你想認識的酒，從每一杯開始了解自己的口味。</p>
         </header>
+
+        <div class="search-area" role="search" aria-label="搜尋條件">
+          <div class="search-primary">
+            <label class="field-label" for="whisky-search-name">酒款名稱</label>
+            <div class="name-row">
+              <InputText
+                id="whisky-search-name"
+                v-model="searchQuery"
+                placeholder="輸入酒款名稱，例如 Macallan..."
+                class="search-input"
+                @keyup.enter="onSearch"
+              />
+              <Button
+                label="搜尋"
+                icon="pi pi-search"
+                class="search-submit"
+                @click="onSearch"
+              />
+            </div>
+          </div>
+
+          <div class="hot-searches" aria-label="熱門搜尋">
+            <span class="hot-label">熱門搜尋</span>
+            <div class="hot-list">
+              <button
+                v-for="term in hotSearches"
+                :key="term"
+                type="button"
+                class="hot-chip"
+                @click="applyHotSearch(term)"
+              >
+                {{ term }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
-
-    <div class="luxury-rule" aria-hidden="true" />
 
     <div class="whisky-inner">
-    <section class="search-area" aria-label="搜尋條件">
-      <div class="search-primary">
-        <label class="field-label" for="whisky-search-name">酒款名稱</label>
-        <div class="name-row">
-          <InputText
-            id="whisky-search-name"
-            v-model="searchQuery"
-            placeholder="輸入酒款名稱，例如 Macallan..."
-            class="search-input"
-            @keyup.enter="onSearch"
-          />
-          <Button
-            label="搜尋"
-            icon="pi pi-search"
-            class="search-submit"
-            @click="onSearch"
-          />
-        </div>
-      </div>
-
-      <div class="hot-searches" aria-label="熱門搜尋">
-        <span class="hot-label">熱門搜尋</span>
-        <div class="hot-list">
-          <button
-            v-for="term in hotSearches"
-            :key="term"
-            type="button"
-            class="hot-chip"
-            @click="applyHotSearch(term)"
-          >
-            {{ term }}
-          </button>
-        </div>
-      </div>
-    </section>
-
     <p v-if="warningMessage" class="warning" role="alert">
       {{ warningMessage }}
     </p>
@@ -139,134 +135,100 @@ function applyHotSearch(term: string) {
 
 <style scoped>
 .whisky-view {
-  color: #1c1917;
+  color: var(--wh-ink);
   width: 100%;
   overflow-x: clip;
-  background: #fafaf9;
+  background: var(--wh-paper);
 }
 
+/* ——— Hero: the search itself is the hero ——— */
 .discovery-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 1.85rem 1.5rem 1.65rem;
+  padding: 2.25rem 1.5rem 2rem;
   background:
-    radial-gradient(ellipse 70% 90% at 8% 0%, rgba(180, 83, 9, 0.22), transparent 55%),
-    radial-gradient(ellipse 50% 70% at 92% 80%, rgba(146, 64, 14, 0.16), transparent 50%),
-    linear-gradient(160deg, #0c0a09 0%, #1c1917 48%, #292524 100%);
-  color: #fafaf9;
-  box-shadow: inset 0 -1px 0 rgba(251, 191, 36, 0.16);
-}
-
-.discovery-hero-glow {
-  position: absolute;
-  inset: auto -10% -50% auto;
-  width: 42%;
-  height: 90%;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%);
-  pointer-events: none;
+    radial-gradient(ellipse 60% 120% at 0% 0%, rgba(220, 184, 120, 0.1), transparent 60%),
+    var(--wh-night);
+  border-bottom: 1px solid var(--wh-night-line);
+  color: var(--wh-cream);
 }
 
 .discovery-hero-inner {
-  position: relative;
-  z-index: 1;
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
 }
 
-.luxury-rule {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(180, 83, 9, 0.15) 18%,
-    rgba(251, 191, 36, 0.55) 50%,
-    rgba(180, 83, 9, 0.15) 82%,
-    transparent 100%
-  );
-}
-
-.whisky-inner {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 1.75rem 1.5rem 3rem;
-}
-
 .page-header {
-  margin: 0;
-  text-align: left;
+  margin: 0 0 1.5rem;
   max-width: 34rem;
 }
 
-.eyebrow {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-body);
-  font-size: var(--fs-eyebrow);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #fbbf24;
-}
-
 .page-header h1 {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.3rem;
   font-family: var(--font-display);
   font-size: var(--fs-h1);
-  letter-spacing: normal;
+  font-weight: var(--fw-display);
   line-height: 1.25;
-  font-weight: 600;
-  color: #fafaf9;
+  color: var(--wh-cream);
 }
 
 .lead {
   margin: 0;
-  font-family: var(--font-body);
-  color: #d6d3d1;
-  font-size: 1.02rem;
+  color: var(--wh-mauve);
+  font-size: var(--fs-body-sm);
   line-height: 1.7;
-  font-weight: 400;
 }
 
 .search-area {
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  margin-bottom: 2rem;
-  padding: 1.35rem 1.35rem 1.25rem;
-  border: 1px solid rgba(180, 83, 9, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, #fafaf9 100%);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.8) inset,
-    0 10px 28px rgba(28, 25, 23, 0.04);
+  gap: 1rem;
+  max-width: 46rem;
 }
 
+/* Label stays for screen readers; the placeholder and context make it clear visually. */
 .field-label {
-  display: block;
-  margin-bottom: 0.45rem;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #78716c;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search-primary {
+  position: relative;
 }
 
 .name-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
   align-items: stretch;
+  gap: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(220, 184, 120, 0.35);
+  transition: box-shadow 0.2s ease;
+}
+
+.name-row:focus-within {
+  box-shadow: 0 0 0 2px var(--wh-gold-bright);
 }
 
 .search-input {
-  flex: 1 1 16rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .search-input.p-inputtext {
-  background: #fff;
+  min-height: 3.5rem;
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  background: #fffdf9;
   color: var(--wh-ink);
-  border-color: var(--p-inputtext-border-color);
+  font-size: 1.0625rem;
+  box-shadow: none;
 }
 
 .search-input.p-inputtext::placeholder {
@@ -274,97 +236,89 @@ function applyHotSearch(term: string) {
   opacity: 1;
 }
 
-.search-input.p-inputtext:enabled:hover {
-  border-color: var(--p-inputtext-hover-border-color);
-}
-
 .search-input.p-inputtext:enabled:focus {
-  border-color: var(--p-inputtext-focus-border-color);
+  box-shadow: none;
+  outline: none;
 }
 
 .search-submit {
   flex: 0 0 auto;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 42%),
-    linear-gradient(135deg, #fbbf24 0%, #f59e0b 42%, #d97706 78%, #b45309 100%) !important;
-  border: 1px solid rgba(253, 230, 138, 0.55) !important;
-  color: #1c1917 !important;
+  min-width: 7rem;
+  border: 0 !important;
+  border-radius: 0 8px 8px 0 !important;
+  background: var(--wh-gold-bright) !important;
+  color: var(--wh-night) !important;
   font-family: var(--font-body) !important;
-  font-weight: 600 !important;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 -1px 0 rgba(120, 53, 15, 0.3) inset,
-    0 8px 18px rgba(28, 25, 23, 0.12) !important;
-  transition:
-    filter 0.3s ease,
-    box-shadow 0.3s ease !important;
+  font-weight: var(--fw-emphasis) !important;
+  box-shadow: none !important;
 }
 
 .search-submit:hover {
-  filter: brightness(1.05);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 0 0 1px rgba(253, 230, 138, 0.3),
-    0 10px 22px rgba(180, 83, 9, 0.22) !important;
+  background: var(--wh-gold) !important;
+}
+
+.search-submit:focus-visible {
+  outline: 2px solid var(--wh-cream);
+  outline-offset: -4px;
 }
 
 .hot-searches {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.55rem 0.75rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(180, 83, 9, 0.14);
+  gap: 0.5rem 0.75rem;
 }
 
 .hot-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #a8a29e;
+  color: var(--wh-mauve);
+  font-size: var(--fs-meta);
 }
 
 .hot-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .hot-chip {
-  padding: 0.38rem 0.78rem;
-  border: 1px solid rgba(180, 83, 9, 0.28);
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--wh-night-line);
   border-radius: 999px;
-  background: #fff;
-  color: #44403c;
-  font-size: 0.8125rem;
-  font-weight: 560;
+  background: var(--wh-night-raised);
+  color: var(--wh-cream);
+  font-family: var(--font-body);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-ui);
   cursor: pointer;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
   transition:
-    border-color 0.22s ease,
-    color 0.22s ease,
-    background 0.22s ease,
-    box-shadow 0.22s ease,
-    transform 0.22s ease;
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .hot-chip:hover {
-  border-color: rgba(217, 119, 6, 0.55);
-  color: #92400e;
-  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2);
-  transform: translateY(-1px);
+  border-color: rgba(220, 184, 120, 0.5);
+  color: var(--wh-gold-bright);
 }
 
 .hot-chip:focus-visible {
-  outline: 2px solid #b45309;
+  outline: 2px solid var(--wh-gold-bright);
   outline-offset: 2px;
 }
 
+/* ——— Results ——— */
+.whisky-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3.5rem;
+}
+
 .warning {
-  margin: -0.75rem 0 1.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 2px solid #b91c1c;
+  background: #fef2f2;
   color: #b91c1c;
-  font-size: 0.9rem;
+  font-size: var(--fs-body-sm);
 }
 
 .results-section {
@@ -372,46 +326,47 @@ function applyHotSearch(term: string) {
 }
 
 .section-heading {
-  margin-bottom: 1.15rem;
-  padding-top: 1.15rem;
-  border-top: 1px solid rgba(180, 83, 9, 0.14);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.85rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--wh-line);
 }
 
 .section-heading h2 {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-h2);
-  font-weight: 600;
-  letter-spacing: normal;
+  font-weight: var(--fw-display);
   line-height: 1.35;
 }
 
 .result-meta {
-  margin: 0 0 0.25rem;
-  font-family: var(--font-body);
-  color: #b45309;
-  font-size: 0.95rem;
-  font-weight: 600;
+  margin: 0;
+  color: var(--wh-amber);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-emphasis);
 }
 
 .section-desc {
-  margin: 0;
-  font-family: var(--font-body);
-  color: #78716c;
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  margin: 0 0 0 auto;
+  color: var(--wh-muted);
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
 }
 
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.75rem;
 }
 
 .empty {
   margin: 0;
   padding: 2rem 0;
-  color: #78716c;
+  color: var(--wh-muted);
   line-height: 1.6;
 }
 
@@ -424,16 +379,11 @@ function applyHotSearch(term: string) {
 
 @media (min-width: 1024px) {
   .discovery-hero {
-    padding: 2.15rem 1.5rem 1.85rem;
-  }
-
-  .whisky-inner {
-    padding: 2rem 1.5rem 3.5rem;
+    padding: 2.75rem 1.5rem 2.5rem;
   }
 
   .card-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.1rem;
   }
 }
 
@@ -445,107 +395,47 @@ function applyHotSearch(term: string) {
 
 @media (max-width: 640px) {
   .discovery-hero {
-    padding: 1rem 1rem 0.9rem;
+    padding: 1.4rem 1rem 1.35rem;
   }
 
-  .eyebrow {
-    margin-bottom: 0.3rem;
-    font-size: 0.72rem;
+  .page-header {
+    margin-bottom: 1rem;
   }
 
   .page-header h1 {
-    margin-bottom: 0.25rem;
-    font-size: 1.875rem;
+    font-size: 1.625rem;
   }
 
   .lead {
-    font-size: 0.875rem;
+    font-size: var(--fs-meta);
     line-height: 1.55;
   }
 
-  .whisky-inner {
-    padding: 0.9rem 1rem 2.25rem;
-  }
-
   .search-area {
-    gap: 0.65rem;
-    margin-bottom: 1.15rem;
-    padding: 0.8rem 0.85rem 0.75rem;
-    box-shadow: none;
+    gap: 0.75rem;
   }
 
-  /* Keep a11y label; free vertical space on the discovery panel. */
-  .search-primary > .field-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .search-primary {
-    position: relative;
-  }
-
-  .name-row {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 0.45rem;
-  }
-
-  .search-input {
-    flex: 1 1 auto;
-    width: auto;
-    min-width: 0;
-  }
-
-  .search-input :deep(.p-inputtext) {
-    width: 100%;
-    min-height: 2.75rem;
-    height: 2.75rem;
-    padding: 0.5rem 0.7rem;
-    font-size: 0.9375rem;
-    line-height: 1.25;
+  .search-input.p-inputtext {
+    min-height: 3rem;
+    padding: 0 0.85rem;
+    font-size: 1rem;
   }
 
   .search-submit {
-    flex: 0 0 auto;
-    align-self: stretch;
-    width: auto;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    padding: 0 0.85rem !important;
-  }
-
-  .hot-searches {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-    padding-top: 0.55rem;
+    min-width: 0;
+    padding: 0 0.95rem !important;
   }
 
   .hot-label {
-    font-size: 0.7rem;
-  }
-
-  .hot-list {
-    gap: 0.35rem;
+    width: 100%;
   }
 
   .hot-chip {
-    padding: 0.4rem 0.62rem;
     min-height: 2.25rem;
-    border-radius: 0.45rem;
-    font-size: 0.78rem;
   }
 
-  .hot-chip:hover {
-    transform: none;
+  .whisky-inner {
+    padding: 1.25rem 1rem 2.25rem;
   }
 
   .results-section {
@@ -553,34 +443,21 @@ function applyHotSearch(term: string) {
   }
 
   .section-heading {
-    margin-bottom: 0.85rem;
-    padding-top: 0.85rem;
+    margin-bottom: 0.9rem;
   }
 }
 
-/* Narrow phones: icon-forward search CTA keeps the input readable. */
+/* Narrow phones: icon-only search button keeps the input readable. */
 @media (max-width: 360px) {
   .search-submit :deep(.p-button-label) {
     display: none;
   }
-
-  .search-submit {
-    padding: 0 0.7rem !important;
-  }
-
-  .search-input :deep(.p-inputtext) {
-    font-size: 0.875rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .search-submit,
+  .name-row,
   .hot-chip {
-    transition: none !important;
-  }
-
-  .hot-chip:hover {
-    transform: none;
+    transition: none;
   }
 }
 </style>

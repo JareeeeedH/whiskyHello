@@ -316,7 +316,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 <template>
   <main class="detail" :class="{ 'has-bid-bar': canBid, 'is-ended': isEnded, 'is-scheduled': isScheduled }">
     <p v-if="!notFound" class="back">
-      <RouterLink to="/auctions">← 返回競標列表</RouterLink>
+      <RouterLink to="/auctions"><i class="pi pi-chevron-left" aria-hidden="true" />返回競標列表</RouterLink>
     </p>
 
     <p v-if="loading" class="state" role="status">載入競標資訊中…</p>
@@ -324,7 +324,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
     <section v-else-if="notFound" class="not-found">
       <h1>Auction not found</h1>
       <p>找不到這場競標，可能尚未開放或已不存在。</p>
-      <RouterLink to="/auctions">← 返回競標列表</RouterLink>
+      <RouterLink to="/auctions"><i class="pi pi-chevron-left" aria-hidden="true" />返回競標列表</RouterLink>
     </section>
 
     <section v-else-if="errorMessage" class="error-state" role="alert">
@@ -345,7 +345,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
               <span class="status-code">{{ statusCode[auction.status] }}</span>
               <span class="status-label">{{ statusLabel[auction.status] }}</span>
             </span>
-            <span class="lot-number">LOT <b>{{ formatLotNumber(auction.id) }}</b></span>
+            <span class="lot-number">Lot <b>{{ formatLotNumber(auction.id) }}</b></span>
           </div>
           <h1>{{ auction.title }}</h1>
           <p class="whisky-line">
@@ -475,10 +475,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 
         <section v-if="!isScheduled" class="block activity-block" aria-labelledby="activity-title">
           <div class="section-heading">
-            <div>
-              <p class="eyebrow">BIDDING ACTIVITY</p>
-              <h2 id="activity-title">出價紀錄</h2>
-            </div>
+            <h2 id="activity-title">出價紀錄</h2>
             <span v-if="!isEnded && !bidsLoading && !bidsError" class="activity-count">{{ bids.length }} 筆出價</span>
           </div>
           <p v-if="bidsLoading" class="state" role="status">載入出價紀錄中…</p>
@@ -506,7 +503,6 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
         </section>
 
         <section class="block notes-block">
-          <p class="eyebrow">LOT NOTES</p>
           <h2>拍品說明</h2>
           <div v-if="auction.description" class="note">{{ auction.description }}</div>
           <p v-else class="empty">{{ isEnded ? '暫無說明。' : '目前沒有說明。' }}</p>
@@ -537,11 +533,12 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .detail { max-width: 1120px; margin: 0 auto; padding: 1.15rem 1.5rem 3rem; color: #292524; }
 .back { margin: 0 0 1.2rem; font-size: .875rem; }
 .back a, .not-found a, .whisky-line a { color: #9a5b1b; text-decoration: none; }
+.back a, .not-found a { display: inline-flex; align-items: center; gap: .35rem; }
+.back .pi, .not-found .pi { font-size: .7rem; }
 .back a:hover, .not-found a:hover, .whisky-line a:hover { text-decoration: underline; }
 
 /* Hero */
-.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 2.25rem; align-items: center; margin-bottom: 1.25rem; padding: 1.75rem 2.25rem; overflow: hidden; color: #fafaf9; background: radial-gradient(ellipse at 88% 12%, rgba(180,83,9,.22), transparent 46%), linear-gradient(145deg, #1c1917, #292524 68%, #3b2b20); }
-.hero::after { position: absolute; inset: auto 0 0; height: 1px; content: ''; background: linear-gradient(90deg, transparent, rgba(214,163,75,.6), transparent); }
+.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 2.25rem; align-items: center; margin-bottom: 1.25rem; padding: 1.75rem 2.25rem; overflow: hidden; color: var(--wh-cream); border: 1px solid var(--wh-night-line); background: radial-gradient(ellipse at 88% 12%, rgba(220,184,120,.12), transparent 50%), var(--wh-night); }
 .hero-copy { position: relative; z-index: 1; min-width: 0; }
 .lot-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-bottom: .9rem; }
 .status-pill { display: inline-flex; align-items: center; gap: .45rem; padding: .25rem .7rem .25rem .6rem; border: 1px solid rgba(214,211,209,.3); color: #d6d3d1; font-size: .7rem; font-weight: 600; line-height: 1.4; }
@@ -552,12 +549,12 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .status-pill.is-active .status-dot { background: #e0a84a; animation: live-pulse 2s ease-out infinite; }
 .status-pill.is-scheduled .status-dot { border: 1px solid currentColor; background: transparent; }
 .status-pill.is-ended, .status-pill.is-cancelled, .status-pill.is-draft { color: #a8a29e; }
-.lot-number { color: #a8a29e; font-size: .7rem; letter-spacing: .16em; }
+.lot-number { color: var(--wh-mauve); font-size: .78rem; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .lot-number b { color: #e7e5e4; font-weight: 600; }
-.hero-copy h1 { margin: 0 0 .6rem; color: #fafaf9; font-family: var(--font-display); font-size: var(--fs-h1); line-height: 1.25; }
+.hero-copy h1 { margin: 0 0 .6rem; color: var(--wh-cream); font-family: var(--font-display); font-size: var(--fs-h1); line-height: 1.25; }
 .whisky-line { margin: 0 0 .35rem; color: #e7e5e4; font-weight: 500; line-height: 1.5; }
 .hero .whisky-line a { color: #e7bd73; }
-.subtitle { margin: 0; color: #a8a29e; font-size: .9rem; line-height: 1.6; }
+.subtitle { margin: 0; color: var(--wh-mauve); font-size: .9rem; line-height: 1.6; }
 .image-stage { display: flex; align-items: center; justify-content: center; height: 220px; margin: 0; padding: .9rem; overflow: hidden; border: 1px solid rgba(231,229,228,.16); background: radial-gradient(ellipse at 50% 40%, rgba(255,247,230,.14), rgba(255,255,255,.025) 70%); }
 .image { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 14px rgba(0,0,0,.3)); }
 .image-fallback { color: #a8a29e; font-size: .875rem; }
@@ -565,7 +562,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 /* Bid panel */
 .bid-panel { padding: 1.35rem 1.5rem 1.1rem; border: 1px solid #e7dfd3; border-top: 2px solid #b77932; color: #292524; background: #fbf8f2; }
 .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
-.panel-label { margin: 0; color: #8a7f73; font-size: .6875rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.panel-label { margin: 0; color: #8a7f73; font-size: .8125rem; font-weight: 600; }
 .price { display: flex; align-items: baseline; gap: .4rem; margin: .35rem 0 .2rem; }
 .currency { color: #a16207; font-size: .8125rem; font-weight: 600; letter-spacing: .06em; }
 .price-value { color: #5c260e; font-family: var(--font-body); font-size: clamp(2rem, 3.4vw, 2.5rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.015em; line-height: 1.1; }
@@ -612,7 +609,6 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 /* Body */
 .auction-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); gap: 1.25rem; align-items: stretch; }
 .block { min-width: 0; margin: 0; padding: 1.4rem 1.5rem; border: 1px solid #e7e1d8; background: #fff; }
-.eyebrow { margin: 0 0 .25rem; color: #a16207; font-size: .66rem; font-weight: 700; letter-spacing: .16em; }
 .block h2 { margin: 0 0 .9rem; color: #1c1917; font-family: var(--font-display); font-size: 1.3rem; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: .5rem; margin-bottom: .5rem; padding-bottom: .75rem; border-bottom: 1px solid #e7e1d8; }
 .section-heading h2 { margin: 0; }
@@ -652,7 +648,6 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .detail.is-ended .activity-block,
 .detail.is-ended .notes-block { padding: .9rem 0 0; border: 0; border-top: 1px solid #e7e1d8; background: transparent; }
 .detail.is-ended .activity-block .section-heading { margin-bottom: .2rem; padding-bottom: .4rem; border-bottom: 0; }
-.detail.is-ended .eyebrow { color: #a8a29e; }
 .detail.is-ended .block h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
 .detail.is-ended .activity-block .section-heading h2 { margin: 0; }
 .detail.is-ended .bid-list { min-height: 0; }
@@ -660,6 +655,17 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .detail.is-ended .bid-item.is-top { background: none; }
 .detail.is-ended .note { font-size: .9rem; line-height: 1.75; }
 .detail.is-ended .empty { margin: 0; font-size: .875rem; }
+
+/* Live, desktop: the bid panel sits in the right column and stays in view while the page scrolls */
+@media (min-width: 801px) {
+  .detail.has-bid-bar .auction-layout { grid-template-areas: 'activity bid' 'notes bid'; align-items: start; }
+  .detail.has-bid-bar .bid-panel { grid-area: bid; position: sticky; top: 1rem; }
+  .detail.has-bid-bar .activity-block { grid-area: activity; }
+  .detail.has-bid-bar .notes-block { grid-area: notes; grid-column: auto; }
+  .detail.has-bid-bar .bid-list { flex: none; min-height: 0; max-height: 22rem; contain: none; }
+  .detail.has-bid-bar .price-value { font-size: clamp(2.5rem, 4vw, 3.25rem); }
+  .detail.has-bid-bar .segment b { font-size: 1.6rem; }
+}
 
 /* Mobile quick-bid bar */
 .mobile-bid-bar { display: none; }
@@ -680,7 +686,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
   .auction-layout { grid-template-columns: minmax(0, 1fr); }
   .bid-list { flex: none; min-height: 0; max-height: 14.5rem; contain: none; }
   .detail-footer.has-bid-bar { padding-bottom: calc(5.75rem + env(safe-area-inset-bottom)); }
-  .mobile-bid-bar { position: fixed; inset: auto 0 0; z-index: 20; display: flex; align-items: center; gap: 1rem; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); border-top: 1px solid rgba(214,163,75,.35); color: #fafaf9; background: rgba(17,14,12,.96); backdrop-filter: blur(8px); }
+  .mobile-bid-bar { position: fixed; inset: auto 0 0; z-index: 20; display: flex; align-items: center; gap: 1rem; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); border-top: 1px solid rgba(214,163,75,.35); color: var(--wh-cream); background: rgba(17,13,17,.96); backdrop-filter: blur(8px); }
   .bar-price, .bar-time { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
   .bar-price { flex: 1; }
   .bar-price span, .bar-time span { color: #a8a29e; font-size: .66rem; letter-spacing: .06em; }

@@ -120,7 +120,7 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
     </div>
 
     <div class="body">
-      <p class="lot">LOT {{ formatLotNumber(auction.id) }}</p>
+      <p class="lot">Lot {{ formatLotNumber(auction.id) }}</p>
       <h3 class="title">{{ auction.title }}</h3>
       <p class="whisky">{{ whiskyName }}</p>
 
@@ -261,9 +261,9 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .lot {
   margin: 0 0 0.3rem;
   color: #a8a29e;
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -343,10 +343,8 @@ onUnmounted(() => { if (clock) clearInterval(clock) })
 .ledger dt {
   margin-bottom: 0.15rem;
   color: #a8a29e;
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .ledger dd {

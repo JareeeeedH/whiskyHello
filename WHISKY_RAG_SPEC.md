@@ -2,9 +2,36 @@
 
 > 範圍：Phase 2（AI）
 >
-> 文件狀態：已定案，尚未實作
+> 文件狀態：建庫腳本與本地練習完成；搜尋 API、前端尚未實作
 >
 > 所屬總規格：`WHISKYHELLO_SPEC.md` 第 11 節
+
+---
+
+## 0. 目前做法（2026-10）
+
+- **範圍：先做前 5000 筆**（`chunks.jsonl` 的前 5000 塊，與本地練習庫相同），不做全部 17,344 筆。
+- **儲存**：向量以 `[Number]` 存進 MongoDB `whiskynotechunks`；5000 筆約 103 MB（Atlas 免費方案上限 512 MB）。
+- **搜尋**：不使用 Atlas Vector Search。後端啟動時把向量讀進記憶體（約 60 MB），每次搜尋自己算 cosine、取前 5 名；實測 5000 筆約 7–9 ms。
+- **中文問題**：先用 LLM 翻成英文，再做 embedding。
+- **費用**：5000 筆 embedding 約 110 萬 tokens，約 $0.022 美元。
+
+已完成：
+
+| 項目 | 檔案 |
+|---|---|
+| 切塊（17,344 塊，跳過 2 筆） | `backend/scripts/rag/chunk.mts`、`buildChunks.mts` |
+| 資料模型 | `backend/src/models/WhiskyNoteChunk.ts` |
+| Embedding service | `backend/src/services/openaiEmbedder.ts` |
+| 本地練習向量庫（前 5000 筆，存成 JSON，不進 git） | `backend/scripts/rag/practiceBuild.mts`、`practiceSearch.mts` |
+
+本地測試結果（5000 筆、8 題中文風味問題）：
+
+- **中文原句明顯較差**；先用 LLM 翻成英文後，找到的酒款類型明顯較準（例如紅酒桶題：0/5 → 4/5）。翻譯與「改寫成品飲筆記」效果差不多，先用翻譯。
+- **其他烈酒干擾**：蘭姆酒、干邑、Cachaça 常排進前 5 名，需要「酒的種類」欄位過濾。
+- **酒名影響大**：酒名含關鍵字（例如 Milk & Honey、The Big Smoke）容易排前面。
+- **資料問題**：部分酒名其實是一句評論開場白（例如 `So you thought 64.45% vol. was a lot?...`）。
+- 關鍵詞比對判斷準度不可靠，正式驗收需要標註答案的題庫。
 
 ---
 
@@ -102,16 +129,16 @@ Comments: {comments}
 |---|---|
 | `whiskyId` | 對應 Static Dataset 的 `id` 與 `/whiskies/:id` |
 | `name` | 清理後的酒名 |
-| `points` | 從 `SCORE` 取出的分數，供顯示與篩選；無法解析則不存 |
 | `text` | 送去 embedding 的完整 chunk 文字，也是搜尋結果摘句的來源 |
-| `embedding` | 1536 維向量，存成 BSON float32 二進位格式 |
+| `embedding` | 1536 維向量，存成 `[Number]`（每筆約 20 KB） |
 | `embeddingModel` | 例如 `text-embedding-3-small`，換模型時判斷是否需重建 |
 | `sourceHash` | `text` 的 SHA-256；未變更則重跑時跳過 |
 | `createdAt`、`updatedAt` | timestamps |
 
 - 不存 `__v`（`versionKey: false`）。
 - 唯一索引：`whiskyId + embeddingModel`。
-- 預估每筆約 7–8 KB，全部約 120–135 MB；Atlas 免費方案上限 512 MB。
+- 不存 `points`（評分與口味搜尋無關）。
+- 容量：5000 筆約 103 MB；全部 17,344 筆約 356 MB，太接近 512 MB 上限。若要做全部，改存 float32 二進位（約 121 MB）。
 
 ### 不與翻譯快取合併的原因
 
@@ -125,12 +152,8 @@ Comments: {comments}
 
 - 模型：OpenAI `text-embedding-3-small`，1536 維（預設維度）。
 - 向量由後端自行產生，**不使用** Atlas Auto Embedding。
-- **建庫與搜尋必須使用同一個模型與維度**；後端啟動時檢查設定。
-- Atlas Vector Search 索引（類型 `vectorSearch`）：
-  - `path`：`embedding`
-  - `numDimensions`：1536
-  - `similarity`：`cosine`
-  - filter 欄位：`points`
+- **建庫與搜尋必須使用同一個模型與維度**；模型名稱寫在 `openaiEmbedder.ts` 的 `EMBEDDING_MODEL`。
+- **不建 Atlas Vector Search 索引**：資料量小，後端在記憶體裡自己算 cosine（暴力法）即可。
 
 ---
 
@@ -155,24 +178,25 @@ Comments: {comments}
 ## 7. 搜尋流程（線上）
 
 ```text
-使用者問題 → 後端以同一模型 embedding → Atlas $vectorSearch（取前 N 筆）
-          → 回傳酒款、分數、命中摘句、酒款頁連結
+【後端啟動】連上 MongoDB → 讀全部向量進記憶體（只做一次）
+
+【每次搜尋】使用者問題 → LLM 翻成英文 → 同一模型 embedding
+          → 記憶體裡算 cosine（取前 N 筆）→ 回傳酒款、分數、命中摘句、酒款頁連結
 ```
 
 - 照既有分層：Route → Validation → Controller → Service → Model。
 - 摘句顯示時附 WhiskyFun 出處。
-- 先用近似搜尋；驗收時與 `exact: true` 比對結果差異。
-- 中文問題：MVP 先直接搜，以驗收題庫決定是否先翻成英文再搜。
+- 每次搜尋不讀資料庫；向量還沒讀完或讀取失敗時，只停用搜尋，不影響其他功能。
+- 預估一次搜尋約 1–2 秒，主要花在兩次 OpenAI 呼叫（翻譯、embedding）。
 
 ---
 
 ## 8. 執行步驟與驗收
 
-1. 更新規格書（本文件與 `WHISKYHELLO_SPEC.md`）。
-2. 階段一：產生全部 chunk，人工檢查。
-3. 試跑 500 瓶：確認實際容量，並以驗收題庫測試。
-4. 全量建庫。
-5. 搜尋 API 與前端畫面（動手前另行討論）。
+1. ✅ 階段一：產生全部 chunk，人工檢查。
+2. ✅ 本地練習：前 5000 筆存成 JSON，測試搜尋與中文翻譯。
+3. 建庫：前 5000 筆寫入 MongoDB。
+4. 搜尋 API 與前端畫面（動手前另行討論）。
 
 ### 驗收題庫
 
@@ -188,11 +212,13 @@ Comments: {comments}
 
 | 項目 | 狀態 |
 |---|---|
-| HTML 字元碼的解碼方式 | 先查現有依賴；若需新增套件（例如 `he`、`entities`）須經同意 |
-| Atlas 向量索引的建立方式 | 後台手動建立，或由程式建立 |
+| HTML 字元碼的解碼方式 | ✅ 使用 `entities` 套件 |
+| 中文問題是否先翻譯 | ✅ 先用 LLM 翻成英文 |
+| 其他烈酒的過濾 | 待查原始資料能否分出威士忌與其他烈酒 |
+| 酒名是一句話的資料 | 待查筆數與處理方式 |
+| Railway 記憶體是否足夠 | 待確認（5000 筆約 60 MB） |
 | 搜尋 API 設計 | 未討論 |
 | 前端呈現方式 | 未討論 |
-| 中文問題是否先翻譯 | 以驗收結果決定 |
 | 是否加上 LLM 生成回答 | 檢索驗收通過後評估；加上時禁止捏造未檢索到的酒款與風味 |
 
 ---

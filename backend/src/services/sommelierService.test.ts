@@ -23,7 +23,6 @@ import {
   type RecommendationLLMClient,
 } from './openaiWhiskyRecommender'
 import {
-  normalizeWhiskyName,
   recommendWhiskies,
   toLLMInput,
   toRecommendationResult,
@@ -51,13 +50,19 @@ const BEST_MATCH = {
   imageSourceUrl: null,
 }
 
-const ALTERNATIVE = {
-  whiskyName: 'Aberlour 12 Year Old Double Cask Matured',
-  reason: '雪莉桶帶來果乾與甜香，酒體飽滿。',
-  matches: ['果香豐富', '酒體飽滿'],
+/** A critic-note bottle found by the vector search. */
+const CANDIDATE = {
+  whiskyId: '12345',
+  name: 'Aberlour 12 yo (40%, OB, +/-2019)',
+  text: 'Aberlour 12 yo (40%, OB, +/-2019)\nNose: raisins, honey.',
+  score: 0.65,
+}
+
+const CRITIC_PICK = {
+  whiskyId: CANDIDATE.whiskyId,
+  reason: '筆記提到葡萄乾與蜂蜜，果香豐富。',
+  matches: ['果香豐富'],
   considerations: [],
-  imageUrl: null,
-  imageSourceUrl: null,
 }
 
 const GLENMORANGIE_PHOTO = {
@@ -91,7 +96,7 @@ function llmOutput(overrides: Record<string, unknown> = {}): Record<string, unkn
     status: 'ok',
     message: null,
     bestMatch: BEST_MATCH,
-    alternative: ALTERNATIVE,
+    criticPick: CRITIC_PICK,
     ...overrides,
   }
 }
@@ -100,7 +105,7 @@ const UNABLE_OUTPUT = {
   status: 'unable',
   message: '這次的需求和威士忌無關。',
   bestMatch: null,
-  alternative: null,
+  criticPick: null,
 }
 
 function completedResponse(outputText: string, extra: Record<string, unknown> = {}) {
@@ -189,14 +194,38 @@ describe('toLLMInput', () => {
 })
 
 describe('toRecommendationResult', () => {
-  it('maps bestMatch and alternative to an ordered recommendations array', () => {
-    assert.deepEqual(toRecommendationResult(llmOutput()), {
+  it('maps bestMatch and the critic pick to an ordered recommendations array', () => {
+    assert.deepEqual(toRecommendationResult(llmOutput(), [], [CANDIDATE]), {
       status: 'ok',
       recommendations: [
         { type: 'best_match', ...BEST_MATCH },
-        { type: 'alternative', ...ALTERNATIVE },
+        {
+          type: 'alternative',
+          whiskyName: CANDIDATE.name,
+          reason: CRITIC_PICK.reason,
+          matches: CRITIC_PICK.matches,
+          considerations: [],
+          imageUrl: null,
+          imageSourceUrl: null,
+          whiskyId: CANDIDATE.whiskyId,
+        },
       ],
     })
+  })
+
+  it('returns the best match alone when the critic pick is missing or not a candidate', () => {
+    const outputs = [
+      llmOutput({ criticPick: null }),
+      llmOutput({ criticPick: { ...CRITIC_PICK, whiskyId: '99999' } }),
+      llmOutput({ criticPick: { ...CRITIC_PICK, reason: '  ' } }),
+      llmOutput({ criticPick: { ...CRITIC_PICK, matches: null } }),
+    ]
+    for (const output of outputs) {
+      assert.deepEqual(toRecommendationResult(output, [], [CANDIDATE]), {
+        status: 'ok',
+        recommendations: [{ type: 'best_match', ...BEST_MATCH }],
+      })
+    }
   })
 
   it('trims text and drops blank list items', () => {
@@ -237,18 +266,6 @@ describe('toRecommendationResult', () => {
     )
   })
 
-  it('rejects the same whisky twice, ignoring case, spacing and punctuation', () => {
-    assert.equal(
-      normalizeWhiskyName('Glenmorangie The Original 10 Year Old'),
-      normalizeWhiskyName('glenmorangie the-original, 10 year old'),
-    )
-    assertMalformed(() =>
-      toRecommendationResult(
-        llmOutput({ alternative: { ...ALTERNATIVE, whiskyName: ' glenmorangie  THE original 10-year-old ' } }),
-      ),
-    )
-  })
-
   it('rejects output that is missing or breaks the expected shape', () => {
     const invalid: unknown[] = [
       null,
@@ -257,12 +274,10 @@ describe('toRecommendationResult', () => {
       42,
       llmOutput({ status: 'maybe' }),
       llmOutput({ bestMatch: null }),
-      llmOutput({ alternative: null }),
       llmOutput({ bestMatch: { ...BEST_MATCH, whiskyName: '  ' } }),
       llmOutput({ bestMatch: { ...BEST_MATCH, reason: '' } }),
-      llmOutput({ alternative: { ...ALTERNATIVE, whiskyName: 42 } }),
       llmOutput({ bestMatch: { ...BEST_MATCH, matches: 'fruit' } }),
-      llmOutput({ alternative: { ...ALTERNATIVE, considerations: null } }),
+      llmOutput({ bestMatch: { ...BEST_MATCH, considerations: null } }),
     ]
     for (const raw of invalid) {
       assertMalformed(() => toRecommendationResult(raw))
@@ -292,18 +307,13 @@ describe('bottle photos', () => {
     ])
   })
 
-  it("gives each whisky its own photo and takes the source page from the search result", () => {
+  it('takes the best match photo and its source page from the search result', () => {
     const result = toRecommendationResult(
       llmOutput({
         bestMatch: {
           ...BEST_MATCH,
-          imageUrl: GLENMORANGIE_PHOTO.imageUrl,
+          imageUrl: ` ${GLENMORANGIE_PHOTO.imageUrl} `,
           imageSourceUrl: 'https://made-up.example.com/page',
-        },
-        alternative: {
-          ...ALTERNATIVE,
-          imageUrl: ` ${ABERLOUR_PHOTO.imageUrl} `,
-          imageSourceUrl: ABERLOUR_PHOTO.sourceWebsiteUrl,
         },
       }),
       [ABERLOUR_PHOTO, GLENMORANGIE_PHOTO],
@@ -311,13 +321,10 @@ describe('bottle photos', () => {
 
     assert.equal(result.status, 'ok')
     if (result.status === 'ok') {
-      const [best, alternative] = result.recommendations
+      const [best] = result.recommendations
       assert.equal(best.whiskyName, BEST_MATCH.whiskyName)
       assert.equal(best.imageUrl, GLENMORANGIE_PHOTO.imageUrl)
       assert.equal(best.imageSourceUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl)
-      assert.equal(alternative.whiskyName, ALTERNATIVE.whiskyName)
-      assert.equal(alternative.imageUrl, ABERLOUR_PHOTO.imageUrl)
-      assert.equal(alternative.imageSourceUrl, ABERLOUR_PHOTO.sourceWebsiteUrl)
     }
   })
 
@@ -343,23 +350,6 @@ describe('bottle photos', () => {
     }
   })
 
-  it('never reuses the best match photo for the alternative', () => {
-    const result = toRecommendationResult(
-      llmOutput({
-        bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
-        alternative: { ...ALTERNATIVE, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
-      }),
-      [GLENMORANGIE_PHOTO],
-    )
-
-    assert.equal(result.status, 'ok')
-    if (result.status === 'ok') {
-      assert.equal(result.recommendations[0].imageUrl, GLENMORANGIE_PHOTO.imageUrl)
-      assert.equal(result.recommendations[1].imageUrl, null)
-      assert.equal(result.recommendations[1].imageSourceUrl, null)
-    }
-  })
-
   it('keeps photos null when the search returned no images', () => {
     const result = toRecommendationResult(
       llmOutput({ bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl } }),
@@ -382,11 +372,10 @@ describe('recommendWhiskies', () => {
     assert.equal(create.mock.callCount(), 1)
     const [request] = create.mock.calls[0].arguments as unknown as [Record<string, any>]
     assert.equal(request.model, 'test-model')
+    // No vectors are loaded in tests, so there are no critic-note candidates.
     assert.deepEqual(JSON.parse(request.input), {
-      taste: TASTE,
-      style: STYLE,
-      occasion: 'date',
-      budget: { max: 2000 },
+      preferences: { taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 } },
+      candidates: [],
     })
     assert.equal(request.store, false)
     assert.equal(request.text.format.type, 'json_schema')
@@ -401,10 +390,9 @@ describe('recommendWhiskies', () => {
         JSON.stringify(
           llmOutput({
             bestMatch: { ...BEST_MATCH, imageUrl: GLENMORANGIE_PHOTO.imageUrl },
-            alternative: { ...ALTERNATIVE, imageUrl: ABERLOUR_PHOTO.imageUrl },
           }),
         ),
-        { output: [webSearchCall([imageResult(GLENMORANGIE_PHOTO), imageResult(ABERLOUR_PHOTO)])] },
+        { output: [webSearchCall([imageResult(GLENMORANGIE_PHOTO)])] },
       ),
     )
 
@@ -420,10 +408,7 @@ describe('recommendWhiskies', () => {
     if (result.status === 'ok') {
       assert.deepEqual(
         result.recommendations.map((item) => [item.whiskyName, item.imageUrl, item.imageSourceUrl]),
-        [
-          [BEST_MATCH.whiskyName, GLENMORANGIE_PHOTO.imageUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl],
-          [ALTERNATIVE.whiskyName, ABERLOUR_PHOTO.imageUrl, ABERLOUR_PHOTO.sourceWebsiteUrl],
-        ],
+        [[BEST_MATCH.whiskyName, GLENMORANGIE_PHOTO.imageUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl]],
       )
     }
   })
@@ -431,14 +416,13 @@ describe('recommendWhiskies', () => {
   it('asks for exact image results and no reused or guessed photos', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('the image_url of that image result, copied exactly'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never use a page URL as imageUrl'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes("never use one whisky's photo for the other"))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('search once more for that whisky with a different query'))
   })
 
   it('asks for brand names, a budget band and sommelier wording', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('starting with the brand or distillery'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 10% either side'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm requirement for both whiskies'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm requirement for bestMatch only'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('closest flavor fit within the range'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Do not default to a famous bottle'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('never mention fields, JSON or how the input was processed'))
@@ -450,8 +434,15 @@ describe('recommendWhiskies', () => {
     }
   })
 
-  it('asks for status, message and two recommendations with every field required', () => {
-    assert.deepEqual(RECOMMENDATION_SCHEMA.required, ['status', 'message', 'bestMatch', 'alternative'])
+  it('asks the LLM to pick the second whisky from the candidates by id', () => {
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set whiskyId to its id'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set criticPick to null'))
+    const pick = RECOMMENDATION_SCHEMA.properties.criticPick.anyOf[0]
+    assert.deepEqual(pick.required, ['whiskyId', 'reason', 'matches', 'considerations'])
+  })
+
+  it('asks for status, message and both picks with every field required', () => {
+    assert.deepEqual(RECOMMENDATION_SCHEMA.required, ['status', 'message', 'bestMatch', 'criticPick'])
     const item = RECOMMENDATION_SCHEMA.properties.bestMatch.anyOf[0]
     assert.deepEqual(item.required, [
       'whiskyName',
@@ -580,7 +571,7 @@ describe('POST /api/v1/sommelier/recommendations', () => {
     assert.ok(result.body.details.some((detail: string) => detail.includes('Occasion is not supported')))
   })
 
-  it('returns two recommendations, best match first', async () => {
+  it('returns the best match alone when no critic-note candidates are loaded', async () => {
     const create = mockRecommendation(llmOutput())
 
     const result = await post({ taste: TASTE, style: STYLE, occasion: 'date', budget: { max: 2000 } })
@@ -589,10 +580,7 @@ describe('POST /api/v1/sommelier/recommendations', () => {
     assert.equal(create.mock.callCount(), 1)
     assert.deepEqual(result.body, {
       status: 'ok',
-      recommendations: [
-        { type: 'best_match', ...BEST_MATCH },
-        { type: 'alternative', ...ALTERNATIVE },
-      ],
+      recommendations: [{ type: 'best_match', ...BEST_MATCH }],
     })
   })
 
@@ -607,7 +595,7 @@ describe('POST /api/v1/sommelier/recommendations', () => {
 
     assert.equal(result.status, 200)
     const [request] = create.mock.calls[0].arguments as unknown as [Record<string, any>]
-    assert.deepEqual(JSON.parse(request.input), { taste: TASTE, style: STYLE })
+    assert.deepEqual(JSON.parse(request.input).preferences, { taste: TASTE, style: STYLE })
   })
 
   it('returns unable as a successful response', async () => {
@@ -629,15 +617,6 @@ describe('POST /api/v1/sommelier/recommendations', () => {
     assert.equal(result.status, 502)
     assert.deepEqual(result.body, { message: RECOMMENDATION_UNAVAILABLE_MESSAGE })
     assert.equal(JSON.stringify(result.body).includes('sk-'), false)
-  })
-
-  it('returns 502 when the LLM recommends the same whisky twice', async () => {
-    mockRecommendation(llmOutput({ alternative: { ...ALTERNATIVE, whiskyName: BEST_MATCH.whiskyName } }))
-
-    const result = await post({ taste: TASTE, style: STYLE })
-
-    assert.equal(result.status, 502)
-    assert.deepEqual(result.body, { message: RECOMMENDATION_MALFORMED_MESSAGE })
   })
 
   it('no longer serves the old preference endpoint', async () => {

@@ -83,9 +83,11 @@ export interface WhiskyRecommendation {
   imageUrl: string | null
   /** The page the photo came from, kept for checking its source and licence. */
   imageSourceUrl: string | null
+  /** Only on the alternative: the site's whisky id, for linking to /whiskies/:id. */
+  whiskyId?: string
 }
 
-/** Output of POST /api/v1/sommelier/recommendations; `ok` lists best_match then alternative. */
+/** Output of POST /api/v1/sommelier/recommendations; `ok` lists best_match, then alternative when there is one. */
 export type RecommendationResult =
   | { status: 'ok'; recommendations: WhiskyRecommendation[] }
   | { status: 'unable'; message?: string }

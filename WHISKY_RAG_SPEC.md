@@ -27,6 +27,7 @@
 | 建庫寫入 MongoDB（`npm run rag:build`） | `scripts/rag/buildVectors.mts` | ✅ 5000 筆 |
 | cosine 與取前 N 名（含測試） | `src/utils/vectorSearch.ts` | ✅ |
 | 啟動時讀向量進記憶體 | `src/services/flavourSearchService.ts`、`src/server.ts` | ✅ |
+| Sommelier 第二款（偏好組句 → 前 5 名 → LLM 挑一款） | `src/utils/flavourSentence.ts`、`src/services/sommelierService.ts` | ✅ |
 | 搜尋 service、Validation、Controller、Route | — | 待做 |
 | 前端 | — | 待做 |
 
@@ -55,7 +56,7 @@ MVP 只做**檢索（語意搜尋）**，不讓 LLM 生成回答。檢索準度�
 
 ### 不在本次範圍
 
-- **Sommelier 推薦不改用本資料集**：資料集以老酒、獨立裝瓶、限量款為主，且沒有價格；Sommelier 的規則是推薦台灣買得到的常規款，並符合預算，兩者衝突。
+- Sommelier 的第一款不使用本資料集（需台灣買得到、符合預算）；第二款從本資料集挑選，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7。
 - 使用者自己的評論不需要向量搜尋，日後直接放進 Sommelier prompt 即可。
 
 ---

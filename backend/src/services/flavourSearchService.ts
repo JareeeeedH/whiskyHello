@@ -1,6 +1,6 @@
 import { WhiskyNoteChunk } from '../models/WhiskyNoteChunk'
-import type { SearchItem } from '../utils/vectorSearch'
-import { EMBEDDING_MODEL } from './openaiEmbedder'
+import { findTopMatches, type SearchItem, type SearchResult } from '../utils/vectorSearch'
+import { EMBEDDING_MODEL, embedText } from './openaiEmbedder'
 
 /**
  * The vector store kept in memory: every whisky chunk with its embedding.
@@ -41,4 +41,10 @@ export async function loadVectors() {
 /** How many chunks are in memory; 0 means search is not ready yet. */
 export function countLoadedVectors() {
   return vectors.length
+}
+
+/** Turns the question into a vector and returns the `count` closest chunks. */
+export async function searchByFlavour(question: string, count: number): Promise<SearchResult[]> {
+  const questionVector = await embedText(question)
+  return findTopMatches(questionVector, vectors, count)
 }

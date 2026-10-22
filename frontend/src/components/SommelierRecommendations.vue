@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
+import { getWhiskyById } from '../services/whiskyService'
 import type { RecommendationType, WhiskyRecommendation } from '../types/sommelier'
 
 defineProps<{
@@ -23,8 +24,20 @@ function formatIndex(index: number): string {
   return `NO.${String(index + 1).padStart(2, '0')}`
 }
 
+/** The web-search photo, or for the critic-note pick the site's own bottle photo. */
+function sourcePhotoUrl(item: WhiskyRecommendation): string | null {
+  if (item.imageUrl) {
+    return item.imageUrl
+  }
+  if (item.whiskyId) {
+    return getWhiskyById(item.whiskyId)?.imageUrl ?? null
+  }
+  return null
+}
+
 function photoUrl(item: WhiskyRecommendation): string | null {
-  return item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null
+  const url = sourcePhotoUrl(item)
+  return url && !failedImages.has(url) ? url : null
 }
 
 function onPhotoLoad(event: Event, url: string) {
@@ -37,7 +50,9 @@ function onPhotoLoad(event: Event, url: string) {
 
 <template>
   <section class="recommendations" aria-labelledby="recommendations-title">
-    <h2 id="recommendations-title" class="recommendations-title">侍酒師為你挑的兩支</h2>
+    <h2 id="recommendations-title" class="recommendations-title">
+      {{ recommendations.length > 1 ? '侍酒師為你挑的兩支' : '侍酒師為你挑的一支' }}
+    </h2>
 
     <ol class="cards">
       <li
@@ -50,7 +65,7 @@ function onPhotoLoad(event: Event, url: string) {
           <div
             v-if="photoUrl(item)"
             class="photo-frame"
-            :class="{ 'is-wide': wideImages.has(item.imageUrl!) }"
+            :class="{ 'is-wide': wideImages.has(photoUrl(item)!) }"
           >
             <img
               :src="photoUrl(item)!"
@@ -58,8 +73,8 @@ function onPhotoLoad(event: Event, url: string) {
               loading="lazy"
               decoding="async"
               referrerpolicy="no-referrer"
-              @load="onPhotoLoad($event, item.imageUrl!)"
-              @error="failedImages.add(item.imageUrl!)"
+              @load="onPhotoLoad($event, photoUrl(item)!)"
+              @error="failedImages.add(photoUrl(item)!)"
             />
           </div>
           <div v-else class="photo-frame is-empty">
@@ -79,7 +94,12 @@ function onPhotoLoad(event: Event, url: string) {
             <span aria-hidden="true">·</span>
             <span>{{ TYPE_LABELS[item.type] }}</span>
           </p>
-          <h3 class="card-name" lang="en">{{ item.whiskyName }}</h3>
+          <h3 class="card-name" lang="en">
+            <RouterLink v-if="item.whiskyId" :to="`/whiskies/${item.whiskyId}`" class="card-link">
+              {{ item.whiskyName }}
+            </RouterLink>
+            <template v-else>{{ item.whiskyName }}</template>
+          </h3>
           <span class="card-rule" aria-hidden="true" />
           <p class="card-reason">{{ item.reason }}</p>
 
@@ -348,6 +368,13 @@ function onPhotoLoad(event: Event, url: string) {
 
 .is-alt .card-name {
   font-size: 1.3rem;
+}
+
+.card-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
 
 .card-rule {

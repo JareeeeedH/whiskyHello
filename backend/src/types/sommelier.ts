@@ -74,9 +74,11 @@ export interface WhiskyRecommendation {
   imageUrl: string | null
   /** The page the photo was found on, kept for checking its source and licence. */
   imageSourceUrl: string | null
+  /** Only on the alternative: the site's whisky id, picked from the critic-note candidates. */
+  whiskyId?: string
 }
 
-/** `ok` always carries best_match then alternative; `unable` means the LLM found no suitable pair. */
+/** `ok` carries best_match, then the alternative when one was picked; `unable` means no confident best_match. */
 export type RecommendationResult =
-  | { status: 'ok'; recommendations: [WhiskyRecommendation, WhiskyRecommendation] }
+  | { status: 'ok'; recommendations: WhiskyRecommendation[] }
   | { status: 'unable'; message?: string }

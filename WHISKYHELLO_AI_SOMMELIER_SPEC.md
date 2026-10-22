@@ -11,7 +11,7 @@
 ## 1. 目的
 
 - Step 1：讓使用者提供「這一次想喝什麼」的需求，並在前端整理成 Input；不呼叫 API
-- Step 2：使用者在最後一題按「幫我推薦」後，由 LLM 依需求推薦兩款威士忌（見第 4 節）
+- Step 2：使用者在最後一題按「幫我推薦」後，推薦兩款威士忌：第一款由 LLM 推薦，第二款由 LLM 從評論家筆記的候選中挑選（見第 4 節）
 
 ---
 
@@ -176,11 +176,13 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 
 ### 4.1 目的
 
-依 Step 1 的 Input，由 LLM 推薦兩款威士忌：最適合的一款（`best_match`）與值得探索（`alternative`），各附個人化的推薦理由。
+依 Step 1 的 Input 推薦兩款威士忌，各附個人化的推薦理由：
+
+- `best_match`：LLM 自由推薦的真實酒款，不限本站資料
+- `alternative`：LLM 從評論家筆記（Static Dataset）的候選中挑一款，連結站內酒款頁（見 4.7）
 
 - LLM 由 Backend 呼叫（依 `WHISKYHELLO_SPEC.md` 第 11 節資料流），Frontend 不直接呼叫 LLM
 - 整份 Input 一次送給 LLM
-- LLM 自由推薦真實存在的酒款，不限於本站資料，也不連結站內頁面
 - 不儲存 Input 與推薦結果
 
 ### 4.2 LLM 呼叫
@@ -188,7 +190,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 - OpenAI Responses API，模型為 `OPENAI_MODEL`，`store: false`
 - Structured Outputs：`json_schema`、`strict: true`
 - 同一次請求啟用 `web_search`（`search_content_types: ["image", "text"]`、`image_settings.max_results: 6`），並 `include: ["web_search_call.results"]` 取得圖片搜尋結果；只用來找酒瓶照片，不另外呼叫 OpenAI
-- Input 以 JSON 字串送出；視為資料，不是指令
+- 送出 JSON 字串 `{ preferences, candidates }`：`preferences` 為 Input，`candidates` 為 4.7 的候選；皆視為資料，不是指令
 - 逾時 40 秒，不自動重試（失敗時由使用者按「重試」）
 
 ### 4.3 LLM 對欄位的理解
@@ -198,7 +200,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 | `taste` | 每個已選風味希望多明顯：1 只要淡淡帶到、5 明顯感受得到、10 希望成為主要風味。未出現的風味是「未指定」，不是不喜歡。每個 Key 附上與 2.1 相同的例子 |
 | `style.body` | 1 輕盈 → 10 厚重；口中的重量與質地，不是酒精濃度 |
 | `occasion` | 2.4 的情境，每個值附說明 |
-| `budget` | 每瓶價格，新台幣，兩支都必須遵守。只有 `max` 時視為目標價，挑台灣常見售價約在 ±10% 內的酒款（例如 2,000 → 約 1,800–2,200；8,000 → 約 7,200–8,800）；同時有 `min`、`max` 時在兩者之間；只有 `min` 時不低於它。預算高時選酒廠常規系列中較高年份或較高階的酒款（例如 18 年），不退回入門款；價位內找不到完全符合風味的酒款時，選價位內風味最接近的，並在 `considerations` 說明風味上的落差 |
+| `budget` | 每瓶價格，新台幣，只限 `best_match`。`max` 視為目標價，挑台灣常見售價約在 ±10% 內的酒款（例如 2,000 → 約 1,800–2,200；8,000 → 約 7,200–8,800）。預算高時選酒廠常規系列中較高年份或較高階的酒款（例如 18 年），不退回入門款；價位內找不到完全符合風味的酒款時，選價位內風味最接近的，並在 `considerations` 說明風味上的落差 |
 
 - 評分是使用者的目標，不是任何酒款的實測分數
 - 偏好之間的衝突合理取捨，並在 `considerations` 說明
@@ -206,7 +208,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 
 ### 4.4 推薦規則
 
-- `best_match` 是整體最符合的一款；`alternative` 是另一個有價值的選擇，盡量來自不同酒廠或風格，但不可因此犧牲匹配度
+- `best_match` 是整體最符合的一款；`alternative` 依 4.7
 - 不預設推最有名的酒：有其他常規酒款更貼近使用者的風味與喝感時優先選它，熱門酒款真的最適合時照推；`best_match` 要明顯呈現評分 >= 7 的風味，做不到時在 `considerations` 說明
 - 只推薦有把握確實存在、普遍流通的常規酒款；避免不確定的限量版、獨立裝瓶或停產酒款；不能確認版本就換一款，不猜測
 - `whiskyName` 使用官方英文全名，以品牌或酒廠開頭，加上有把握的年份或版本，例如 `Glenmorangie The Original 12 Years Old`，不可只寫 `The Original 12 Years Old`
@@ -218,8 +220,8 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
   - `reason`：1–2 句，說明為什麼適合這位使用者
   - `matches`：2–4 個短句，列出符合的偏好
   - `considerations`：0–2 個短句，列出與偏好之間的取捨；沒有時為空陣列
-- 酒瓶照片：先決定兩款酒，再以完整 `whiskyName` 各搜尋一次；照片不影響推薦哪兩款。挑品牌、名稱、年份或版本都吻合且看得清楚瓶身的圖片，優先官方網站或可信賴的商品頁；某款的結果中沒有合適圖片時，換關鍵字（例如品牌官方的產品名稱，或酒名加 "bottle"）再搜尋一次。`imageUrl` 原樣使用該圖片結果的 `image_url`，`imageSourceUrl` 為其 `source_website_url`；不可把網頁網址當圖片、不可自行拼接或猜測網址、兩款不可共用照片；兩次搜尋都找不到合適的圖片時兩者皆為 `null`
-- 無法有把握地推薦兩款不同的真實酒款時，回 `status: "unable"`，以一句繁體中文在 `message` 說明原因；不為了湊滿兩款而虛構
+- 酒瓶照片（只限 `best_match`）：先決定酒款，再以完整 `whiskyName` 搜尋；照片不影響推薦哪一款。挑品牌、名稱、年份或版本都吻合且看得清楚瓶身的圖片，優先官方網站或可信賴的商品頁；某款的結果中沒有合適圖片時，換關鍵字（例如品牌官方的產品名稱，或酒名加 "bottle"）再搜尋一次。`imageUrl` 原樣使用該圖片結果的 `image_url`，`imageSourceUrl` 為其 `source_website_url`；不可把網頁網址當圖片、不可自行拼接或猜測網址；兩次搜尋都找不到合適的圖片時兩者皆為 `null`
+- 無法有把握地推薦 `best_match` 時，整個回 `status: "unable"`，以一句繁體中文在 `message` 說明原因；不虛構酒款
 
 ### 4.5 API
 
@@ -231,7 +233,7 @@ Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證
 type RecommendationResult =
   | {
       status: 'ok'
-      recommendations: [WhiskyRecommendation, WhiskyRecommendation]   // best_match、alternative 依序
+      recommendations: WhiskyRecommendation[]   // best_match，有 alternative 時接在後面
     }
   | {
       status: 'unable'
@@ -246,6 +248,7 @@ type WhiskyRecommendation = {
   considerations: string[]
   imageUrl: string | null         // 圖片搜尋結果的 image_url；沒有可信圖片時為 null
   imageSourceUrl: string | null   // 圖片來源頁，供查證來源與授權
+  whiskyId?: string               // 只有 alternative：站內酒款 id
 }
 ```
 
@@ -266,12 +269,13 @@ type WhiskyRecommendation = {
     },
     {
       "type": "alternative",
-      "whiskyName": "Aberlour 12 Year Old Double Cask Matured",
-      "reason": "雪莉桶帶來果乾與甜香，酒體比較飽滿，喝起來依然順口。",
+      "whiskyName": "Aberlour 12 yo (40%, OB, +/-2019)",
+      "reason": "評論家筆記提到明顯的雪莉果乾與甜香，酒體飽滿。",
       "matches": ["果香豐富", "酒體飽滿"],
       "considerations": [],
       "imageUrl": null,
-      "imageSourceUrl": null
+      "imageSourceUrl": null,
+      "whiskyId": "12345"
     }
   ]
 }
@@ -279,9 +283,9 @@ type WhiskyRecommendation = {
 
 Backend 驗證 LLM 回傳：
 
-- `status: "ok"` 時兩款都必須有非空的 `whiskyName` 與 `reason`；`matches`、`considerations` 去除空白項目
-- 兩款名稱正規化（不分大小寫、忽略空白與標點）後不可相同
-- `imageUrl` 必須與這次 `web_search_call.results` 中某個 `image_result` 的 HTTPS `image_url` 完全相同，否則兩個圖片欄位改為 `null`；`imageSourceUrl` 取自同一筆結果的 `source_website_url`（不是 HTTPS 時為 `null`）；兩款圖片相同時，`alternative` 改為 `null`。圖片問題不會讓推薦失敗
+- `status: "ok"` 時 `best_match` 必須有非空的 `whiskyName` 與 `reason`，否則 502；`matches`、`considerations` 去除空白項目
+- `alternative` 的 `whiskyId` 必須是候選之一、`reason` 非空，否則只回 `best_match`（不算失敗）；`whiskyName` 取自候選酒名
+- `imageUrl` 必須與這次 `web_search_call.results` 中某個 `image_result` 的 HTTPS `image_url` 完全相同，否則兩個圖片欄位改為 `null`；`imageSourceUrl` 取自同一筆結果的 `source_website_url`（不是 HTTPS 時為 `null`）。圖片問題不會讓推薦失敗
 - `status: "unable"` 時忽略酒款欄位
 
 使用次數（正式環境；開發環境放寬，方便測試）：
@@ -316,10 +320,26 @@ Backend 驗證 LLM 回傳：
 - 照片框為 3:5 直式：比框寬的照片（多為酒瓶置中的方形商品照）填滿高度、只裁掉左右留白；比框窄的照片以 `contain` 完整呈現
 - 目前不顯示圖片來源，`imageSourceUrl` 保留在資料中供查證；`imageUrl` 為 `null` 或圖片載入失敗時，顯示酒瓶線條圖與「暫無酒瓶照片」
 - 標籤：「NO.01 · 最適合你」（`best_match`）、「NO.02 · 值得探索」（`alternative`）
+- `alternative` 沒有照片（顯示線條圖），酒名連到站內 `/whiskies/:id`
+- 只有 `best_match` 時只顯示一張
 - 酒款名稱、金色短線、推薦理由
 - 「符合你的偏好」：`matches`，以「·」分隔成一行
 - 「可以留意」：`considerations`，沒有時不顯示
 - 不顯示價格、分數與預算提醒
+
+### 4.7 第二款：評論家筆記（RAG）
+
+流程（呼叫 LLM 之前）：
+
+```text
+Input → 組成英文句子 → embedding → 記憶體向量比對 → 前 5 名當 candidates
+```
+
+- 句子：`utils/flavourSentence.ts`。風味 1–3 `a hint of`、4–7 `noticeable`、8–10 `dominant`；酒體 1–3 light、4–7 medium、8–10 full；不放情境與預算（筆記不會提到，且會沖淡風味）。例：`Light-bodied whisky with a hint of floral notes and noticeable malty, grainy notes.`
+- 每個候選送給 LLM 的內容：`id` 與 `notes`（chunk 全文，第一行為酒名）；不送相似度分數
+- Prompt 只要求三件事：挑最符合偏好的一款並回傳其 `id`；理由依據筆記內容（可以說「評論家筆記提到…」）；都不合適時為 `null`
+- 不考慮預算與購買通路；可以是老酒、限量或獨立裝瓶
+- 向量未載入或 embedding 失敗時，`candidates` 為空，只回 `best_match`
 
 ---
 
@@ -330,6 +350,5 @@ Backend 驗證 LLM 回傳：
 - `budget.min` 是否必須 <= `budget.max`
 - 使用者需求與推薦結果是否需要儲存
 - 推薦是否改用獨立的模型設定
-- 推薦結果是否連結到站內酒款頁面
 - 是否提供「換一組推薦」
 - 酒瓶照片的使用授權：照片直接引用第三方網站，取得網址不代表取得商業使用授權

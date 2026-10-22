@@ -562,7 +562,7 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 狀態：建庫完成（MongoDB 5000 筆），搜尋 API 進行中。完整規格見 `WHISKY_RAG_SPEC.md`。
 
-- 用途：Whisky 頁的口味搜尋；Sommelier 推薦不改用 Static Dataset（資料集沒有價格，且多為買不到的老酒與獨立裝瓶）。
+- 用途：Whisky 頁的口味搜尋；Sommelier 第二款從前 5 名候選中由 LLM 挑選（第一款仍由 LLM 自由推薦，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）。
 - 切塊：一瓶酒一塊，內容為酒名、Nose、Mouth、Finish、Comments。
 - Embedding：後端以 OpenAI `text-embedding-3-small`（1536 維）自行產生。
 - 範圍：先做前 5000 筆。

@@ -8,6 +8,9 @@ import type {
   WhiskyRecommendation,
 } from '../types/sommelier'
 import { AppError } from '../utils/AppError'
+import { buildEmbeddingSentence } from '../utils/flavourSentence'
+import type { SearchResult } from '../utils/vectorSearch'
+import { countLoadedVectors, searchByFlavour } from './flavourSearchService'
 import {
   RECOMMENDATION_MALFORMED_MESSAGE,
   requestWhiskyRecommendations,
@@ -98,9 +101,29 @@ function toRecommendation(
   }
 }
 
-/** Compares names ignoring case, spacing and punctuation. */
-export function normalizeWhiskyName(name: string): string {
-  return name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+/**
+ * The second pick: kept only when its whiskyId is one of the candidates and it has a reason.
+ * Anything else gives null, so the user still gets the best match.
+ */
+function toCriticPick(raw: unknown, candidates: SearchResult[]): WhiskyRecommendation | null {
+  if (!isPlainObject(raw)) {
+    return null
+  }
+  const whiskyId = toText(raw.whiskyId)
+  const candidate = candidates.find((item) => item.whiskyId === whiskyId)
+  const reason = toText(raw.reason)
+  if (!candidate || !reason || !Array.isArray(raw.matches) || !Array.isArray(raw.considerations)) {
+    return null
+  }
+  return {
+    type: 'alternative',
+    whiskyName: candidate.name,
+    reason,
+    matches: toTextList(raw.matches),
+    considerations: toTextList(raw.considerations),
+    ...NO_IMAGE,
+    whiskyId: candidate.whiskyId,
+  }
 }
 
 /**
@@ -110,6 +133,7 @@ export function normalizeWhiskyName(name: string): string {
 export function toRecommendationResult(
   raw: unknown,
   imageResults: WebImageResult[] = [],
+  candidates: SearchResult[] = [],
 ): RecommendationResult {
   if (!isPlainObject(raw)) {
     throw malformed()
@@ -124,14 +148,8 @@ export function toRecommendationResult(
   }
 
   const bestMatch = toRecommendation(raw.bestMatch, 'best_match', imageResults)
-  const alternative = toRecommendation(raw.alternative, 'alternative', imageResults)
-  if (normalizeWhiskyName(bestMatch.whiskyName) === normalizeWhiskyName(alternative.whiskyName)) {
-    throw malformed()
-  }
-  if (alternative.imageUrl && alternative.imageUrl === bestMatch.imageUrl) {
-    Object.assign(alternative, NO_IMAGE)
-  }
-  return { status: 'ok', recommendations: [bestMatch, alternative] }
+  const criticPick = toCriticPick(raw.criticPick, candidates)
+  return { status: 'ok', recommendations: criticPick ? [bestMatch, criticPick] : [bestMatch] }
 }
 
 /** TEMP diagnostics for missing bottle photos; logs only whisky names, URLs and counts. Remove once diagnosed. */
@@ -139,31 +157,48 @@ function logPhotoOutcome(output: unknown, imageResults: WebImageResult[], result
   if (result.status !== 'ok' || !isPlainObject(output)) {
     return
   }
-  const rawItems = [output.bestMatch, output.alternative]
-  result.recommendations.forEach((item, index) => {
-    const raw = rawItems[index]
-    const aiUrl = isPlainObject(raw) ? toText(raw.imageUrl) : ''
-    let outcome: string
-    if (item.imageUrl) {
-      outcome = `ok ${item.imageUrl}`
-    } else if (!aiUrl) {
-      outcome = 'AI returned no photo'
-    } else if (imageResults.some((image) => image.imageUrl === aiUrl)) {
-      outcome = 'same photo as best match, dropped'
-    } else {
-      const basePath = aiUrl.split('?')[0]
-      const nearMatch = imageResults.some((image) => image.imageUrl.split('?')[0] === basePath)
-      outcome = `AI URL not in search results${nearMatch ? ' (same path, query differs)' : ''}: ${aiUrl.slice(0, 300)}`
-    }
-    console.info(`[sommelier photo] ${item.whiskyName}: ${outcome} (image results: ${imageResults.length})`)
-  })
+  const item = result.recommendations[0]
+  const aiUrl = isPlainObject(output.bestMatch) ? toText(output.bestMatch.imageUrl) : ''
+  let outcome: string
+  if (item.imageUrl) {
+    outcome = `ok ${item.imageUrl}`
+  } else if (!aiUrl) {
+    outcome = 'AI returned no photo'
+  } else {
+    const basePath = aiUrl.split('?')[0]
+    const nearMatch = imageResults.some((image) => image.imageUrl.split('?')[0] === basePath)
+    outcome = `AI URL not in search results${nearMatch ? ' (same path, query differs)' : ''}: ${aiUrl.slice(0, 300)}`
+  }
+  console.info(`[sommelier photo] ${item.whiskyName}: ${outcome} (image results: ${imageResults.length})`)
+}
+
+/** Number of critic-note candidates the LLM chooses the second pick from. */
+const CANDIDATE_COUNT = 5
+
+/**
+ * Finds the critic-note bottles closest to the user's preferences. Returns an empty list
+ * when the vectors are not loaded or the search fails, so the best match still works.
+ */
+async function findCandidates(input: SommelierInput): Promise<SearchResult[]> {
+  if (countLoadedVectors() === 0) {
+    return []
+  }
+  try {
+    return await searchByFlavour(buildEmbeddingSentence(input), CANDIDATE_COUNT)
+  } catch (error) {
+    console.error('Sommelier candidates unavailable:', error instanceof Error ? error.message : error)
+    return []
+  }
 }
 
 export async function recommendWhiskies(input: SommelierInput): Promise<RecommendationResult> {
-  const { output, imageResults } = await requestWhiskyRecommendations(
-    JSON.stringify(toLLMInput(input)),
-  )
-  const result = toRecommendationResult(output, imageResults)
+  const candidates = await findCandidates(input)
+  const llmInput = {
+    preferences: toLLMInput(input),
+    candidates: candidates.map((item) => ({ id: item.whiskyId, notes: item.text })),
+  }
+  const { output, imageResults } = await requestWhiskyRecommendations(JSON.stringify(llmInput))
+  const result = toRecommendationResult(output, imageResults, candidates)
   logPhotoOutcome(output, imageResults, result)
   return result
 }

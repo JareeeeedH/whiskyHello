@@ -2,7 +2,7 @@
 
 > 範圍：Phase 2（AI）
 >
-> 文件狀態：建庫腳本與本地練習完成；搜尋 API、前端尚未實作
+> 文件狀態：建庫完成（MongoDB 5000 筆）；搜尋 service 進行中；API、前端尚未實作
 >
 > 所屬總規格：`WHISKYHELLO_SPEC.md` 第 11 節
 
@@ -10,28 +10,40 @@
 
 ## 0. 目前做法（2026-10）
 
-- **範圍：先做前 5000 筆**（`chunks.jsonl` 的前 5000 塊，與本地練習庫相同），不做全部 17,344 筆。
-- **儲存**：向量以 `[Number]` 存進 MongoDB `whiskynotechunks`；5000 筆約 103 MB（Atlas 免費方案上限 512 MB）。
-- **搜尋**：不使用 Atlas Vector Search。後端啟動時把向量讀進記憶體（約 60 MB），每次搜尋自己算 cosine、取前 5 名；實測 5000 筆約 7–9 ms。
-- **中文問題**：先用 LLM 翻成英文，再做 embedding。
-- **費用**：5000 筆 embedding 約 110 萬 tokens，約 $0.022 美元。
+- **範圍**：只做 `chunks.jsonl` 的前 5000 筆（全部 17,344 筆）。
+- **儲存**：MongoDB `whiskynotechunks`，向量存成 `[Number]`；5000 筆約 103 MB（Atlas 免費方案上限 512 MB）。
+- **搜尋**：不用 Atlas Vector Search。後端啟動時把向量讀進記憶體，每次搜尋自己算 cosine、取前 5 名（5000 筆約 7–9 ms）。
+- **中文問題**：不翻譯，直接 embedding（翻譯功能已取消，見下方測試結果）。
+- **費用**：5000 筆 embedding 約 $0.022 美元；本次建庫沿用本地練習的向量，未再呼叫 OpenAI。
 
-已完成：
+### 進度
 
-| 項目 | 檔案 |
-|---|---|
-| 切塊（17,344 塊，跳過 2 筆） | `backend/scripts/rag/chunk.mts`、`buildChunks.mts` |
-| 資料模型 | `backend/src/models/WhiskyNoteChunk.ts` |
-| Embedding service | `backend/src/services/openaiEmbedder.ts` |
-| 本地練習向量庫（前 5000 筆，存成 JSON，不進 git） | `backend/scripts/rag/practiceBuild.mts`、`practiceSearch.mts` |
+| 項目 | 檔案 | 狀態 |
+|---|---|---|
+| 切塊（17,344 塊，跳過 2 筆） | `scripts/rag/chunk.mts`、`buildChunks.mts` | ✅ |
+| 資料模型 | `src/models/WhiskyNoteChunk.ts` | ✅ |
+| Embedding | `src/services/openaiEmbedder.ts` | ✅ |
+| 本地練習庫（JSON，不進 git） | `scripts/rag/practiceBuild.mts`、`practiceSearch.mts` | ✅ |
+| 建庫寫入 MongoDB（`npm run rag:build`） | `scripts/rag/buildVectors.mts` | ✅ 5000 筆 |
+| cosine 與取前 N 名（含測試） | `src/utils/vectorSearch.ts` | ✅ |
+| 啟動時讀向量進記憶體 | `src/services/flavourSearchService.ts`、`src/server.ts` | ✅ |
+| 搜尋 service、Validation、Controller、Route | — | 待做 |
+| 前端 | — | 待做 |
 
-本地測試結果（5000 筆、8 題中文風味問題）：
+（路徑皆在 `backend/` 下）
 
-- **中文原句明顯較差**；先用 LLM 翻成英文後，找到的酒款類型明顯較準（例如紅酒桶題：0/5 → 4/5）。翻譯與「改寫成品飲筆記」效果差不多，先用翻譯。
-- **其他烈酒干擾**：蘭姆酒、干邑、Cachaça 常排進前 5 名，需要「酒的種類」欄位過濾。
-- **酒名影響大**：酒名含關鍵字（例如 Milk & Honey、The Big Smoke）容易排前面。
-- **資料問題**：部分酒名其實是一句評論開場白（例如 `So you thought 64.45% vol. was a lot?...`）。
-- 關鍵詞比對判斷準度不可靠，正式驗收需要標註答案的題庫。
+### 本地測試結果（5000 筆、8 題中文風味問題）
+
+- **中文原句較差**：後 5 題命中 9/25；先用 LLM 翻成英文 17/25、改寫成品飲筆記 16/25。翻譯多一次 LLM 呼叫，目前先不做。
+- **其他烈酒干擾**：蘭姆酒、干邑、Cachaça、Mezcal 幾乎每題都排進前 5 名，需要「酒的種類」過濾。
+- **酒名影響大**：酒名含關鍵字（例如 Milk & Honey）容易排前面。
+- **資料問題**：部分酒名其實是一句評論（例如 `So you thought 64.45% vol. was a lot?...`）。
+- 用關鍵詞判斷準度不可靠；正式驗收需要有標註答案的題庫。
+
+### 記憶體實測
+
+- 讀進記憶體後約 85 MB（若直接用 MongoDB 回傳的陣列約 200 MB，所以複製成新陣列）。
+- 讀取約 7–20 秒，期間記憶體高峰約 450 MB；Railway 方案需至少 512 MB。
 
 ---
 
@@ -138,7 +150,7 @@ Comments: {comments}
 - 不存 `__v`（`versionKey: false`）。
 - 唯一索引：`whiskyId + embeddingModel`。
 - 不存 `points`（評分與口味搜尋無關）。
-- 容量：5000 筆約 103 MB；全部 17,344 筆約 356 MB，太接近 512 MB 上限。若要做全部，改存 float32 二進位（約 121 MB）。
+- 容量：全部 17,344 筆約 356 MB，太接近 512 MB 上限；若要做全部，改存 float32 二進位（約 121 MB）。
 
 ### 不與翻譯快取合併的原因
 
@@ -178,25 +190,30 @@ Comments: {comments}
 ## 7. 搜尋流程（線上）
 
 ```text
-【後端啟動】連上 MongoDB → 讀全部向量進記憶體（只做一次）
+【後端啟動】連上 MongoDB → 背景讀全部向量進記憶體（只做一次，不擋住網站啟動）
 
-【每次搜尋】使用者問題 → LLM 翻成英文 → 同一模型 embedding
-          → 記憶體裡算 cosine（取前 N 筆）→ 回傳酒款、分數、命中摘句、酒款頁連結
+【每次搜尋】使用者問題 → 同一模型 embedding → 記憶體算 cosine，取前 5 名
+          → 回傳酒款、分數、命中摘句、酒款頁連結
 ```
 
 - 照既有分層：Route → Validation → Controller → Service → Model。
+- 每次搜尋不讀資料庫，只呼叫一次 OpenAI（embedding）。
+- 向量還沒讀完或讀取失敗時，只停用搜尋，不影響其他功能。
 - 摘句顯示時附 WhiskyFun 出處。
-- 每次搜尋不讀資料庫；向量還沒讀完或讀取失敗時，只停用搜尋，不影響其他功能。
-- 預估一次搜尋約 1–2 秒，主要花在兩次 OpenAI 呼叫（翻譯、embedding）。
 
 ---
 
 ## 8. 執行步驟與驗收
 
-1. ✅ 階段一：產生全部 chunk，人工檢查。
-2. ✅ 本地練習：前 5000 筆存成 JSON，測試搜尋與中文翻譯。
-3. 建庫：前 5000 筆寫入 MongoDB。
-4. 搜尋 API 與前端畫面（動手前另行討論）。
+1. ✅ 產生全部 chunk，人工檢查。
+2. ✅ 本地練習：前 5000 筆，測試搜尋與中文翻譯。
+3. ✅ 建庫：前 5000 筆寫入 MongoDB。
+4. 後端搜尋：
+   - ✅ B1 cosine 與取前 N 名
+   - ✅ B2–B3 啟動時讀向量進記憶體
+   - B5 `searchByFlavour`：未讀完回 503；embedding 失敗回 502
+   - B6 Validation、B7 Controller + Route（含 rate limit）
+5. 前端畫面（動手前另行討論）。
 
 ### 驗收題庫
 
@@ -213,11 +230,11 @@ Comments: {comments}
 | 項目 | 狀態 |
 |---|---|
 | HTML 字元碼的解碼方式 | ✅ 使用 `entities` 套件 |
-| 中文問題是否先翻譯 | ✅ 先用 LLM 翻成英文 |
+| 中文問題是否先翻譯 | 暫不翻譯；準度不夠再加回 |
 | 其他烈酒的過濾 | 待查原始資料能否分出威士忌與其他烈酒 |
 | 酒名是一句話的資料 | 待查筆數與處理方式 |
-| Railway 記憶體是否足夠 | 待確認（5000 筆約 60 MB） |
-| 搜尋 API 設計 | 未討論 |
+| Railway 記憶體是否足夠 | 待確認（常駐約 85 MB，讀取高峰約 450 MB） |
+| 搜尋 API 設計 | 初定 `POST /api/flavour-search` |
 | 前端呈現方式 | 未討論 |
 | 是否加上 LLM 生成回答 | 檢索驗收通過後評估；加上時禁止捏造未檢索到的酒款與風味 |
 

@@ -12,7 +12,7 @@ import { join } from 'node:path'
 import { embedTexts } from '../../src/services/openaiEmbedder.ts'
 import type { ChunkLine } from './buildChunks.mts'
 
-const HOW_MANY = 2000
+const HOW_MANY = 5000
 
 /** OpenAI caps one request; 100 chunks (about 25,000 tokens) stays well under it. */
 const BATCH_SIZE = 100

@@ -44,7 +44,7 @@ Auction 屬於 Phase 3，不屬於 Phase 2。
    - 根據口味、收藏、預算、當下情境推薦
    - 解釋推薦原因
 
-7. **AI 口味搜尋（RAG）**（建庫腳本與本地練習完成，搜尋 API 尚未實作）
+7. **AI 口味搜尋（RAG）**（建庫完成，搜尋 API 進行中）
    - 在 Whisky 頁以自然語言描述風味，從評論家品飲筆記找出最接近的酒款
    - MVP 只做檢索（語意搜尋），不由 LLM 生成回答
    - 詳細規格見第 11 節與 `WHISKY_RAG_SPEC.md`
@@ -190,7 +190,7 @@ frontend/
 
 ```text
 backend/
-├── scripts/        # 離線腳本（Phase 2 RAG 建庫，規劃中），不在編譯範圍內
+├── scripts/        # 離線腳本（Phase 2 RAG 建庫），不在編譯範圍內
 ├── src/
 │   ├── config/
 │   ├── controllers/
@@ -282,7 +282,7 @@ Whisky
 - Review（Phase 1）
 - Auction（Phase 3，Schema 見第 12 節）
 - Bid（Phase 3，Schema 見第 12 節）
-- WhiskyNoteChunk（Phase 2，已定案、尚未實作，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
+- WhiskyNoteChunk（Phase 2，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
 
 ### User Schema
 
@@ -560,20 +560,20 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 ### 11.1 AI 口味搜尋（RAG）
 
-狀態：建庫腳本與本地練習完成，搜尋 API 尚未實作。完整規格見 `WHISKY_RAG_SPEC.md`。
+狀態：建庫完成（MongoDB 5000 筆），搜尋 API 進行中。完整規格見 `WHISKY_RAG_SPEC.md`。
 
 - 用途：Whisky 頁的口味搜尋；Sommelier 推薦不改用 Static Dataset（資料集沒有價格，且多為買不到的老酒與獨立裝瓶）。
 - 切塊：一瓶酒一塊，內容為酒名、Nose、Mouth、Finish、Comments。
 - Embedding：後端以 OpenAI `text-embedding-3-small`（1536 維）自行產生。
 - 範圍：先做前 5000 筆。
 - 儲存：MongoDB Atlas 新 collection `whiskynotechunks`，向量存成 `[Number]`；與翻譯快取分開。
-- 搜尋：不用 Atlas Vector Search；後端啟動時把向量讀進記憶體，自己算 cosine。中文問題先用 LLM 翻成英文。
+- 搜尋：不用 Atlas Vector Search；後端啟動時把向量讀進記憶體，自己算 cosine。中文問題不翻譯，直接 embedding。
 - 建庫：`backend/scripts/` 的離線腳本，不在後端編譯範圍內。
 
 ```text
 【建庫】Static Dataset → 切段落 → 清理 → chunk → OpenAI embedding → MongoDB Atlas
 【啟動】Backend 連上 MongoDB → 向量讀進記憶體
-【搜尋】Frontend → Backend API → LLM 翻成英文 → OpenAI embedding → 記憶體 cosine → 酒款與命中摘句
+【搜尋】Frontend → Backend API → OpenAI embedding → 記憶體 cosine → 酒款與命中摘句
 ```
 
 ---

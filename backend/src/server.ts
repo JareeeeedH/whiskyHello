@@ -2,6 +2,21 @@ import app from './app'
 import { connectDatabase } from './config/db'
 import { env } from './config/env'
 import { startAuctionAutoClose } from './jobs/auctionAutoClose'
+import { loadVectors } from './services/flavourSearchService'
+
+/**
+ * Reads the flavour-search vectors into memory without holding up the server.
+ * If it fails, only flavour search is unavailable; the rest of the site keeps working.
+ */
+async function loadVectorsInBackground(): Promise<void> {
+  try {
+    const count = await loadVectors()
+    console.log(`Flavour search ready: ${count} vectors loaded.`)
+  } catch (error) {
+    console.error('Flavour search disabled: could not load vectors.')
+    console.error(error instanceof Error ? error.message : error)
+  }
+}
 
 async function start(): Promise<void> {
   let databaseConnected = false
@@ -36,8 +51,11 @@ async function start(): Promise<void> {
 
   if (databaseConnected) {
     startAuctionAutoClose()
+    // No await: the site is already open; vectors load in the background.
+    void loadVectorsInBackground()
   } else {
     console.warn('Auction auto close disabled: no database connection.')
+    console.warn('Flavour search disabled: no database connection.')
   }
 }
 

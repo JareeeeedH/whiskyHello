@@ -68,12 +68,13 @@ const NO_IMAGE = { imageUrl: null, imageSourceUrl: null }
  * Keeps a photo only when it is exactly one of the HTTPS image results the web search
  * returned, so a guessed, edited or page URL never reaches the UI. Its source page comes
  * from that same result. A missing photo is never an error.
+ * A trailing "#..." is ignored: the LLM sometimes adds one, and browsers never send it.
  */
 function toImage(
   rawImageUrl: unknown,
   imageResults: WebImageResult[],
 ): Pick<WhiskyRecommendation, 'imageUrl' | 'imageSourceUrl'> {
-  const imageUrl = toText(rawImageUrl)
+  const imageUrl = toText(rawImageUrl).split('#')[0]
   const result = imageUrl ? imageResults.find((image) => image.imageUrl === imageUrl) : undefined
   return result ? { imageUrl: result.imageUrl, imageSourceUrl: result.sourceWebsiteUrl } : NO_IMAGE
 }

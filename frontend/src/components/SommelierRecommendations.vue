@@ -20,6 +20,31 @@ const failedImages = reactive(new Set<string>())
 /** Photos wider than the frame: they fill its height and lose only empty side margins. */
 const wideImages = reactive(new Set<string>())
 
+/** Words that end the distillery part of a name: ages, "Year Old" suffixes and style words. */
+const NAME_STOP_WORDS = [
+  'year', 'years', 'yo', 'old', 'ten', 'twelve', 'fifteen', 'eighteen',
+  'from', 'single', 'malt', 'blended', 'scotch', 'whisky', 'whiskey',
+]
+
+/**
+ * The distillery or brand at the start of a whisky name, for the no-photo card:
+ * "Highland Park 18 Year Old Viking Pride" → "Highland Park", "Big Peat (55.7%, …)" → "Big Peat".
+ */
+function distilleryName(name: string): string {
+  const words = name.split('(')[0].trim().split(/\s+/)
+  const kept: string[] = []
+  for (const word of words) {
+    if (/\d/.test(word) || NAME_STOP_WORDS.includes(word.toLowerCase())) {
+      break
+    }
+    kept.push(word)
+    if (kept.length === 3) {
+      break
+    }
+  }
+  return kept.length ? kept.join(' ') : name
+}
+
 function formatIndex(index: number): string {
   return `NO.${String(index + 1).padStart(2, '0')}`
 }
@@ -78,13 +103,10 @@ function onPhotoLoad(event: Event, url: string) {
             />
           </div>
           <div v-else class="photo-frame is-empty">
-            <svg viewBox="0 0 40 96" aria-hidden="true">
-              <path
-                d="M16 4h8v18c0 4 8 8 8 18v48a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V40c0-10 8-14 8-18z"
-              />
-              <path d="M8 52h24M8 74h24" />
-            </svg>
-            <span>暫無酒瓶照片</span>
+            <span class="empty-rule" aria-hidden="true" />
+            <span class="empty-name" lang="en">{{ distilleryName(item.whiskyName) }}</span>
+            <span class="empty-rule" aria-hidden="true" />
+            <span class="empty-note">暫無酒瓶照片</span>
           </div>
         </figure>
 
@@ -295,20 +317,30 @@ function onPhotoLoad(event: Event, url: string) {
   color: #b39566;
 }
 
-.photo-frame.is-empty svg {
-  width: 2.2rem;
-  height: auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.4;
-  stroke-linejoin: round;
-  opacity: 0.75;
+.empty-rule {
+  display: block;
+  width: 1.5rem;
+  height: 1px;
+  margin: 0 auto;
+  background: var(--wh-gold);
+  opacity: 0.7;
 }
 
-.photo-frame.is-empty span {
-  font-size: 0.72rem;
+.empty-name {
+  padding: 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: var(--fw-display);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.empty-note {
+  margin-top: 0.4rem;
+  font-size: 0.68rem;
   letter-spacing: 0.08em;
-  opacity: 0.85;
+  opacity: 0.6;
 }
 
 .card.is-best {

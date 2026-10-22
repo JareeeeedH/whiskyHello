@@ -328,6 +328,19 @@ describe('bottle photos', () => {
     }
   })
 
+  it('ignores a "#" the LLM adds to the end of an image result URL', () => {
+    const result = toRecommendationResult(
+      llmOutput({ bestMatch: { ...BEST_MATCH, imageUrl: `${GLENMORANGIE_PHOTO.imageUrl}#` } }),
+      [GLENMORANGIE_PHOTO],
+    )
+
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') {
+      assert.equal(result.recommendations[0].imageUrl, GLENMORANGIE_PHOTO.imageUrl)
+      assert.equal(result.recommendations[0].imageSourceUrl, GLENMORANGIE_PHOTO.sourceWebsiteUrl)
+    }
+  })
+
   it('drops photos that are not image results from the search, without failing the recommendation', () => {
     const notImageResults = [
       ABERLOUR_PHOTO.sourceWebsiteUrl,
@@ -414,18 +427,18 @@ describe('recommendWhiskies', () => {
   })
 
   it('asks for exact image results and no reused or guessed photos', () => {
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('the image_url of that image result, copied exactly'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never use a page URL as imageUrl'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('search once more for that whisky with a different query'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes("that result's image_url, copied exactly"))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never use a page URL'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('search once more with a different query'))
   })
 
   it('asks for brand names, a budget band and sommelier wording', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('starting with the brand or distillery'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('within about 10% either side'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm requirement for bestMatch only'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a firm target price per bottle in TWD, for bestMatch only'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('closest flavor fit within the range'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Do not default to a famous bottle'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('never mention fields, JSON or how the input was processed'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('never mention fields, JSON, candidates or how the input was processed'))
   })
 
   it('explains every taste key and occasion to the LLM', () => {
@@ -437,8 +450,7 @@ describe('recommendWhiskies', () => {
   it('asks the LLM to pick the second whisky from the candidates by id', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set whiskyId to its id'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set criticPick to null'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('criticPick must be a different whisky from bestMatch'))
-    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never call it a candidate'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('a different whisky from bestMatch'))
     const pick = RECOMMENDATION_SCHEMA.properties.criticPick.anyOf[0]
     assert.deepEqual(pick.required, ['whiskyId', 'reason', 'matches', 'considerations'])
   })

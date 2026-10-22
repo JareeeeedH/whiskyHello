@@ -241,6 +241,63 @@ label {
   font-family: var(--font-body) !important;
 }
 
+/* Site toast (MainLayout): a small dark card with a gold accent, sized to its text. */
+.wh-toast {
+  width: auto;
+  max-width: calc(100vw - 2rem);
+}
+
+.wh-toast .p-toast-message {
+  margin: 0 0 0.6rem;
+  border: 1px solid var(--wh-night-line);
+  border-left: 2px solid var(--wh-gold);
+  border-radius: 10px;
+  background: var(--wh-night-raised);
+  color: var(--wh-cream);
+  box-shadow: 0 12px 32px rgba(17, 13, 17, 0.28);
+  backdrop-filter: none;
+}
+
+.wh-toast .p-toast-message .p-toast-message-content {
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.75rem 0.7rem 1rem;
+}
+
+.wh-toast .p-toast-message .p-toast-message-icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--wh-gold-bright);
+}
+
+.wh-toast .p-toast-message .p-toast-summary {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-ui);
+  letter-spacing: 0.02em;
+  color: var(--wh-cream);
+}
+
+.wh-toast .p-toast-message .p-toast-detail {
+  color: var(--wh-mauve);
+}
+
+.wh-toast .p-toast-message .p-toast-close-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: 0.25rem;
+  color: var(--wh-mauve);
+}
+
+.wh-toast .p-toast-message .p-toast-close-button:hover {
+  background: rgba(241, 233, 220, 0.08);
+  color: var(--wh-cream);
+}
+
+.wh-toast .p-toast-message .p-toast-close-button:focus-visible {
+  outline: 1px solid var(--wh-gold);
+  outline-offset: 1px;
+}
+
 /* Admin / product cards: editorial title, UI subtitle */
 .p-card-title {
   font-family: var(--font-display) !important;

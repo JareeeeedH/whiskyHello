@@ -51,7 +51,7 @@ export const CONVERSATION_STEPS: readonly StepKind[] = [
 ]
 
 /** How long the "Sommelier is on the way" state stays before the conversation opens. */
-export const SOMMELIER_ARRIVAL_MS = 3000
+export const SOMMELIER_ARRIVAL_MS = 2000
 export const SOMMELIER_ARRIVAL_TEXT = { en: 'Sommelier is coming…', zh: '侍酒師正在過來…' } as const
 
 /** The opening line follows the visitor's local time of day. */

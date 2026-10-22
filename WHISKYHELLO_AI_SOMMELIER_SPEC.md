@@ -337,7 +337,7 @@ Input → 組成英文句子 → embedding → 記憶體向量比對 → 前 5 �
 
 - 句子：`utils/flavourSentence.ts`。風味 1–3 `a hint of`、4–7 `noticeable`、8–10 `dominant`；酒體 1–3 light、4–7 medium、8–10 full；不放情境與預算（筆記不會提到，且會沖淡風味）。例：`Light-bodied whisky with a hint of floral notes and noticeable malty, grainy notes.`
 - 每個候選送給 LLM 的內容：`id` 與 `notes`（chunk 全文，第一行為酒名）；不送相似度分數
-- Prompt 只要求三件事：挑最符合偏好的一款並回傳其 `id`；理由依據筆記內容（可以說「評論家筆記提到…」）；都不合適時為 `null`
+- Prompt 規則：挑最符合偏好的一款並回傳其 `id`，優先明顯呈現評分 >= 7 的風味；不可與 `best_match` 是同一支酒；理由依據筆記內容（可以說「評論家筆記提到…」），不可稱為「候選」；都不合適時為 `null`
 - 不考慮預算與購買通路；可以是老酒、限量或獨立裝瓶
 - 向量未載入或 embedding 失敗時，`candidates` 為空，只回 `best_match`
 

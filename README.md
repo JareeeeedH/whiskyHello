@@ -26,18 +26,6 @@ Frontend ──REST──▶ Backend ──▶ MongoDB Atlas（User、Review、A
    └── Static Whisky Dataset（酒款、評論家筆記，打包在前端）
 ```
 
-- Backend 分層：Route → Validation → Controller → Service → Model
-- Frontend 不直接連 MongoDB 或 OpenAI
-- 流量限制、Sommelier 每日次數、RAG 向量都存在後端記憶體，只能單一實例
-
-## RAG 建庫（離線）
-
-```bash
-cd backend
-npm run rag:chunks   # 原始資料 → chunks.jsonl（不呼叫 API）
-npm run rag:build    # chunks → embedding → MongoDB whiskynotechunks（未變更的會跳過）
-```
-
 ## 文件
 
 | 文件 | 內容 |

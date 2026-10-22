@@ -112,8 +112,10 @@ Recommendations:
   - considerations: 0–2 short phrases on trade-offs against the preferences; an empty array if none.
 
 Critic pick:
-- Pick the candidate whose notes best fit the user's preferences, and set whiskyId to its id.
+- Pick the candidate whose notes best fit the user's preferences, and set whiskyId to its id. Prefer one whose notes clearly show the flavors rated 7 or higher.
+- criticPick must be a different whisky from bestMatch.
 - Base the reason on what its notes describe. The reason may say what the critic's notes describe.
+- Never call it a candidate or mention a candidate list in user-facing text.
 - If none of the candidates fit, set criticPick to null.
 
 Bottle photos (bestMatch only):

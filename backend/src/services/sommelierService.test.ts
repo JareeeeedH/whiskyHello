@@ -437,6 +437,8 @@ describe('recommendWhiskies', () => {
   it('asks the LLM to pick the second whisky from the candidates by id', () => {
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set whiskyId to its id'))
     assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('set criticPick to null'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('criticPick must be a different whisky from bestMatch'))
+    assert.ok(RECOMMENDATION_INSTRUCTIONS.includes('Never call it a candidate'))
     const pick = RECOMMENDATION_SCHEMA.properties.criticPick.anyOf[0]
     assert.deepEqual(pick.required, ['whiskyId', 'reason', 'matches', 'considerations'])
   })

@@ -123,7 +123,7 @@ describe('sommelier questions', () => {
 
 describe('thinking pacing', () => {
   it('lets the Sommelier arrive for about 3 s before the conversation opens', () => {
-    assert.equal(SOMMELIER_ARRIVAL_MS, 3000)
+    assert.equal(SOMMELIER_ARRIVAL_MS, 2000)
     assert.deepEqual(SOMMELIER_ARRIVAL_TEXT, { en: 'Sommelier is coming…', zh: '侍酒師正在過來…' })
   })
 

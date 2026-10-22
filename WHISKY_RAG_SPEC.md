@@ -1,103 +1,63 @@
 # WhiskyHello RAG Spec — 口味搜尋
 
-> 範圍：Phase 2（AI）
+> 範圍：Phase 2（AI）｜所屬總規格：`WHISKYHELLO_SPEC.md` 第 11 節
 >
-> 文件狀態：建庫完成（MongoDB 5000 筆）；搜尋 service 進行中；API、前端尚未實作
->
-> 所屬總規格：`WHISKYHELLO_SPEC.md` 第 11 節
+> 狀態：建庫與向量比對完成，已用於 Sommelier 第二款；口味搜尋 API 與前端未做
 
 ---
 
-## 0. 目前做法（2026-10）
+## 0. 目前狀態（2026-10）
 
-- **範圍**：只做 `chunks.jsonl` 的前 5000 筆（全部 17,344 筆）。
-- **儲存**：MongoDB `whiskynotechunks`，向量存成 `[Number]`；5000 筆約 103 MB（Atlas 免費方案上限 512 MB）。
-- **搜尋**：不用 Atlas Vector Search。後端啟動時把向量讀進記憶體，每次搜尋自己算 cosine、取前 5 名（5000 筆約 7–9 ms）。
-- **中文問題**：不翻譯，直接 embedding（翻譯功能已取消，見下方測試結果）。
-- **費用**：5000 筆 embedding 約 $0.022 美元；本次建庫沿用本地練習的向量，未再呼叫 OpenAI。
-
-### 進度
-
-| 項目 | 檔案 | 狀態 |
+| 項目 | 檔案（`backend/` 下） | 狀態 |
 |---|---|---|
 | 切塊（17,344 塊，跳過 2 筆） | `scripts/rag/chunk.mts`、`buildChunks.mts` | ✅ |
 | 資料模型 | `src/models/WhiskyNoteChunk.ts` | ✅ |
 | Embedding | `src/services/openaiEmbedder.ts` | ✅ |
-| 本地練習庫（JSON，不進 git） | `scripts/rag/practiceBuild.mts`、`practiceSearch.mts` | ✅ |
-| 建庫寫入 MongoDB（`npm run rag:build`） | `scripts/rag/buildVectors.mts` | ✅ 5000 筆 |
-| cosine 與取前 N 名（含測試） | `src/utils/vectorSearch.ts` | ✅ |
-| 啟動時讀向量進記憶體 | `src/services/flavourSearchService.ts`、`src/server.ts` | ✅ |
+| 建庫：前 5000 筆寫入 MongoDB（`npm run rag:build`） | `scripts/rag/buildVectors.mts` | ✅ |
+| cosine、取前 N 名 | `src/utils/vectorSearch.ts` | ✅ |
+| 啟動時讀向量、`searchByFlavour(question, count)` | `src/services/flavourSearchService.ts`、`src/server.ts` | ✅ |
 | Sommelier 第二款（偏好組句 → 前 5 名 → LLM 挑一款） | `src/utils/flavourSentence.ts`、`src/services/sommelierService.ts` | ✅ |
-| 搜尋 service、Validation、Controller、Route | — | 待做 |
-| 前端 | — | 待做 |
+| 口味搜尋 API（Validation、Controller、Route、rate limit） | — | 未做 |
+| 口味搜尋前端頁面 | — | 未做 |
 
-（路徑皆在 `backend/` 下）
-
-### 本地測試結果（5000 筆、8 題中文風味問題）
-
-- **中文原句較差**：後 5 題命中 9/25；先用 LLM 翻成英文 17/25、改寫成品飲筆記 16/25。翻譯多一次 LLM 呼叫，目前先不做。
-- **其他烈酒干擾**：蘭姆酒、干邑、Cachaça、Mezcal 幾乎每題都排進前 5 名，需要「酒的種類」過濾。
-- **酒名影響大**：酒名含關鍵字（例如 Milk & Honey）容易排前面。
-- **資料問題**：部分酒名其實是一句評論（例如 `So you thought 64.45% vol. was a lot?...`）。
-- 用關鍵詞判斷準度不可靠；正式驗收需要有標註答案的題庫。
-
-### 記憶體實測
-
-- 讀進記憶體後約 85 MB（若直接用 MongoDB 回傳的陣列約 200 MB，所以複製成新陣列）。
-- 讀取約 7–20 秒，期間記憶體高峰約 450 MB；Railway 方案需至少 512 MB。
+本地練習庫（`scripts/rag/practiceBuild.mts`、`practiceSearch.mts`，輸出為 JSON、不進 git）只用於測試。
 
 ---
 
-## 1. 目標
+## 1. 目標與範圍
 
-在 Whisky 頁提供**口味搜尋**：使用者用一句話描述想喝的風味（例如「營火煙燻帶海味」），系統從 Static Dataset 的評論家品飲筆記中找出風味最接近的酒款，結果可點進站內酒款頁。
-
-MVP 只做**檢索（語意搜尋）**，不讓 LLM 生成回答。檢索準度通過驗收後，再評估是否加上生成（見第 9 節）。
-
-### 不在本次範圍
-
-- Sommelier 的第一款不使用本資料集（需台灣買得到、符合預算）；第二款從本資料集挑選，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7。
-- 使用者自己的評論不需要向量搜尋，日後直接放進 Sommelier prompt 即可。
+- 在 Whisky 頁用一句話描述風味（例如「營火煙燻帶海味」），從評論家品飲筆記找出最接近的酒款，連到站內酒款頁。
+- MVP 只做檢索，不讓 LLM 生成回答；驗收通過後再評估。
+- Sommelier：第一款不用本資料集（需台灣買得到、符合預算）；第二款從本資料集挑選（`WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）。
+- 使用者自己的評論不做向量搜尋。
 
 ---
 
-## 2. 資料來源與實測數據
+## 2. 資料來源
 
-來源：`frontend/src/data/raw/whiskyDataset.json`，共 17,346 筆；每筆欄位為 `id`、`NAME`、`NOTE`、`SCORE`、`IMAGE_PATH`。
+`frontend/src/data/raw/whiskyDataset.json`，17,346 筆，欄位 `id`、`NAME`、`NOTE`、`SCORE`、`IMAGE_PATH`。`NOTE` 為 WhiskyFun 評論家筆記，著作權屬原作者。
 
-`NOTE` 是一整篇評論家筆記（WhiskyFun，著作權屬原作者）。以 `criticReviewParser` 解析的實測結果：
+以 `criticReviewParser` 解析：
 
-| 段落 | 出現篇數 | 長度中位數（字元） | 90% 以內 |
-|---|---|---|---|
-| 開頭評語（無標籤） | 13,822 | 144 | 324 |
-| Colour | 17,310 | 10 | 15 |
-| Nose | 17,319 | 304 | 476 |
-| Mouth（含 Palate、Taste、Mouth (neat)） | 17,313 | 267 | 414 |
-| Finish | 17,282 | 81 | 144 |
-| Comments | 17,281 | 120 | 234 |
+| 段落 | 篇數 | 長度中位數（字元） |
+|---|---|---|
+| 開頭評語（無標籤） | 13,822 | 144 |
+| Colour | 17,310 | 10 |
+| Nose | 17,319 | 304 |
+| Mouth（含 Palate、Taste、Mouth (neat)） | 17,313 | 267 |
+| Finish | 17,282 | 81 |
+| Comments | 17,281 | 120 |
 
-- 99.3% 的筆記四個段落（Nose、Mouth、Finish、Comments）齊全；2 篇解析不出任何段落。
-- 約一半的 Nose 和 Mouth 段落含 `With water:`（加水後的描述）。
-- 1,912 篇筆記、441 筆酒名含 HTML 字元碼（例如 `&egrave;`、`&mdash;`）。
-- 273 個酒名重複出現（多 278 筆），id 與筆記各不相同。
-
-`SCORE`（例如 `SGP: 357 - 86 points`）是評論家評分，與向量相似度無關。
-
-前端的 `notes-*.json` 是懶載入用的切檔，不是 RAG chunk。
+- 99.3% 四段齊全；2 篇解析不出段落。
+- 1,912 篇筆記、441 筆酒名含 HTML 字元碼。
+- 273 個酒名重複（多 278 筆），id 與筆記不同。
+- `SCORE` 是評論家評分，與相似度無關；前端的 `notes-*.json` 是懶載入切檔，不是 RAG chunk。
 
 ---
 
 ## 3. 切塊規則
 
-### 一瓶酒一塊
-
-約 17,300 塊。不再切成 nose、mouth、comments 三塊，原因：
-
-- 整瓶內容中位數約 870 字元（約 200 token），合成一塊不會稀釋語意。
-- 口味搜尋的結果本來就是「一瓶酒」，一瓶一塊省掉同瓶多次命中的彙整與排名邏輯。
-- 「聞起來煙燻、喝起來偏甜」這類跨段落的需求，整瓶一起比對較容易命中。
-
-### 內容
+**一瓶酒一塊**：整瓶中位數約 870 字元（約 200 token），不會稀釋語意；結果本來就是一瓶酒；跨段落的需求（聞起來煙燻、喝起來甜）較容易命中。
 
 ```text
 {NAME}
@@ -107,144 +67,101 @@ Finish: {finish}
 Comments: {comments}
 ```
 
-| 段落 | 放不放 | 原因 |
-|---|---|---|
-| 酒名 | 放 | 使用者常以酒廠名稱為參考；酒名常含桶型資訊 |
-| Nose、Mouth、Finish | 放 | 口味搜尋的主力 |
-| Comments | 放 | 喝完後寫的結論；抽樣約 40% 含整體風格總結（例如「rustic and robust」）。約 27% 提到別瓶酒，其中約一半是有用的相似性線索（例如「has the body of Lagavulin」）；閒聊約占 18%，篇幅短，影響有限 |
-| 開頭評語 | 不放 | 喝之前寫的背景與預期，抽樣幾乎沒有實際風味描述，約 52% 是閒聊 |
-| Colour | 不放 | 對口味搜尋幫助小 |
-
-- 標籤統一寫成英文 `Nose:`、`Mouth:`、`Finish:`、`Comments:`；原文的 `Palate`、`Taste`、`Mouth (neat)` 一律輸出為 `Mouth:`。
-- 缺少的段落整行省略，不留空標籤。
-- `With water:` 保留在原段落中。
-- 不再依長度切分。
-
-### 文字清理
-
-1. HTML 字元碼轉回字元（`cr&egrave;me` → `crème`），酒名與筆記都要處理；使用完整的解碼方法，不手寫對照表。
-2. 整理多餘空白與換行，去掉頭尾空白。
-3. **保留重音符號**：語意比對不依賴字母完全相同，去掉重音反而會改變名稱（`Càrn Mor`）或字義。
-4. 原始資料檔不修改，只在建庫時轉換。
-
-### 例外處理
-
-- 解析不出任何段落的筆記：跳過，記錄在 log。
-- 重複酒名：每筆都建，搜尋結果顯示時處理同名並排。
+- 放：酒名（含酒廠、桶型）、Nose、Mouth、Finish、Comments（喝完的結論，常含風格總結與相似酒款）。
+- 不放：開頭評語（喝之前的背景，約一半是閒聊）、Colour。
+- 標籤統一為英文；`Palate`、`Taste`、`Mouth (neat)` 一律為 `Mouth:`；缺少的段落省略；`With water:` 保留；不依長度切分。
+- 清理：HTML 字元碼用 `entities` 解碼；整理空白；**保留重音符號**；原始資料不修改。
+- 解析不出段落的跳過並記 log；重複酒名每筆都建。
 
 ---
 
-## 4. 資料模型
-
-新增 collection `whiskynotechunks`（Model：`WhiskyNoteChunk`），與翻譯快取 `whiskytranslations` 分開，沿用其慣例。
+## 4. 資料模型：`whiskynotechunks`
 
 | 欄位 | 說明 |
 |---|---|
-| `whiskyId` | 對應 Static Dataset 的 `id` 與 `/whiskies/:id` |
+| `whiskyId` | Static Dataset 的 `id`，對應 `/whiskies/:id` |
 | `name` | 清理後的酒名 |
-| `text` | 送去 embedding 的完整 chunk 文字，也是搜尋結果摘句的來源 |
-| `embedding` | 1536 維向量，存成 `[Number]`（每筆約 20 KB） |
-| `embeddingModel` | 例如 `text-embedding-3-small`，換模型時判斷是否需重建 |
-| `sourceHash` | `text` 的 SHA-256；未變更則重跑時跳過 |
+| `text` | 送去 embedding 的 chunk 全文，也是摘句與 Sommelier 候選內容的來源 |
+| `embedding` | 1536 維，`[Number]`（每筆約 20 KB） |
+| `embeddingModel` | 換模型時判斷是否重建 |
+| `sourceHash` | `text` 的 SHA-256，未變更則重跑時跳過 |
 | `createdAt`、`updatedAt` | timestamps |
 
-- 不存 `__v`（`versionKey: false`）。
-- 唯一索引：`whiskyId + embeddingModel`。
-- 不存 `points`（評分與口味搜尋無關）。
-- 容量：全部 17,344 筆約 356 MB，太接近 512 MB 上限；若要做全部，改存 float32 二進位（約 121 MB）。
-
-### 不與翻譯快取合併的原因
-
-- 產生方式不同：翻譯是使用者觸發、一次一筆；chunk 是腳本一次建立全部。
-- RAG 會因換模型、調整規則而重建；分開時可清空重建，不會誤刪翻譯。
-- 唯一性規則不同，合併後無法用索引保證。
+- 唯一索引 `whiskyId + embeddingModel`；不存 `__v`、`points`。
+- 與翻譯快取 `whiskytranslations` 分開：產生方式、重建時機、唯一性都不同。
+- 容量：5000 筆約 103 MB（Atlas 免費上限 512 MB）；全部約 356 MB，要做全部時改存 float32 二進位（約 121 MB）。
 
 ---
 
-## 5. Embedding 與向量索引
+## 5. Embedding 與搜尋
 
-- 模型：OpenAI `text-embedding-3-small`，1536 維（預設維度）。
-- 向量由後端自行產生，**不使用** Atlas Auto Embedding。
-- **建庫與搜尋必須使用同一個模型與維度**；模型名稱寫在 `openaiEmbedder.ts` 的 `EMBEDDING_MODEL`。
-- **不建 Atlas Vector Search 索引**：資料量小，後端在記憶體裡自己算 cosine（暴力法）即可。
+- 模型 `text-embedding-3-small`，1536 維；後端自行產生，不用 Atlas Auto Embedding、不建 Atlas Vector Search 索引。
+- 建庫與搜尋必須同一模型（`openaiEmbedder.ts` 的 `EMBEDDING_MODEL`）。
+
+```text
+【啟動】連上 MongoDB → 背景讀全部向量進記憶體（不擋住網站啟動）
+【搜尋】問題 → embedding → 記憶體算 cosine → 前 N 名
+```
+
+- 每次搜尋不讀資料庫，只呼叫一次 OpenAI；5000 筆比對約 7–9 ms。
+- 向量未讀完或讀取失敗時只停用搜尋，不影響其他功能。
+- 中文問題不翻譯，直接 embedding。
+- Sommelier 的問題由 `buildEmbeddingSentence` 把偏好組成英文句子（只放風味與酒體，不放情境、預算）。
+- 摘句顯示時附 WhiskyFun 出處。
 
 ---
 
 ## 6. 建庫流程（離線）
 
-腳本放在 `backend/scripts/`，以 tsx 執行，不在後端編譯範圍內；直接 import `frontend/src/utils/criticReviewParser.ts`，不另寫一套解析。
+腳本在 `backend/scripts/`，以 tsx 執行，不在後端編譯範圍；直接 import 前端的 `criticReviewParser.ts`。
 
 ```text
-階段一：產生 chunk（不呼叫付費 API）
-  讀 raw JSON → criticReviewParser 切段落 → 挑出四段 → 清理文字
-  → 組成 chunk → 寫入本機檔案（JSONL）→ 人工檢查
-
-階段二：建立向量
-  讀 JSONL → 分批呼叫 OpenAI embedding → 寫入 whiskynotechunks
+npm run rag:chunks   raw JSON → 切段落 → 清理 → chunks.jsonl（不呼叫 API）
+npm run rag:build    chunks.jsonl → embedding → whiskynotechunks（以 sourceHash 跳過未變更）
 ```
 
-- 本機輸出檔加入 `.gitignore`，不 commit、不公開。
-- 階段二以 `sourceHash` 判斷是否已建立，可中斷後續跑。
+- 輸出檔在 `.gitignore`；`rag:build` 會沿用本地練習庫已有的向量。
+- 費用：5000 筆約 110 萬 tokens，約 $0.022 美元。
 
 ---
 
-## 7. 搜尋流程（線上）
+## 7. 測試結果與已知問題
 
-```text
-【後端啟動】連上 MongoDB → 背景讀全部向量進記憶體（只做一次，不擋住網站啟動）
+**中文問句（8 題）**：原句命中 9/25；先翻成英文 17/25、改寫成品飲筆記 16/25。
 
-【每次搜尋】使用者問題 → 同一模型 embedding → 記憶體算 cosine，取前 5 名
-          → 回傳酒款、分數、命中摘句、酒款頁連結
-```
+**Sommelier 組句（5 組）**：命中約 77%，前 5 名沒有其他烈酒；加上情境與預算會干擾泥煤這類強烈風味，因此已拿掉。
 
-- 照既有分層：Route → Validation → Controller → Service → Model。
-- 每次搜尋不讀資料庫，只呼叫一次 OpenAI（embedding）。
-- 向量還沒讀完或讀取失敗時，只停用搜尋，不影響其他功能。
-- 摘句顯示時附 WhiskyFun 出處。
+已知問題：
 
----
+- 其他烈酒（蘭姆、干邑、Cachaça、Mezcal）常出現在中文問句的結果中。
+- 酒名含關鍵字容易排前面（Big Peat、White Oak）。
+- 部分酒名其實是一句評論（`So you thought 64.45% vol. was a lot?...`）。
+- 同一款酒的不同年份會同時佔掉候選名額（例如 Dalwhinnie 15 出現兩次）。
+- 主要風味不一定排在句子前面（風味照固定順序排）。
+- 關鍵詞命中只能參考；正式驗收需要有標註答案的題庫。
 
-## 8. 執行步驟與驗收
-
-1. ✅ 產生全部 chunk，人工檢查。
-2. ✅ 本地練習：前 5000 筆，測試搜尋與中文翻譯。
-3. ✅ 建庫：前 5000 筆寫入 MongoDB。
-4. 後端搜尋：
-   - ✅ B1 cosine 與取前 N 名
-   - ✅ B2–B3 啟動時讀向量進記憶體
-   - B5 `searchByFlavour`：未讀完回 503；embedding 失敗回 502
-   - B6 Validation、B7 Controller + Route（含 rate limit）
-5. 前端畫面（動手前另行討論）。
-
-### 驗收題庫
-
-準備 15–20 題，中英文都要有，例如：泥煤、果香、雪莉桶、藥水味、海岸風格、「像 Lagavulin」、「熱帶水果」。檢查：
-
-- 前幾名是否合理。
-- 命中摘句是否真的對應問題。
-- 中文題的效果是否明顯比英文差。
+**記憶體**：常駐約 85 MB（直接用 MongoDB 回傳的陣列約 200 MB，所以複製成新陣列）；讀取 7–20 秒，高峰約 450 MB，Railway 需至少 512 MB。
 
 ---
 
-## 9. 待決定
+## 8. 待做與待決定
 
 | 項目 | 狀態 |
 |---|---|
-| HTML 字元碼的解碼方式 | ✅ 使用 `entities` 套件 |
-| 中文問題是否先翻譯 | 暫不翻譯；準度不夠再加回 |
-| 其他烈酒的過濾 | 待查原始資料能否分出威士忌與其他烈酒 |
-| 酒名是一句話的資料 | 待查筆數與處理方式 |
-| Railway 記憶體是否足夠 | 待確認（常駐約 85 MB，讀取高峰約 450 MB） |
-| 搜尋 API 設計 | 初定 `POST /api/flavour-search` |
+| Railway 記憶體是否足夠 | 待確認 |
+| 口味搜尋 API | 初定 `POST /api/v1/flavour-search` |
 | 前端呈現方式 | 未討論 |
-| 是否加上 LLM 生成回答 | 檢索驗收通過後評估；加上時禁止捏造未檢索到的酒款與風味 |
+| 驗收題庫（15–20 題，中英文） | 未做 |
+| 同名酒款去重、風味依分數排序 | 待評估 |
+| 其他烈酒過濾、酒名是一句話的資料 | 待查筆數與處理方式 |
+| 中文問題是否翻譯 | 暫不翻譯，準度不夠再加 |
+| 是否加上 LLM 生成回答 | 驗收通過後評估；不可捏造未檢索到的酒款與風味 |
 
 ---
 
-## 10. 先不做
+## 9. 先不做
 
 - 一瓶切成多塊、依長度硬切
 - 建庫前大量清詞規則
 - 複雜 rerank、酒廠規則引擎
-- 中文版 chunk（需先翻譯全部資料）
-- 把前端 note 切檔當成 RAG chunk
+- 中文版 chunk

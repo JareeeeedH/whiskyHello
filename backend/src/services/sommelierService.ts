@@ -152,26 +152,6 @@ export function toRecommendationResult(
   return { status: 'ok', recommendations: criticPick ? [bestMatch, criticPick] : [bestMatch] }
 }
 
-/** TEMP diagnostics for missing bottle photos; logs only whisky names, URLs and counts. Remove once diagnosed. */
-function logPhotoOutcome(output: unknown, imageResults: WebImageResult[], result: RecommendationResult): void {
-  if (result.status !== 'ok' || !isPlainObject(output)) {
-    return
-  }
-  const item = result.recommendations[0]
-  const aiUrl = isPlainObject(output.bestMatch) ? toText(output.bestMatch.imageUrl) : ''
-  let outcome: string
-  if (item.imageUrl) {
-    outcome = `ok ${item.imageUrl}`
-  } else if (!aiUrl) {
-    outcome = 'AI returned no photo'
-  } else {
-    const basePath = aiUrl.split('?')[0]
-    const nearMatch = imageResults.some((image) => image.imageUrl.split('?')[0] === basePath)
-    outcome = `AI URL not in search results${nearMatch ? ' (same path, query differs)' : ''}: ${aiUrl.slice(0, 300)}`
-  }
-  console.info(`[sommelier photo] ${item.whiskyName}: ${outcome} (image results: ${imageResults.length})`)
-}
-
 /** Number of critic-note candidates the LLM chooses the second pick from. */
 const CANDIDATE_COUNT = 5
 
@@ -198,7 +178,5 @@ export async function recommendWhiskies(input: SommelierInput): Promise<Recommen
     candidates: candidates.map((item) => ({ id: item.whiskyId, notes: item.text })),
   }
   const { output, imageResults } = await requestWhiskyRecommendations(JSON.stringify(llmInput))
-  const result = toRecommendationResult(output, imageResults, candidates)
-  logPhotoOutcome(output, imageResults, result)
-  return result
+  return toRecommendationResult(output, imageResults, candidates)
 }

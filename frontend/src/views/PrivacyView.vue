@@ -7,7 +7,7 @@ import { CONTACT_EMAIL } from '../constants/contact'
   <main class="legal-view">
     <article class="legal">
       <h1>隱私權政策</h1>
-      <p class="updated">最後更新：2026 年 10 月 9 日</p>
+      <p class="updated">最後更新：2026 年 11 月 7 日</p>
       <p>
         WhiskyHello（威你好）重視你的隱私。這份說明會告訴你，我們蒐集哪些資料、如何使用，以及你可以怎麼管理自己的資料。
       </p>
@@ -15,13 +15,13 @@ import { CONTACT_EMAIL } from '../constants/contact'
       <h2>我們蒐集的資料</h2>
       <ul>
         <li>帳號資料：暱稱、Email，以及經加密處理的密碼（不保存密碼原文）。</li>
-        <li>你發布的內容：酒款評論、評分，以及參與競標時的出價紀錄。</li>
+        <li>你發布的內容：酒款評論與評分。</li>
       </ul>
 
       <h2>使用目的</h2>
       <ul>
         <li>建立與管理帳號、登入驗證，以及寄送 Email 驗證碼與重設密碼信。</li>
-        <li>顯示你的評論與出價（只公開暱稱，不公開 Email）。</li>
+        <li>顯示你的評論（只公開暱稱，不公開 Email）。</li>
         <li>提供侍酒師、品飲筆記翻譯等服務功能。</li>
         <li>維護網站安全、防止濫用。</li>
       </ul>

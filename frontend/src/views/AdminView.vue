@@ -1,49 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import {
-  fetchAdminAuctions,
-  fetchAdminReviews,
-  fetchAdminUsers,
-} from '../services/adminService'
-import type { AdminAuction, AdminUserListItem, AuctionStatus } from '../types/admin'
+import { fetchAdminReviews, fetchAdminUsers } from '../services/adminService'
+import type { AdminUserListItem } from '../types/admin'
 import type { PublicReview } from '../types/review'
-
-/** Auction lifecycle in order; cancelled sits outside the flow and is reported separately. */
-const PIPELINE: Array<{ status: AuctionStatus; label: string }> = [
-  { status: 'draft', label: 'Draft' },
-  { status: 'scheduled', label: 'Scheduled' },
-  { status: 'active', label: 'Live' },
-  { status: 'ended', label: 'Ended' },
-]
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 const users = ref<AdminUserListItem[] | null>(null)
-const auctions = ref<AdminAuction[] | null>(null)
 const reviews = ref<PublicReview[] | null>(null)
 const loading = ref(true)
 const updatedAt = ref<Date | null>(null)
 
 const failed = computed(() => ({
   users: !loading.value && users.value === null,
-  auctions: !loading.value && auctions.value === null,
   reviews: !loading.value && reviews.value === null,
 }))
-
-function countStatus(status: AuctionStatus): number {
-  return auctions.value?.filter((auction) => auction.status === status).length ?? 0
-}
-
-const pipeline = computed(() =>
-  PIPELINE.map((step) => ({ ...step, count: countStatus(step.status) })),
-)
-
-const pipelineTotal = computed(() =>
-  pipeline.value.reduce((sum, step) => sum + step.count, 0),
-)
-
-const cancelledCount = computed(() => countStatus('cancelled'))
 
 function isWithinWeek(value: string): boolean {
   const time = new Date(value).getTime()
@@ -52,7 +24,6 @@ function isWithinWeek(value: string): boolean {
 
 const tools = computed(() => {
   const userList = users.value
-  const auctionList = auctions.value
   const reviewList = reviews.value
 
   const averageRating =
@@ -76,17 +47,6 @@ const tools = computed(() => {
         ? `${userList.filter((user) => isWithinWeek(user.createdAt)).length} joined this week`
         : '',
       failed: failed.value.users,
-    },
-    {
-      key: 'auctions',
-      to: '/admin/auctions',
-      name: 'Auctions',
-      description: 'Create drafts, edit them and start auctions.',
-      action: 'Open auctions',
-      figure: auctionList ? countStatus('active') : undefined,
-      figureLabel: 'live now',
-      detail: auctionList ? `${countStatus('draft')} drafts waiting` : '',
-      failed: failed.value.auctions,
     },
     {
       key: 'reviews',
@@ -113,13 +73,11 @@ const updatedLabel = computed(() =>
 
 async function loadOverview() {
   loading.value = true
-  const [userResult, auctionResult, reviewResult] = await Promise.allSettled([
+  const [userResult, reviewResult] = await Promise.allSettled([
     fetchAdminUsers(),
-    fetchAdminAuctions(),
     fetchAdminReviews(),
   ])
   users.value = userResult.status === 'fulfilled' ? userResult.value : null
-  auctions.value = auctionResult.status === 'fulfilled' ? auctionResult.value : null
   reviews.value = reviewResult.status === 'fulfilled' ? reviewResult.value : null
   updatedAt.value = new Date()
   loading.value = false
@@ -154,56 +112,6 @@ onMounted(() => {
             </button>
           </div>
         </header>
-
-        <div class="pipeline">
-          <div class="pipeline-head">
-            <h2 class="pipeline-title">Auction pipeline</h2>
-            <span v-if="auctions" class="pipeline-total">
-              {{ pipelineTotal }} in progress or finished
-            </span>
-          </div>
-
-          <p v-if="failed.auctions" class="pipeline-note">
-            Auction data didn't load. Use Refresh to try again.
-          </p>
-          <p v-else-if="!loading && pipelineTotal === 0" class="pipeline-note">
-            No auctions yet. Create a draft in Auctions to start the pipeline.
-          </p>
-
-          <template v-else>
-            <div
-              class="pipeline-bar"
-              :class="{ 'is-loading': loading }"
-              role="img"
-              :aria-label="pipeline.map((step) => `${step.label} ${step.count}`).join(', ')"
-            >
-              <span
-                v-for="step in pipeline"
-                v-show="loading || step.count > 0"
-                :key="step.status"
-                class="pipeline-segment"
-                :class="`is-${step.status}`"
-                :style="{ flexGrow: loading ? 1 : step.count }"
-              />
-            </div>
-
-            <ol class="pipeline-steps">
-              <li
-                v-for="step in pipeline"
-                :key="step.status"
-                class="pipeline-step"
-                :class="`is-${step.status}`"
-              >
-                <span class="step-count">{{ loading ? '–' : step.count }}</span>
-                <span class="step-label">{{ step.label }}</span>
-              </li>
-            </ol>
-
-            <p v-if="cancelledCount > 0" class="pipeline-cancelled">
-              {{ cancelledCount }} cancelled, not shown in the bar
-            </p>
-          </template>
-        </div>
       </div>
     </section>
 
@@ -243,11 +151,6 @@ onMounted(() => {
 
 <style scoped>
 .admin {
-  --status-draft: #e0a24c;
-  --status-scheduled: #7fa6d9;
-  --status-active: #7cc49a;
-  --status-ended: var(--wh-mauve);
-
   min-height: 100%;
   background: var(--wh-paper);
   color: var(--wh-ink);
@@ -275,7 +178,6 @@ onMounted(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem 2rem;
-  margin-bottom: 2.25rem;
 }
 
 h1 {
@@ -338,105 +240,6 @@ h1 {
 .is-spinning {
   animation: spin 0.9s linear infinite;
 }
-
-/* ——— Auction pipeline: the one bold element ——— */
-.pipeline {
-  padding: 1.5rem 1.5rem 1.35rem;
-  border: 1px solid var(--wh-night-line);
-  border-radius: 10px;
-  background: var(--wh-night-raised);
-}
-
-.pipeline-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 1rem;
-  margin-bottom: 1.1rem;
-}
-
-.pipeline-title {
-  font-family: var(--font-body);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-emphasis);
-  color: var(--wh-cream);
-}
-
-.pipeline-total,
-.pipeline-cancelled {
-  color: var(--wh-mauve);
-  font-size: var(--fs-meta);
-  font-variant-numeric: tabular-nums;
-}
-
-.pipeline-cancelled {
-  margin: 1rem 0 0;
-}
-
-.pipeline-note {
-  margin: 0;
-  color: var(--wh-mauve);
-  font-size: var(--fs-body-sm);
-}
-
-.pipeline-bar {
-  display: flex;
-  gap: 3px;
-  height: 14px;
-  margin-bottom: 1.25rem;
-  overflow: hidden;
-  border-radius: 3px;
-}
-
-.pipeline-segment {
-  flex-basis: 0;
-  min-width: 6px;
-  background: currentColor;
-  transform-origin: left center;
-  animation: fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-  transition: flex-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.pipeline-bar.is-loading .pipeline-segment {
-  opacity: 0.25;
-  animation: none;
-}
-
-.pipeline-steps {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pipeline-step {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  padding-left: 0.75rem;
-  border-left: 2px solid currentColor;
-}
-
-.step-count {
-  color: var(--wh-cream);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: var(--fw-score);
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-}
-
-.step-label {
-  color: var(--wh-mauve);
-  font-size: var(--fs-meta);
-}
-
-.is-draft { color: var(--status-draft); }
-.is-scheduled { color: var(--status-scheduled); }
-.is-active { color: var(--status-active); }
-.is-ended { color: var(--status-ended); }
 
 /* ——— Tools: a ledger of rows, each carrying its live figure ——— */
 .tools {
@@ -545,14 +348,6 @@ h1 {
     padding: 1.75rem 1rem 2rem;
   }
 
-  .pipeline {
-    padding: 1.1rem 1rem;
-  }
-
-  .pipeline-steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .tools {
     padding: 0 1rem;
   }
@@ -568,17 +363,11 @@ h1 {
   }
 }
 
-@keyframes fill {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pipeline-segment,
   .is-spinning,
   .tool-action .pi {
     animation: none;

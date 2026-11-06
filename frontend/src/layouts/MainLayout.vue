@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
@@ -11,7 +11,6 @@ const router = useRouter()
 const toast = useToast()
 const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.svg`
 const isMobileNavOpen = ref(false)
-const isAuctionSection = computed(() => route.path.startsWith('/auctions'))
 
 function closeMobileNav() {
   isMobileNavOpen.value = false
@@ -145,14 +144,6 @@ function onLogout() {
             >Home</a>
           </RouterLink>
           <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
-          <RouterLink
-            to="/auctions"
-            class="nav-feature"
-            :class="{ 'is-active': isAuctionSection }"
-            active-class="is-active"
-          >
-            Auction
-          </RouterLink>
           <RouterLink to="/sommelier" active-class="is-active">Sommelier.ai</RouterLink>
         </div>
 
@@ -233,16 +224,6 @@ function onLogout() {
             @click="closeMobileNav"
           >
             Whisky
-          </RouterLink>
-          <RouterLink
-            to="/auctions"
-            class="nav-mobile-link"
-            :class="{ 'is-active': isAuctionSection }"
-            active-class="is-active"
-            :tabindex="isMobileNavOpen ? undefined : -1"
-            @click="closeMobileNav"
-          >
-            Auction
           </RouterLink>
           <RouterLink
             to="/sommelier"
@@ -437,15 +418,6 @@ function onLogout() {
   font-weight: 500;
 }
 
-.nav a.nav-feature {
-  color: var(--wh-cream);
-  font-weight: 500;
-}
-
-.nav a.nav-feature.is-active {
-  color: var(--wh-gold-bright);
-}
-
 .nav-primary a.is-active::after {
   position: absolute;
   right: 0;
@@ -454,10 +426,6 @@ function onLogout() {
   height: 1px;
   content: '';
   background: var(--wh-cream);
-}
-
-.nav-primary a.nav-feature.is-active::after {
-  background: var(--wh-gold);
 }
 
 .nav-account a,

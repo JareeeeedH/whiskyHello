@@ -1,7 +1,6 @@
 import app from './app'
 import { connectDatabase } from './config/db'
 import { env } from './config/env'
-import { startAuctionAutoClose } from './jobs/auctionAutoClose'
 import { loadVectors } from './services/flavourSearchService'
 
 /**
@@ -50,11 +49,9 @@ async function start(): Promise<void> {
   })
 
   if (databaseConnected) {
-    startAuctionAutoClose()
     // No await: the site is already open; vectors load in the background.
     void loadVectorsInBackground()
   } else {
-    console.warn('Auction auto close disabled: no database connection.')
     console.warn('Flavour search disabled: no database connection.')
   }
 }

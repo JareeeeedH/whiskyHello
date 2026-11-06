@@ -9,7 +9,6 @@
 - **會員**：Email 驗證、Google 登入、忘記密碼、Admin 管理
 - **Whisky News**
 - **AI Sommelier**：依口味、酒體、情境、預算推薦兩款；第二款從評論家筆記中以向量搜尋（RAG）挑選
-- **Auction**：Admin 建立與管理競標，會員出價、查看出價紀錄
 
 ## 技術棧
 
@@ -21,7 +20,7 @@
 ## 架構
 
 ```text
-Frontend ──REST──▶ Backend ──▶ MongoDB Atlas（User、Review、Auction、Bid、翻譯快取、RAG 向量）
+Frontend ──REST──▶ Backend ──▶ MongoDB Atlas（User、Review、翻譯快取、RAG 向量）
    │                  └──────▶ OpenAI
    └── Static Whisky Dataset（酒款、評論家筆記，打包在前端）
 ```

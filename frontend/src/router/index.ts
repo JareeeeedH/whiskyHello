@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/auth'
 import { resolveUserRole } from '../types/auth'
 import { applyPageMeta } from '../utils/applyPageMeta'
 import {
-  AUCTIONS_META,
   HOME_META,
   NOT_FOUND_META,
   PRIVACY_META,
@@ -47,17 +46,6 @@ const router = createRouter({
       path: '/whiskies/:id',
       name: 'whisky-detail',
       component: () => import('../views/WhiskyDetailView.vue'),
-    },
-    {
-      path: '/auctions',
-      name: 'auctions',
-      component: () => import('../views/AuctionListView.vue'),
-      meta: { seo: AUCTIONS_META },
-    },
-    {
-      path: '/auctions/:id',
-      name: 'auction-detail',
-      component: () => import('../views/AuctionDetailView.vue'),
     },
     {
       path: '/sommelier',
@@ -118,12 +106,6 @@ const router = createRouter({
       name: 'admin-reviews',
       component: () => import('../views/AdminReviewsView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true, seo: privatePageMeta('評論管理') },
-    },
-    {
-      path: '/admin/auctions',
-      name: 'admin-auctions',
-      component: () => import('../views/AdminAuctionsView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true, seo: privatePageMeta('競標管理') },
     },
     {
       path: '/:pathMatch(.*)*',

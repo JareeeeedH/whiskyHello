@@ -94,10 +94,6 @@ function goSearchEntry() {
 function goSommelier() {
   void router.push('/sommelier')
 }
-
-function goAuctions() {
-  void router.push('/auctions')
-}
 </script>
 
 <template>
@@ -236,32 +232,12 @@ function goAuctions() {
       </div>
     </section>
 
-    <section class="auction section" aria-labelledby="home-auction-heading">
-      <div class="section-inner auction-inner">
-        <h2 id="home-auction-heading">發現稀有酒款，也看見威士忌市場</h2>
-        <p class="section-desc">
-          探索限量、收藏與稀有酒款競標，掌握即時價格、出價與結標結果。
-        </p>
-        <p class="section-desc">
-          從「想喝什麼」到「市場上正在發生什麼」，WhiskyHello 連結你的品味與威士忌市場。
-        </p>
-        <Button
-          label="探索 Auction House"
-          icon="pi pi-arrow-right"
-          icon-pos="right"
-          severity="secondary"
-          outlined
-          @click="goAuctions"
-        />
-      </div>
-    </section>
-
     <section class="news section" aria-labelledby="home-news-heading">
       <div class="section-inner">
         <div class="news-header">
           <h2 id="home-news-heading">掌握值得關注的威士忌世界</h2>
           <p class="section-desc">
-            從酒廠、品牌、新品，到拍賣與市場趨勢，整理全球值得關注的威士忌資訊。
+            從酒廠、品牌、新品，到市場趨勢，整理全球值得關注的威士忌資訊。
           </p>
         </div>
 
@@ -353,7 +329,6 @@ function goAuctions() {
 
 /* Outlined gold buttons on dark sections */
 .hero :deep(.p-button),
-.auction :deep(.p-button),
 .sommelier :deep(.p-button),
 .search-box :deep(.p-button) {
   padding: 0.8rem 1.6rem;
@@ -368,7 +343,6 @@ function goAuctions() {
     color 0.25s ease;
 }
 
-.auction :deep(.p-button:not(:disabled):hover),
 .sommelier :deep(.p-button:not(:disabled):hover),
 .search-box :deep(.p-button:not(:disabled):hover) {
   border-color: var(--wh-gold-bright);
@@ -377,7 +351,6 @@ function goAuctions() {
 }
 
 .hero :deep(.p-button-icon),
-.auction :deep(.p-button-icon),
 .search-box :deep(.p-button-icon) {
   color: var(--wh-gold-bright);
 }
@@ -733,21 +706,6 @@ function goAuctions() {
   color: var(--wh-gold-bright);
 }
 
-/* ——— Auction ——— */
-.auction {
-  background:
-    radial-gradient(ellipse 45% 90% at 100% 50%, rgba(180, 83, 9, 0.18), transparent 70%),
-    var(--wh-night);
-}
-
-.auction-inner .section-desc + .section-desc {
-  margin-top: -0.6rem;
-}
-
-.auction-inner :deep(.p-button) {
-  margin-top: 0.75rem;
-}
-
 /* ——— News ——— */
 .news {
   background: var(--wh-night-raised);
@@ -804,7 +762,6 @@ function goAuctions() {
   }
 
   .hero :deep(.p-button),
-  .auction :deep(.p-button),
   .sommelier :deep(.p-button),
   .search-box :deep(.p-button),
   .hero :deep(.p-button-icon),

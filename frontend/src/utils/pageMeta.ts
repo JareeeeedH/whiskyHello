@@ -32,11 +32,6 @@ export const WHISKIES_META: PageMeta = {
   description: '搜尋威士忌酒款、探索品牌與閱讀評論，從每一杯開始了解自己的口味。',
 }
 
-export const AUCTIONS_META: PageMeta = {
-  title: '威士忌拍賣與競標｜稀有收藏酒款｜WhiskyHello',
-  description: '探索限量、收藏與稀有威士忌競標，掌握出價、價格與結標結果。',
-}
-
 export const PRIVACY_META: PageMeta = {
   title: '隱私權政策｜WhiskyHello',
   description: '了解 WhiskyHello 蒐集哪些資料、如何使用，以及如何查詢、更正或刪除你的資料。',
@@ -45,12 +40,6 @@ export const PRIVACY_META: PageMeta = {
 export const TERMS_META: PageMeta = {
   title: '使用條款｜WhiskyHello',
   description: '使用 WhiskyHello 的酒款資訊、評論、搜尋與 AI 輔助探索服務前，請先了解相關使用規範。',
-}
-
-/** Shown while an auction is loading, before its own title is known. */
-export const AUCTION_LOADING_META: PageMeta = {
-  title: '威士忌競標｜WhiskyHello',
-  description: AUCTIONS_META.description,
 }
 
 export const NOT_FOUND_META: PageMeta = {
@@ -92,21 +81,6 @@ export function whiskyPageMeta(whisky: Whisky): PageMeta {
     title: `${name} 評價與風味｜WhiskyHello`,
     description: truncate(
       `${label} 的評價與風味${factText}，也看看酒友怎麼評價。`,
-      DESCRIPTION_MAX_LENGTH,
-    ),
-  }
-}
-
-export function auctionPageMeta(
-  auctionTitle: string,
-  whiskyName: string,
-  startingPrice: number,
-): PageMeta {
-  const price = startingPrice.toLocaleString('en-US')
-  return {
-    title: `${auctionTitle}｜威士忌拍賣｜WhiskyHello`,
-    description: truncate(
-      `${auctionTitle}（${whiskyName}）威士忌競標，起標價 NT$${price}，查看目前出價、倒數時間與結標結果。`,
       DESCRIPTION_MAX_LENGTH,
     ),
   }

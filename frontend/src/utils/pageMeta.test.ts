@@ -4,10 +4,8 @@ import {
   HOME_META,
   SOMMELIER_META,
   WHISKIES_META,
-  AUCTIONS_META,
   PRIVACY_META,
   TERMS_META,
-  auctionPageMeta,
   canonicalUrl,
   whiskyPageMeta,
 } from './pageMeta.ts'
@@ -28,7 +26,7 @@ describe('canonicalUrl', () => {
 
 describe('page meta', () => {
   it('gives each public page its own title and description', () => {
-    const pages = [HOME_META, SOMMELIER_META, WHISKIES_META, AUCTIONS_META, PRIVACY_META, TERMS_META]
+    const pages = [HOME_META, SOMMELIER_META, WHISKIES_META, PRIVACY_META, TERMS_META]
     assert.equal(new Set(pages.map((page) => page.title)).size, pages.length)
     assert.equal(new Set(pages.map((page) => page.description)).size, pages.length)
   })
@@ -62,11 +60,5 @@ describe('page meta', () => {
     const meta = whiskyPageMeta({ id: '3', name: 'Long'.repeat(60), points: 90 })
     assert.ok(meta.description.length <= 150)
     assert.ok(meta.description.includes('知名評論家評分 90 分'))
-  })
-
-  it('builds auction meta from the auction', () => {
-    const meta = auctionPageMeta('Macallan 18 稀有競標', 'Macallan 18 yo', 12000)
-    assert.equal(meta.title, 'Macallan 18 稀有競標｜威士忌拍賣｜WhiskyHello')
-    assert.ok(meta.description.includes('起標價 NT$12,000'))
   })
 })

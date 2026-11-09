@@ -22,7 +22,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
 
       - name: Install backend dependencies
         working-directory: backend
@@ -35,15 +37,23 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
         run: npm run news:fetch
 
-      # Open a pull request only when news.ts changed; a person reviews and merges it.
-      - name: Open pull request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check for changes
+        id: changes
         run: |
           if git diff --quiet -- frontend/src/data/news.ts; then
             echo "No new news this week."
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # The PR keeps the report for later review.
+      - name: Open pull request
+        id: pr
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           BRANCH="news/$(date -u +%Y-%m-%d)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -54,3 +64,30 @@ jobs:
           gh pr create --base main --head "$BRANCH" \
             --title "首頁新聞自動更新 $(date -u +%Y-%m-%d)" \
             --body-file backend/scripts/news/output/report.md
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      # Safety checks before merging (spec section 7). If one fails, the job stops and the PR stays open for a person to check.
+      - name: Check news count and pictures
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          FILE=frontend/src/data/news.ts
+          ITEMS=$(grep -c "^    id:" "$FILE")
+          IMAGES=$(grep -c "^    imageUrl:" "$FILE")
+          echo "items=$ITEMS images=$IMAGES"
+          if [ "$ITEMS" -ne 10 ] || [ "$IMAGES" -ne "$ITEMS" ]; then
+            echo "Expected 10 items, all with pictures."
+            exit 1
+          fi
+
+      - name: Check frontend build
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Merge pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ steps.pr.outputs.branch }}" --squash --delete-branch

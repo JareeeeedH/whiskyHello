@@ -450,6 +450,10 @@ Frontend
 
 News 的來源、RSS / API / 網站資料方式、更新頻率與內容合法性，於實作時另行確認。
 
+### 自動更新 workflow
+
+每週由 GitHub Actions 收集 RSS、經 LLM 篩選分類後更新 `frontend/src/data/news.ts`，並開 PR 人工審核。來源、選稿標準、數量規則與執行方式見 `WHISKYHELLO_NEWS_SPEC.md`。
+
 ---
 
 ## 11. Phase 2｜AI Whisky Sommelier

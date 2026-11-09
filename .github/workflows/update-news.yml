@@ -1,0 +1,56 @@
+name: Update Homepage News
+
+# Every Monday 01:00 UTC (09:00 Taiwan). Can also be run by hand from the Actions tab.
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Fetch news
+        working-directory: backend
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: npm run news:fetch
+
+      # Open a pull request only when news.ts changed; a person reviews and merges it.
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- frontend/src/data/news.ts; then
+            echo "No new news this week."
+            exit 0
+          fi
+          BRANCH="news/$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add frontend/src/data/news.ts
+          git commit -m "首頁新聞自動更新 $(date -u +%Y-%m-%d)"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "首頁新聞自動更新 $(date -u +%Y-%m-%d)" \
+            --body-file backend/scripts/news/output/report.md

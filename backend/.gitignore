@@ -6,3 +6,6 @@ dist/
 
 # RAG build output (contains WhiskyFun notes; not for the repo)
 scripts/rag/output/
+
+# News workflow report (used as the pull request body)
+scripts/news/output/

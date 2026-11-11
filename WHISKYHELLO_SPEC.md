@@ -4,7 +4,7 @@
 > 
 > 舊版名稱：WhiskyFun
 > 
-> 文件版本：v1.0
+> 文件版本：v1.1（2026-11-12）
 > 
 > 文件狀態：目前定案版（Baseline）
 
@@ -14,7 +14,7 @@
 
 WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的產品。
 
-產品範圍分為 Phase 1 基礎產品、Phase 2 AI Whisky Sommelier。
+產品範圍分為 Phase 1 基礎產品（完成）、Phase 2 AI（進行中）。
 
 核心發展方向：
 
@@ -33,15 +33,19 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
 
 ### Phase 2｜AI
 
-6. **AI Whisky Sommelier**
+6. **AI Whisky Sommelier**（已上線）
    - 今日喝什麼
-   - 根據口味、收藏、預算、當下情境推薦
-   - 解釋推薦原因
+   - 根據口味、酒體、預算、當下情境推薦兩款，並解釋推薦原因
+   - 詳細規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md`
 
-7. **AI 口味搜尋（RAG）**（建庫完成，搜尋 API 進行中）
+7. **AI 口味搜尋（RAG）**（建庫完成，已用於 Sommelier 第二款；口味搜尋 API 與前端未做）
    - 在 Whisky 頁以自然語言描述風味，從評論家品飲筆記找出最接近的酒款
    - MVP 只做檢索（語意搜尋），不由 LLM 生成回答
    - 詳細規格見第 11 節與 `WHISKY_RAG_SPEC.md`
+
+8. **AI 評論家筆記翻譯**（已上線）
+   - Whisky Detail Page 的評論家英文筆記 → 繁體中文，On-demand 翻譯並快取
+   - 詳細規格見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md`
 
 ---
 
@@ -80,10 +84,9 @@ Whisky 主資料維持 Static Dataset，透過 Frontend Data Layer 進行資料�
 - JWT
 - Joi
 - REST API
-
-### 後續
-
-- Backend AI Service（Phase 2）
+- OpenAI SDK（Sommelier、翻譯、RAG embedding）
+- google-auth-library（Google 登入）
+- Nodemailer（Gmail SMTP 寄信；正式站以 Resend 寄信）
 
 ---
 
@@ -139,6 +142,9 @@ frontend/
 │   ├── assets/
 │   ├── components/
 │   ├── composables/
+│   ├── constants/
+│   ├── data/         # Static Dataset（raw、generated）與 news.ts
+│   ├── directives/
 │   ├── layouts/
 │   ├── router/
 │   ├── services/
@@ -149,10 +155,12 @@ frontend/
 │   ├── App.vue
 │   └── main.ts
 ├── public/
+├── scripts/          # build 前切分 Static Dataset、GitHub Pages 404 頁
 ├── .env.example
 ├── .gitignore
 ├── package.json
 ├── tsconfig.json
+├── vercel.json
 ├── vite.config.ts
 └── README.md
 ```
@@ -161,7 +169,7 @@ frontend/
 
 ```text
 backend/
-├── scripts/        # 離線腳本（Phase 2 RAG 建庫），不在編譯範圍內
+├── scripts/        # 離線腳本（rag/ 建庫、news/ 每週新聞），以 tsx 執行，不在編譯範圍內
 ├── src/
 │   ├── config/
 │   ├── controllers/
@@ -250,7 +258,9 @@ Whisky
 
 - User（Phase 1）
 - Review（Phase 1）
+- PendingRegistration（Phase 1，Email 註冊驗證的暫存資料，見第 9 節）
 - WhiskyNoteChunk（Phase 2，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
+- WhiskyTranslation（Phase 2，翻譯快取，Schema 見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md` 第 5 節）
 
 ### User Schema
 
@@ -282,6 +292,8 @@ User
 | `bio` | 個人簡介 |
 | `createdAt` | 建立時間 |
 | `updatedAt` | 更新時間 |
+
+另有忘記密碼用的 `passwordReset*` 欄位，見第 9 節 Forgot Password。
 
 ### User Role 規則
 
@@ -337,7 +349,7 @@ User 1 ───── N Review N ───── 1 Static Whisky
 
 ## 9. API Specification
 
-目前正式定義的 API 為 Auth、Review、Admin。
+目前正式定義的 API 為 Auth、Review、Admin、Sommelier、Translation，另有 `GET /api/v1/health`。
 
 ### Auth
 
@@ -391,19 +403,40 @@ GET    /api/v1/auth/me
 
 ```http
 GET    /api/v1/whiskies/:whiskyId/reviews
+GET    /api/v1/reviews/latest
 POST   /api/v1/reviews
 PATCH  /api/v1/reviews/:id
 DELETE /api/v1/reviews/:id
 GET    /api/v1/me/reviews
 ```
 
+- `GET /api/v1/reviews/latest`：全站最新 20 則 Review，公開
+
 ### Admin
 
 ```http
 GET    /api/v1/admin/users
+GET    /api/v1/admin/reviews
 ```
 
 - `GET /api/v1/admin/users`：唯讀使用者列表（名稱、Email、頭像、角色、加入日期），不回傳密碼或 Google ID
+- `GET /api/v1/admin/reviews`：唯讀全站 Review 列表，依建立時間由新到舊
+
+### Sommelier
+
+```http
+POST   /api/v1/sommelier/recommendations
+```
+
+規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.5。
+
+### Translation
+
+```http
+POST   /api/v1/whisky-translations
+```
+
+規格見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md` 第 4 節。
 
 ### Authorization
 
@@ -413,6 +446,9 @@ GET    /api/v1/admin/users
 - 修改 Review：需要 JWT，且只能修改自己的 Review
 - 刪除 Review：需要 JWT，且只能刪除自己的 Review
 - `GET /api/v1/me/reviews`：需要 JWT
+- `GET /api/v1/whiskies/:whiskyId/reviews`、`GET /api/v1/reviews/latest`：公開
+- Sommelier：可不登入（有 JWT 時以會員計算每日次數），有 Rate Limit 與每日次數限制
+- Translation：公開，有 Rate Limit
 - `/api/v1/admin/*`：需要 JWT，且 `role` 為 `admin`（Admin RBAC）
   - 未登入回傳 401，非 admin 回傳 403
   - 每次請求都從資料庫讀取最新 `role`
@@ -422,6 +458,7 @@ GET    /api/v1/admin/users
 ```text
 /admin           Admin 首頁
 /admin/users     User Management（唯讀）
+/admin/reviews   Review 列表（唯讀）
 ```
 
 以上路由需登入且 `role` 為 `admin`，非 admin 導回首頁。
@@ -432,23 +469,13 @@ Whisky評論搜索的主資料亦不建立 MongoDB CRUD API。
 
 ## 10. News Specification
 
-Whisky News 屬於 Phase 1 的產品功能，但目前不建立 News MongoDB Model。
+Whisky News 屬於 Phase 1 的產品功能，不建立 News MongoDB Model，也不建立 News API。
 
-方向：
+資料為前端靜態檔 `frontend/src/data/news.ts`，由離線腳本 `backend/scripts/news/fetchNews.mts` 更新：
 
 ```text
-External News Sources
-      ↓
-Backend News Service
-      ↓
-整理／統一格式
-      ↓
-Frontend
+RSS 來源 → 離線腳本（規則篩選 → LLM 篩選分類）→ news.ts → Frontend
 ```
-
-目前只定義資料處理方向，不在本規格中增加新的正式 API Endpoint。
-
-News 的來源、RSS / API / 網站資料方式、更新頻率與內容合法性，於實作時另行確認。
 
 ### 自動更新 workflow
 
@@ -501,7 +528,7 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 ### 11.1 AI 口味搜尋（RAG）
 
-狀態：建庫完成（MongoDB 5000 筆），搜尋 API 進行中。完整規格見 `WHISKY_RAG_SPEC.md`。
+狀態：建庫完成（MongoDB 5000 筆），已用於 Sommelier 第二款；口味搜尋 API 與前端未做。完整規格見 `WHISKY_RAG_SPEC.md`。
 
 - 用途：Whisky 頁的口味搜尋；Sommelier 第二款從前 5 名候選中由 LLM 挑選（第一款仍由 LLM 自由推薦，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）。
 - 切塊：一瓶酒一塊，內容為酒名、Nose、Mouth、Finish、Comments。
@@ -542,7 +569,7 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 5. **Raw Static Dataset 保留原始版本。**
 6. **Whisky Data 必須經過標準化後再提供給 UI。**
 7. **API Key、JWT Secret、Database URI 等敏感資訊不得寫入程式碼或 Git。**
-8. **依第 15 節開發順序推進：Phase 1 基礎產品 → Phase 2 AI Whisky Sommelier。**
+8. **依第 15 節開發順序推進；目前為 Phase 2。**
 9. **Cursor / AI 產生的程式碼必須由人員 Review、測試與驗證。**
 10. **不進行沒有明確產品價值的過度工程化。**
 
@@ -579,9 +606,21 @@ REST API
 
 ```text
 Whisky = Static Dataset
-User = MongoDB
-Review = MongoDB
+News = Static File（news.ts）
+User、Review、PendingRegistration = MongoDB
+WhiskyNoteChunk（RAG 向量）、WhiskyTranslation（翻譯快取）= MongoDB
 ```
+
+### Deployment
+
+```text
+Frontend = Vercel（push main 自動部署）
+Backend  = Railway
+Database = MongoDB Atlas
+News     = GitHub Actions（每週一）
+```
+
+push main 時另部署一份至 GitHub Pages（`/whiskyHello/`，`deploy-frontend.yml`），保留。
 
 ### Architecture
 
@@ -607,20 +646,15 @@ MongoDB
 
 ---
 
-## 15. 開發順序建議
+## 15. 開發順序
 
 ```text
-1. 建立 Frontend / Backend 專案骨架
-2. 建立 Whisky Data Layer
-3. 確認 Static Dataset 正常整理與搜尋
-4. 建立 User Model
-5. 實作 Register / Login / JWT
-6. 建立 Review Model
-7. 實作 Review API
-8. 串接 Frontend Review UI
-9. 完成 Phase 1 基礎產品
-10. 驗證實際使用流程
-11. Phase 2 AI Whisky Sommelier
+Phase 1 ✅  專案骨架、Whisky Data Layer、會員、Review、News
+Phase 2
+  ✅ AI Whisky Sommelier
+  ✅ AI 評論家筆記翻譯
+  ✅ RAG 建庫，用於 Sommelier 第二款
+  ⬜ 口味搜尋 API 與前端
 ```
 
 ---
@@ -630,3 +664,14 @@ MongoDB
 本規格為目前 WhiskyHello v2 的**基準規格（Baseline）**。
 
 任何新增功能、技術變更或 Schema 變更，在開始實作前應先更新本規格並確認變更理由。
+
+### 功能規格
+
+| 功能 | 規格書 |
+|---|---|
+| AI Whisky Sommelier | `WHISKYHELLO_AI_SOMMELIER_SPEC.md` |
+| AI 口味搜尋（RAG） | `WHISKY_RAG_SPEC.md` |
+| AI 評論家筆記翻譯 | `WHISKYHELLO_AI_TRANSLATION_SPEC.md` |
+| 首頁新聞自動更新 | `WHISKYHELLO_NEWS_SPEC.md` |
+
+功能行為變更時，同步更新對應的功能規格；影響架構、API、Model 時同時更新本規格。

@@ -14,7 +14,7 @@ const router = useRouter()
 const searchHint = ref('')
 
 /** Homepage news feed — swap getRandomNews for API later. */
-const newsItems = getRandomNews(3)
+const newsItems = getRandomNews(5)
 const featuredNews = computed(() => newsItems[0])
 const sideNews = computed(() => newsItems.slice(1))
 
@@ -891,12 +891,14 @@ function goSommelier() {
   }
 
   .news-layout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1.5rem;
     align-items: stretch;
   }
 
+  /* 4 side items in a 2×2 grid */
   .news-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
   }
 }

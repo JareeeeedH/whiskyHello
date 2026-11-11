@@ -16,9 +16,6 @@ import { decodeHTML } from 'entities'
 import OpenAI from 'openai'
 import type { WhiskyNews, WhiskyNewsCategory } from '../../../frontend/src/types/news.ts'
 
-/** WordPress search feed: only posts containing 威士忌. */
-const WHISKY_SEARCH = '?s=%E5%A8%81%E5%A3%AB%E5%BF%8C&feed=rss2'
-
 /** Spec section 2. Only feeds that work without getting around any site protection. */
 const SOURCES = [
   { name: 'Japan Whisky Press', feedUrl: 'https://japanwhiskypress.com/feed/' },
@@ -26,16 +23,15 @@ const SOURCES = [
   { name: 'Whisky Intelligence', feedUrl: 'https://www.whiskyintelligence.com/feed/' },
   { name: 'Drinks International', feedUrl: 'https://drinksint.com/rss' },
   { name: 'Fred Minnick', feedUrl: 'https://fredminnick.com/feed/' },
+  { name: 'Whisky Advocate', feedUrl: 'https://whiskyadvocate.com/call/blogs/rss/' },
   { name: 'ELLE Taiwan', feedUrl: 'https://www.elle.com/tw/rss/all.xml/' },
-  { name: 'stylemaster', feedUrl: `https://www.stylemaster.com.tw/${WHISKY_SEARCH}` },
-  { name: 'Zeek 玩家誌', feedUrl: `https://www.zeekmagazine.com/${WHISKY_SEARCH}` },
   { name: 'Vogue Taiwan', feedUrl: 'https://www.vogue.com.tw/feed/rss' },
 ]
 
-const KEEP_DAYS = 10 // spec section 3: collect the last 10 days
+const KEEP_DAYS = 5 // spec section 3: collect the last 5 days
 const HOMEPAGE_COUNT = 10
 const MIN_CHINESE = 5 // fewer if there aren't enough Chinese items
-const MAX_PER_SOURCE = 4
+const MAX_PER_SOURCE = 3
 const NEWS_FILE = join(import.meta.dirname, '../../../frontend/src/data/news.ts')
 const REPORT_FILE = join(import.meta.dirname, 'output/report.md')
 const USER_AGENT = 'WhiskyHelloNewsBot/1.0 (+https://whiskyhello.com)'
@@ -114,7 +110,7 @@ Keep (keep = true) only news mainly about whisky / whiskey:
 - celebrity ambassadors and crossover collaborations
 - results of international competitions
 - price changes by major brands
-- big companies: mergers, results, major business news
+- companies of any size: mergers, results, business news
 - record-breaking auction sales
 
 Do not keep (keep = false):
@@ -123,7 +119,6 @@ Do not keep (keep = false):
 - buying guides, lists, gift guides
 - ordinary "auction now live" notices
 - bartenders, bar openings, cocktail recipes
-- ordinary business news of small companies
 - other drinks: beer, wine, gin, rum, cognac, etc.
 - anything not about whisky the drink (e.g. songs or bands named Whiskey)
 
@@ -207,7 +202,8 @@ async function findOgImage(url: string): Promise<string | undefined> {
     const match =
       html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) ??
       html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-    const image = match ? decodeHTML(match[1]) : undefined
+    // Some sites (e.g. Whisky Advocate) write og:image as http:// although the picture also works on https.
+    const image = match ? decodeHTML(match[1]).replace(/^http:\/\//, 'https://') : undefined
     return image?.startsWith('https://') ? image : undefined
   } catch {
     return undefined // no picture: NewsCard shows the WhiskyHello logo instead
@@ -305,13 +301,12 @@ for (const source of SOURCES) {
   try {
     const items = parseFeed(await fetchText(source.feedUrl), source.name)
     const since = Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000
-    // Rules before the LLM (spec section 3): recent enough, not on the homepage yet, no "商情" ads.
+    // Rules before the LLM (spec section 3): recent enough, not on the homepage yet.
     const fresh = items.filter(
       (item) =>
         Date.parse(item.publishedAt) >= since &&
         !oldUrls.has(item.url) &&
-        !seenUrls.has(item.url) &&
-        !item.title.includes('商情'),
+        !seenUrls.has(item.url),
     )
     for (const item of fresh) seenUrls.add(item.url)
     console.log(`${source.name}: ${items.length} in feed, ${fresh.length} new`)

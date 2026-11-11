@@ -24,14 +24,13 @@
 | Whisky Intelligence | 全球／英 | 酒廠新聞稿、新酒款 | `https://www.whiskyintelligence.com/feed/` |
 | Drinks International | 全球／英 | 酒類產業：酒廠開關、易主、財報 | `https://drinksint.com/rss` |
 | Fred Minnick | 美國／英 | 美威新酒款、酒廠消息 | `https://fredminnick.com/feed/` |
+| Whisky Advocate | 美國／英 | 新酒款、產業、拍賣紀錄；也有酒評與調酒 | `https://whiskyadvocate.com/call/blogs/rss/` |
 | ELLE Taiwan | 台灣／中 | 綜合生活風格，偶有威士忌新品與發表會 | `https://www.elle.com/tw/rss/all.xml/` |
-| stylemaster（「威士忌」搜尋） | 台灣／中 | 男性生活風格；搜尋結果多為威士忌新品、得獎、代言 | `https://www.stylemaster.com.tw/?s=威士忌&feed=rss2` |
-| Zeek 玩家誌（「威士忌」搜尋） | 台灣／中 | 酒類與生活；搜尋結果幾乎都是威士忌新品與活動 | `https://www.zeekmagazine.com/?s=威士忌&feed=rss2` |
 | Vogue Taiwan | 台灣／中 | 綜合生活風格，偶有酒款清單 | `https://www.vogue.com.tw/feed/rss` |
 
-- 「威士忌」搜尋 RSS 是 WordPress 內建的公開功能（網址加 `?s=關鍵字&feed=rss2`），只回傳含該關鍵字的文章。
 - 中文威士忌新聞量少，部分週可能不足 5 則；需要時可另外手動補充。
-- 2026-11-09 首次在 GitHub Actions 執行時，stylemaster 與 Zeek 玩家誌回傳 403（本機可抓到 stylemaster），雲端實際只有 ELLE、Vogue 兩個中文來源；待尋找雲端可用的中文來源。
+- 中文來源只有 ELLE、Vogue 兩個；待尋找雲端可用的中文來源。
+- Whisky Advocate 的 RSS 圖片是相對路徑，改用文章頁的 `og:image`；其 `og:image` 寫成 `http://`，程式改為 `https://`（2026-11-12 確認可載入）。
 
 ### 不納入的來源
 
@@ -41,7 +40,8 @@
 | 美麗佳人 | 沒有 RSS |
 | Google 新聞 | 連結為 Google 轉址，無法以正當方式還原原文網址；不使用 Google 連結 |
 | Stuff Taiwan、Drinks Trade、GQ Taiwan | RSS 回傳 403 |
-| Whisky Advocate、scotchwhisky.com、Master of Malt、The Whisky Exchange | 無 RSS 或被擋 |
+| stylemaster、Zeek 玩家誌 | 在 GitHub Actions 回傳 403（2026-11-09），2026-11-12 移除 |
+| scotchwhisky.com、Master of Malt、The Whisky Exchange | 無 RSS 或被擋 |
 | Whisky Mag (France)、whiskyexperts.net | 法文、德文 |
 | Drinks Industry Ireland | 威士忌新聞比例過低 |
 | WhiskyNotes、Bourbon Veach | 純酒評 |
@@ -60,7 +60,7 @@
 - 名人代言與跨界聯名
 - 得獎：國際競賽結果
 - 價格：主要品牌調價
-- 產業：大型集團的併購、財報、重大經營消息
+- 產業：酒類公司（不分大小）的併購、財報、經營消息
 - 拍賣：創紀錄的成交
 
 ### 不收
@@ -70,14 +70,12 @@
 - 購買指南、清單文、送禮指南
 - 一般拍賣開始公告
 - 調酒師個人、酒吧開幕、調酒酒譜
-- 小型公司的一般商業消息
 - 非威士忌：啤酒、葡萄酒、琴酒、蘭姆酒、干邑等
 - 與威士忌酒無關（例如歌名、樂團名含 Whiskey）
 
 ### 規則直接排除（不經 LLM）
 
-- 中文標題含「商情」（工商時報、經濟日報的廣告版面）
-- 發布時間超過 10 天
+- 發布時間超過 5 天
 - 網址已在目前的 `news.ts`
 
 ### 同一事件去重
@@ -92,11 +90,11 @@
 
 - 首頁資料共 10 則，依發布時間由新到舊排序
 - 中文新聞至少 5 則（先挑最新的中文新聞；不足 5 則時有多少放多少）
-- 同一媒體最多 4 則
+- 同一媒體最多 3 則
 - 其餘名額依發布時間取最新的新聞補滿
 - 不做熱門排序
 - 新入選不足 10 則時，保留目前 `news.ts` 中較新的舊新聞補滿
-- 首頁顯示方式不變：每次從 10 則中隨機顯示 3 則
+- 首頁每次從 10 則中隨機顯示 5 則（桌機：左 1 大卡、右 2×2）
 
 ---
 

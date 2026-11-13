@@ -16,8 +16,11 @@ import { decodeHTML } from 'entities'
 import OpenAI from 'openai'
 import type { WhiskyNews, WhiskyNewsCategory } from '../../../frontend/src/types/news.ts'
 
-/** Spec section 2. Only feeds that work without getting around any site protection. */
-const SOURCES = [
+/**
+ * Spec section 2. Only feeds that work without getting around any site protection.
+ * pages: how many feed pages to read (?paged=2, 3...), for feeds with few items per page.
+ */
+const SOURCES: { name: string; feedUrl: string; pages?: number }[] = [
   { name: 'Japan Whisky Press', feedUrl: 'https://japanwhiskypress.com/feed/' },
   { name: 'The Whiskey Wash', feedUrl: 'https://thewhiskeywash.com/feed/' },
   { name: 'Whisky Intelligence', feedUrl: 'https://www.whiskyintelligence.com/feed/' },
@@ -26,6 +29,8 @@ const SOURCES = [
   { name: 'Whisky Advocate', feedUrl: 'https://whiskyadvocate.com/call/blogs/rss/' },
   { name: 'ELLE Taiwan', feedUrl: 'https://www.elle.com/tw/rss/all.xml/' },
   { name: 'Vogue Taiwan', feedUrl: 'https://www.vogue.com.tw/feed/rss' },
+  // Whisky tag only; 4 items per page, so read 3 pages to cover KEEP_DAYS.
+  { name: '一飲樂酒誌', feedUrl: 'https://www.1shot.tw/tag/%E5%A8%81%E5%A3%AB%E5%BF%8C/feed/', pages: 3 },
 ]
 
 const KEEP_DAYS = 5 // spec section 3: collect the last 5 days
@@ -299,7 +304,11 @@ const candidates: FeedItem[] = []
 const seenUrls = new Set<string>()
 for (const source of SOURCES) {
   try {
-    const items = parseFeed(await fetchText(source.feedUrl), source.name)
+    const items: FeedItem[] = []
+    for (let page = 1; page <= (source.pages ?? 1); page++) {
+      const url = page === 1 ? source.feedUrl : `${source.feedUrl}?paged=${page}`
+      items.push(...parseFeed(await fetchText(url), source.name))
+    }
     const since = Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000
     // Rules before the LLM (spec section 3): recent enough, not on the homepage yet.
     const fresh = items.filter(

@@ -27,9 +27,10 @@
 | Whisky Advocate | 美國／英 | 新酒款、產業、拍賣紀錄；也有酒評與調酒 | `https://whiskyadvocate.com/call/blogs/rss/` |
 | ELLE Taiwan | 台灣／中 | 綜合生活風格，偶有威士忌新品與發表會 | `https://www.elle.com/tw/rss/all.xml/` |
 | Vogue Taiwan | 台灣／中 | 綜合生活風格，偶有酒款清單 | `https://www.vogue.com.tw/feed/rss` |
+| 一飲樂酒誌 | 台灣／中 | 酒類媒體：新酒款、品牌活動 | `https://www.1shot.tw/tag/威士忌/feed/`（讀 3 頁） |
 
 - 中文威士忌新聞量少，部分週可能不足 5 則；需要時可另外手動補充。
-- 中文來源只有 ELLE、Vogue 兩個；待尋找雲端可用的中文來源。
+- 一飲樂酒誌只讀「威士忌」標籤；每頁 4 則，讀 3 頁（`?paged=2、3`）以涵蓋 5 天（2026-11-13 加入）。
 - Whisky Advocate 的 RSS 圖片是相對路徑，改用文章頁的 `og:image`；其 `og:image` 寫成 `http://`，程式改為 `https://`（2026-11-12 確認可載入）。
 
 ### 不納入的來源
@@ -38,6 +39,9 @@
 |---|---|
 | The Spirits Business | RSS 對自動程式回傳一般網頁，不繞過 |
 | 美麗佳人 | 沒有 RSS |
+| 9hunters | Cloudflare 驗證頁（403） |
+| Malts（malts.com） | 品牌網站，無 RSS |
+| 酒訊網 ch-9.net | 無 RSS（JS 網頁） |
 | Google 新聞 | 連結為 Google 轉址，無法以正當方式還原原文網址；不使用 Google 連結 |
 | Stuff Taiwan、Drinks Trade、GQ Taiwan | RSS 回傳 403 |
 | stylemaster、Zeek 玩家誌 | 在 GitHub Actions 回傳 403（2026-11-09），2026-11-12 移除 |

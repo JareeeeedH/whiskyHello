@@ -4,7 +4,7 @@
 > 
 > 舊版名稱：WhiskyFun
 > 
-> 文件版本：v1.1（2026-11-12）
+> 文件版本：v1.2（2026-11-14）
 > 
 > 文件狀態：目前定案版（Baseline）
 
@@ -46,6 +46,10 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
 8. **AI 評論家筆記翻譯**（已上線）
    - Whisky Detail Page 的評論家英文筆記 → 繁體中文，On-demand 翻譯並快取
    - 詳細規格見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md`
+
+9. **專欄**（試行）
+   - 站內威士忌知識文章，由獨立專案 whisky-column-agent 撰寫；靜態 JSON，首頁顯示最新 3 篇
+   - 詳細規格見 `WHISKYHELLO_COLUMN_SPEC.md`
 
 ---
 
@@ -143,7 +147,7 @@ frontend/
 │   ├── components/
 │   ├── composables/
 │   ├── constants/
-│   ├── data/         # Static Dataset（raw、generated）與 news.ts
+│   ├── data/         # Static Dataset（raw、generated）、news.ts、columns.json
 │   ├── directives/
 │   ├── layouts/
 │   ├── router/
@@ -607,6 +611,7 @@ REST API
 ```text
 Whisky = Static Dataset
 News = Static File（news.ts）
+Column = Static File（columns.json）
 User、Review、PendingRegistration = MongoDB
 WhiskyNoteChunk（RAG 向量）、WhiskyTranslation（翻譯快取）= MongoDB
 ```
@@ -655,6 +660,7 @@ Phase 2
   ✅ AI 評論家筆記翻譯
   ✅ RAG 建庫，用於 Sommelier 第二款
   ⬜ 口味搜尋 API 與前端
+  🔄 專欄（試行：5 篇、首頁區塊、列表頁、文章頁）
 ```
 
 ---
@@ -673,5 +679,6 @@ Phase 2
 | AI 口味搜尋（RAG） | `WHISKY_RAG_SPEC.md` |
 | AI 評論家筆記翻譯 | `WHISKYHELLO_AI_TRANSLATION_SPEC.md` |
 | 首頁新聞自動更新 | `WHISKYHELLO_NEWS_SPEC.md` |
+| 專欄 | `WHISKYHELLO_COLUMN_SPEC.md` |
 
 功能行為變更時，同步更新對應的功能規格；影響架構、API、Model 時同時更新本規格。

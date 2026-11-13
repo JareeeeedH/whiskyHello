@@ -3,9 +3,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import ColumnCard from '../components/ColumnCard.vue'
 import NewsCard from '../components/NewsCard.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import WhiskyDrop from '../components/WhiskyDrop.vue'
+import { getColumns } from '../data/columns'
 import { getRandomNews } from '../data/news'
 import { fetchLatestReviews } from '../services/reviewService'
 import type { PublicReview } from '../types/review'
@@ -17,6 +19,11 @@ const searchHint = ref('')
 const newsItems = getRandomNews(5)
 const featuredNews = computed(() => newsItems[0])
 const sideNews = computed(() => newsItems.slice(1))
+
+/** Newest 3 columns: one featured, two beside it. */
+const latestColumns = getColumns().slice(0, 3)
+const featuredColumn = latestColumns[0]
+const sideColumns = latestColumns.slice(1)
 
 /**
  * Avoid importing whiskyService here — it pulls the full static dataset JSON
@@ -248,6 +255,30 @@ function goSommelier() {
               v-for="item in sideNews"
               :key="item.id"
               :item="item"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="featuredColumn" class="columns section" aria-labelledby="home-columns-heading">
+      <div class="section-inner">
+        <div class="columns-header">
+          <div>
+            <h2 id="home-columns-heading">威士忌，一篇就懂</h2>
+            <p class="section-desc">從酒標、木桶到喝法，用好讀的文章認識威士忌。</p>
+          </div>
+          <RouterLink to="/columns" class="columns-all">看全部專欄</RouterLink>
+        </div>
+
+        <div class="columns-layout">
+          <ColumnCard :column="featuredColumn" featured tone="night" />
+          <div v-if="sideColumns.length > 0" class="columns-side">
+            <ColumnCard
+              v-for="column in sideColumns"
+              :key="column.id"
+              :column="column"
+              tone="night"
             />
           </div>
         </div>
@@ -731,6 +762,47 @@ function goSommelier() {
   gap: 1.25rem;
 }
 
+/* ——— Columns ——— */
+.columns-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.columns-header .section-desc {
+  margin-bottom: 0;
+}
+
+.columns-all {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
+  color: var(--wh-gold);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(201, 164, 106, 0.4);
+  padding-bottom: 0.15rem;
+}
+
+.columns-all:hover {
+  color: var(--wh-gold-bright);
+  border-bottom-color: var(--wh-gold-bright);
+}
+
+.columns-all:focus-visible {
+  outline: 2px solid var(--wh-gold);
+  outline-offset: 3px;
+}
+
+.columns-layout,
+.columns-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
 /* ——— Closing CTA ——— */
 .sommelier {
   position: relative;
@@ -900,6 +972,30 @@ function goSommelier() {
   .news-side {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
+  }
+
+  /* Columns: a wider featured card, two cards stacked beside it */
+  .columns-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  .columns-side {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 801px) {
+  /* Side cards sit image-left so two of them match the featured card's height. */
+  .columns-side :deep(.column-card) {
+    flex-direction: row;
+  }
+
+  .columns-side :deep(.column-card .media) {
+    flex: 0 0 42%;
+    aspect-ratio: auto;
+    min-height: 9rem;
   }
 }
 </style>

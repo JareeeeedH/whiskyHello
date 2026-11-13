@@ -4,8 +4,8 @@ import { defineConfig, type Plugin } from 'vite'
 import { canonicalUrl } from './src/utils/pageMeta.ts'
 import { normalizeWhiskyDataset } from './src/utils/whiskyNormalizer.ts'
 
-/** Public pages worth indexing; whisky detail pages are added from the dataset. */
-const SITEMAP_STATIC_PATHS = ['/', '/whiskies', '/sommelier', '/privacy', '/terms']
+/** Public pages worth indexing; whisky and column pages are added from their data files. */
+const SITEMAP_STATIC_PATHS = ['/', '/whiskies', '/sommelier', '/columns', '/privacy', '/terms']
 
 function sitemapPlugin(): Plugin {
   return {
@@ -16,7 +16,11 @@ function sitemapPlugin(): Plugin {
         readFileSync(new URL('./src/data/raw/whiskyDataset.json', import.meta.url), 'utf8'),
       )
       const whiskyPaths = normalizeWhiskyDataset(dataset).map((whisky) => `/whiskies/${whisky.id}`)
-      const urls = [...new Set([...SITEMAP_STATIC_PATHS, ...whiskyPaths])]
+      const columns: { id: string }[] = JSON.parse(
+        readFileSync(new URL('./src/data/columns.json', import.meta.url), 'utf8'),
+      )
+      const columnPaths = columns.map((column) => `/columns/${column.id}`)
+      const urls = [...new Set([...SITEMAP_STATIC_PATHS, ...columnPaths, ...whiskyPaths])]
         .map((path) => `  <url><loc>${canonicalUrl(path)}</loc></url>`)
         .join('\n')
 

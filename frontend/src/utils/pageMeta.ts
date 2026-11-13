@@ -1,3 +1,4 @@
+import type { WhiskyColumn } from '../types/column.ts'
 import type { Whisky } from '../types/whisky.ts'
 import { chineseDistilleryName } from './distilleryNames.ts'
 
@@ -32,6 +33,11 @@ export const WHISKIES_META: PageMeta = {
   description: '搜尋威士忌酒款、探索品牌與閱讀評論，從每一杯開始了解自己的口味。',
 }
 
+export const COLUMNS_META: PageMeta = {
+  title: '威士忌專欄｜入門觀念、喝法與選酒｜WhiskyHello',
+  description: '從酒標、木桶、產區到喝法，用好讀的文章認識威士忌，找到適合自己的那一杯。',
+}
+
 export const PRIVACY_META: PageMeta = {
   title: '隱私權政策｜WhiskyHello',
   description: '了解 WhiskyHello 蒐集哪些資料、如何使用，以及如何查詢、更正或刪除你的資料。',
@@ -63,6 +69,13 @@ export function canonicalUrl(path: string): string {
     .replace(/\/+$/, '')
     .toLowerCase()
   return `${SITE_URL}${pathname || '/'}`
+}
+
+export function columnPageMeta(column: WhiskyColumn): PageMeta {
+  return {
+    title: `${column.title}｜WhiskyHello`,
+    description: truncate(column.description, DESCRIPTION_MAX_LENGTH),
+  }
 }
 
 /** Built only from fields the dataset actually has; missing facts are left out. */

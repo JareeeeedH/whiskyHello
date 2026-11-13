@@ -3,10 +3,11 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/(whiskies|sommelier|privacy|terms|login|register|forgot-password|profile|admin)",
+      "source": "/(whiskies|sommelier|columns|privacy|terms|login|register|forgot-password|profile|admin)",
       "destination": "/index.html"
     },
     { "source": "/admin/(users|reviews)", "destination": "/index.html" },
-    { "source": "/whiskies/:id(\\d+)", "destination": "/index.html" }
+    { "source": "/whiskies/:id(\\d+)", "destination": "/index.html" },
+    { "source": "/columns/:id([a-z0-9-]+)", "destination": "/index.html" }
   ]
 }

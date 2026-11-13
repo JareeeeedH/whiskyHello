@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth'
 import { resolveUserRole } from '../types/auth'
 import { applyPageMeta } from '../utils/applyPageMeta'
 import {
+  COLUMNS_META,
   HOME_META,
   NOT_FOUND_META,
   PRIVACY_META,
@@ -52,6 +53,17 @@ const router = createRouter({
       name: 'sommelier',
       component: () => import('../views/SommelierView.vue'),
       meta: { seo: SOMMELIER_META },
+    },
+    {
+      path: '/columns',
+      name: 'columns',
+      component: () => import('../views/ColumnListView.vue'),
+      meta: { seo: COLUMNS_META },
+    },
+    {
+      path: '/columns/:id',
+      name: 'column-detail',
+      component: () => import('../views/ColumnDetailView.vue'),
     },
     {
       path: '/privacy',

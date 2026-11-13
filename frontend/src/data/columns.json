@@ -1,0 +1,735 @@
+[
+  {
+    "id": "what-is-bourbon",
+    "title": "波本威士忌是什麼？和蘇格蘭威士忌差在哪一次看懂",
+    "type": "guide",
+    "description": "波本不一定要在肯塔基州做。從玉米比例、全新燒烤橡木桶到 Bottled-in-Bond，一次看懂波本和蘇格蘭威士忌的差別。",
+    "publishedAt": "2026-11-14T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://blog.heavenhilldistillery.com/admin/wp-content/uploads/2020/06/how-to-read-a-whiskey-label.jpg",
+      "sourceUrl": "http://blog.heavenhilldistillery.com/detail.php?post_name=decipher-whiskey-label-like-pro/",
+      "credit": "Heaven Hill 酒廠"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "第三屆台灣美國威士忌文化嘉年華將在12月11到13日登場，地點在台北信義區香堤大道，今年的主題是美國建國250週年。Maker's Mark這次第一次參展，J. Henry & Son也會帶來限量的蜂蜜桶二次熟成波本新品。去年第二屆三天累計超過2萬人次入場，現場酒款很多，先把基本觀念弄清楚，逛起來會更有收穫。這篇依序說明：波本是什麼、和蘇格蘭威士忌差在哪、酒標怎麼看、第一次喝該怎麼喝。"
+      },
+      {
+        "type": "heading",
+        "text": "波本威士忌是什麼：法規怎麼規定"
+      },
+      {
+        "type": "paragraph",
+        "text": "很多人以為波本一定要在肯塔基州生產，其實法規條件裡沒有這一項，只是大部分波本都在那裡做。真正的硬性規定是：必須在美國蒸餾、熟成和裝瓶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "原料方面，玉米至少要占51%，其餘可以是裸麥、小麥或發芽大麥。酒精度有三道門檻：蒸餾出來最高160 proof（80%），入桶不超過125 proof（62.5%），裝瓶不低於80 proof（40%）。美國酒標常看到proof，換算很簡單，proof是ABV的兩倍，100 proof就是50%。"
+      },
+      {
+        "type": "paragraph",
+        "text": "熟成一定要用全新的燒烤橡木桶，而且不能加添加物，也不能加色素。還有一點常讓人意外：波本本身沒有最短熟成時間的規定。"
+      },
+      {
+        "type": "heading",
+        "text": "波本和蘇格蘭威士忌差在哪：原料、木桶、蒸餾到風味"
+      },
+      {
+        "type": "paragraph",
+        "text": "先看原料。蘇格蘭單一麥芽用100%發芽大麥，波本則以玉米為主，至少51%。"
+      },
+      {
+        "type": "paragraph",
+        "text": "木桶的差別最明顯。蘇格蘭威士忌大多用二手桶，最常見的是前波本桶，雪莉桶和波特桶也很常見；波本規定用全新燒烤橡木桶，會帶來顏色和辛香。換句話說，波本用過的桶，常常接著到蘇格蘭熟成威士忌。"
+      },
+      {
+        "type": "paragraph",
+        "text": "熟成時間和氣候也不一樣。蘇格蘭單一麥芽至少要熟成3年；波本沒有最短熟成時間，但要標Straight Bourbon就得熟成至少2年。肯塔基天氣炎熱，酒和木桶的作用、蒸發都比較快；蘇格蘭比較涼，可以放很久，木頭味也不會太重。"
+      },
+      {
+        "type": "paragraph",
+        "text": "蒸餾器方面，蘇格蘭主要用壺式蒸餾器，波本大多用柱式蒸餾器。產地規定也有差：蘇格蘭威士忌一定要在蘇格蘭做，波本則可以在美國任何一州做。"
+      },
+      {
+        "type": "paragraph",
+        "text": "風味上，蘇格蘭的風格很廣，從甜美溫和到重泥煤煙燻都有；波本天生比較甜，常見焦糖、香草和奶油味。有人也認為，波本的風味和肯塔基的玉米、水質，以及全新燒烤橡木桶有關。兩者裝瓶都不能低於40%。想實際感受差別，最直接的方法是各買一瓶並排比較，或者到酒展現場試喝。"
+      },
+      {
+        "type": "heading",
+        "text": "看懂波本酒標：Straight、Bottled-in-Bond與酒齡"
+      },
+      {
+        "type": "paragraph",
+        "text": "Straight Bourbon至少熟成兩年；如果不到四年，酒標上一定要寫酒齡。酒齡標示代表瓶裡沒有比標示更年輕的酒，但可以混入更老的酒。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒標寫「Kentucky Bourbon」，代表這瓶酒至少在肯塔基州熟成一年，概念跟干邑這類產區名稱差不多。"
+      },
+      {
+        "type": "paragraph",
+        "text": "Bottled-in-Bond是更嚴格的等級，條件有四個：同一間酒廠、同一個蒸餾季（1到6月或7到12月）做的酒；至少熟成4年；剛好用100 proof裝瓶；酒標要寫酒廠的D.S.P.編號。"
+      },
+      {
+        "type": "paragraph",
+        "text": "Barrel Proof是不加水，用原本的酒精度裝瓶，蘇格蘭叫作cask strength。Single Barrel則代表整瓶酒都來自同一個桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要特別留意的是，Small Batch不是法律用語，craft、reserve、handmade這些字也都沒有法律定義，每間酒廠的意思不一樣。挑禮物時，不要只因為看到這些字就以為比較高級。"
+      },
+      {
+        "type": "heading",
+        "text": "Maker's Mark：小麥波本的順口路線，送禮也適合"
+      },
+      {
+        "type": "paragraph",
+        "text": "Maker's Mark是小麥波本，用軟紅冬小麥取代裸麥，官方認為這讓風味更順口、苦味更少。台灣酒商加佳酒也說，它比多數以裸麥為主的波本圓潤順口。官方沒有公布穀物配方；Breaking Bourbon列出的配方是玉米70%、小麥16%、發芽大麥14%，酒精度45%，酒標上沒有酒齡，酒廠說大約是6到7年。官方的說法是，熟成多久靠品嚐決定。"
+      },
+      {
+        "type": "paragraph",
+        "text": "評酒人Nick Beiter的品飲筆記是這樣寫的：香氣有焦糖、香草、紅糖和一點花香；入口比聞起來更甜，接著出現肉桂、黑櫻桃和烤橡木；尾韻轉成肉桂辛香和淡淡的柑橘。他認為這款酒穩定、好買、價格親民，但不算令人驚豔。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒廠在肯塔基州Loretto，1953年創立，每一瓶都用人工沾上招牌紅蠟封口，外型很適合送禮。台灣價格方面，加佳酒700ml售價NT$820；洋酒城750ml裸瓶會員價NT$848，同品牌的Maker's 46是NT$1,158，原桶強度版是NT$2,148。如果要送給喝慣蘇格蘭威士忌的朋友，可以跟對方說這是一款甜美順口、好入口的波本。"
+      },
+      {
+        "type": "heading",
+        "text": "第一次喝波本怎麼喝，逛嘉年華可以先試什麼"
+      },
+      {
+        "type": "paragraph",
+        "text": "調酒會讓波本沒那麼衝，是最容易入門的喝法，經典的有Old Fashioned、Manhattan和Mint Julep。Maker's Mark官方推薦的調酒也有Old Fashioned、Mint Julep和Kentucky Mule。加冰會比較好入口，但也會稀釋風味，建議用融得比較慢的大冰塊或冰球。想認真品飲的話，先純飲，再一滴一滴加水。"
+      },
+      {
+        "type": "paragraph",
+        "text": "到了嘉年華，現場有Buffalo Trace、Eagle Rare、Weller小麥波本，還有多款USA 250選桶酒，可以拿Weller和Maker's Mark比一比兩款小麥波本。J. Henry & Sons的酒廠在威斯康辛州，剛好證明波本不一定在肯塔基做。它官網上有一款蜂蜜桶換桶的Ambrosia Reserve，做法是先把生蜂蜜放進用過的波本桶，再拿波本放進去換桶，官方把它定位成Wisconsin Straight Bourbon，風味形容為細緻、帶花香的蜂蜜甜味。新聞提到的Honey Cask Finish可能就是這款，但目前沒有證實是同一款，酒精度、酒齡和台灣售價也都還沒公布。最後提醒，購票前記得到購票頁面確認票價。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "蕃新聞：2026第三屆台灣美國威士忌文化嘉年華",
+        "url": "https://n.yam.com/Article/20261113483143"
+      },
+      {
+        "title": "The Whiskey Wash：Bourbon vs. Whiskey 法規解析",
+        "url": "https://thewhiskeywash.com/whiskey-articles/bourbon-vs-whiskey-legislation-breakdown/"
+      },
+      {
+        "title": "Heaven Hill 酒廠部落格：像專家一樣看懂威士忌酒標",
+        "url": "http://blog.heavenhilldistillery.com/detail.php?post_name=decipher-whiskey-label-like-pro/"
+      },
+      {
+        "title": "The Whiskey Wash：Scotch vs. Bourbon 買酒前須知",
+        "url": "https://thewhiskeywash.com/whiskey-articles/scotch-vs-bourbon-everything-you-need-to-know-before-buying-a-bottle/"
+      },
+      {
+        "title": "Maker's Mark 官方網站資料",
+        "url": "https://www.makersmark.com/llms.txt"
+      },
+      {
+        "title": "加佳酒 Plus9：Maker's Mark 美格經典波本美國威士忌",
+        "url": "https://www.plus9.tw/wine-detail/K01312"
+      },
+      {
+        "title": "Breaking Bourbon：Maker's Mark Bourbon 評測（Nick Beiter，2024年9月18日）",
+        "url": "https://breakingbourbon.com/review/makers-mark-bourbon"
+      },
+      {
+        "title": "洋酒城：美格 Maker's Mark 波本威士忌（裸瓶）",
+        "url": "https://www.9city.com.tw/product/P140819005478"
+      },
+      {
+        "title": "Rabbit Hole 酒廠：How To Drink Bourbon 新手指南",
+        "url": "https://www.rabbitholedistillery.com/blogs/bourbon-101/how-to-drink-bourbon-a-beginners-guide"
+      },
+      {
+        "title": "J. Henry & Sons 官方網站：Special Releases",
+        "url": "https://jhenryandsons.com/special-releases"
+      },
+      {
+        "title": "J. Henry & Sons 官方網站：Ambrosia Reserve 發售活動",
+        "url": "https://jhenryandsons.com/upcoming-events/ambrosia-reserve-release-1"
+      }
+    ]
+  },
+  {
+    "id": "whisky-for-beginners",
+    "title": "威士忌入門推薦：新手從這4款開始最不踩雷",
+    "type": "recommendation",
+    "description": "第一次買威士忌怎麼挑？比較 Johnnie Walker Blonde、蘇格登 12 年、醇金 13 年與山崎 12 年的風味、喝法和價格，新手不踩雷。",
+    "publishedAt": "2026-11-13T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://assets.hldycdn.com/80e8e0cb-e4fe-46e3-aeab-d80e47c0d841.jpeg",
+      "sourceUrl": "https://haveagood-holiday.com/en/articles/johnnie-walker-blonde-launch",
+      "credit": "Have a Good Holiday"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "第一次買威士忌，大多數人最怕兩件事：一入口酒精味太嗆，或者花了錢買到不合口味的酒。這篇從新手最常被推薦的酒款裡挑出4款：適合調飲的 Johnnie Walker Blonde 波浪、蘇格登12年、蘇格登醇金13年，還有名氣最大的山崎12年。先講新手該知道的幾個基本觀念，再逐款比較風味、喝法和台灣售價，最後依「買給自己喝」和「拿去送禮」兩種情況給建議。"
+      },
+      {
+        "type": "heading",
+        "text": "新手先懂三件事：酒精濃度、年份標示與喝法"
+      },
+      {
+        "type": "paragraph",
+        "text": "第一步先挑酒精濃度40%到46%的標準酒款，原桶強度（Cask Strength）留到以後再試。風格上，調和式威士忌通常比較順口、均衡，對新手比較友善；泥煤煙燻味有些人第一次喝會覺得像藥水，可以晚點再碰。年份標示不是越高越好入口，無年份（NAS）酒款風味穩定，一樣適合入門。"
+      },
+      {
+        "type": "paragraph",
+        "text": "喝法會大幅改變口感。純飲最能喝到酒原本的香氣；加冰能稍微壓下酒精感；加水（酒和水1:2）或 Twice Up（1:1）會讓口感更柔和；Highball 則是加蘇打水，很適合配餐。如果還不確定自己喜不喜歡，可以先花大約700元買180ml的小瓶試試，喜歡再買整瓶。"
+      },
+      {
+        "type": "heading",
+        "text": "最順口、最便宜：Johnnie Walker Blonde 波浪"
+      },
+      {
+        "type": "paragraph",
+        "text": "Blonde 波浪是調和式蘇格蘭威士忌，700ml、40%，建議售價559元，是這4款裡門檻最低的一款。品牌形容它有奶油和香草香氣，帶焦糖般的甜香、柔和香料和一點新鮮莓果，口感滑順、奶油感足，餘韻輕盈。"
+      },
+      {
+        "type": "paragraph",
+        "text": "它可以純飲，但主要是為調飲設計。官方酒譜「波碧」很簡單：Blonde 加雪碧，比例1:3。這款在日本上市時，官方強調酒體輕盈、帶自然甜味，特別推薦調成檸檬汽水 Highball。加了碳酸氣泡後喝起來清爽、微甜，酒精感幾乎被氣泡帶走，最適合怕酒味、只想輕鬆喝一杯的新手。"
+      },
+      {
+        "type": "heading",
+        "text": "蘇格登12年與醇金13年：差在哪、值得升級嗎"
+      },
+      {
+        "type": "paragraph",
+        "text": "蘇格登12年亞洲版是700ml、40%的單一麥芽威士忌，台灣各通路大約賣898到1,100元。世達酒業的品飲描述是果香豐富、偏甜，口感滑順柔軟，酒體輕到中等，尾韻帶一點黑巧克力餅乾味。"
+      },
+      {
+        "type": "paragraph",
+        "text": "買的時候要注意版本。台灣常見兩種：亞洲版由 Glen Ord 酒廠生產，部落格 uptogo 形容偏果香、甜美；歐洲版由 Dufftown 酒廠生產，則以花香和堅果為主。兩種風格不同，結帳前看清楚標籤。"
+      },
+      {
+        "type": "paragraph",
+        "text": "醇金13年同樣是700ml、40%，建議售價1,680元，用法國蘇玳產區的貴腐甜白酒桶過桶，品牌說是專為台灣推出的酒款。品牌描述的風味有白葡萄乾、蜂蜜、蜜桃、柑橘等酸甜果香，帶堅果奶油感，尾韻有水果乾和橘子果醬。可以直接純飲，也可以整瓶放進冷凍庫冰過再喝，回溫時風味會慢慢變化。"
+      },
+      {
+        "type": "paragraph",
+        "text": "值得升級嗎？如果你喜歡甜美果香，也想體驗酒桶帶來的風味差異，多花約600到800元換醇金13年是值得的；如果只是想要一支日常喝的酒，12年的價格比較划算。"
+      },
+      {
+        "type": "heading",
+        "text": "山崎12年：名氣最大，但價格和貨源要注意"
+      },
+      {
+        "type": "paragraph",
+        "text": "山崎12年由三得利山崎蒸餾廠生產，是700ml、43%的單一麥芽威士忌，常被介紹為日本第一支單一純麥威士忌。上層發酵的品飲描述提到乾燥水果、梅乾、蜂蜜般的甜香，入口有櫻桃和香草奶油，口感圓潤，餘味溫暖悠長。"
+      },
+      {
+        "type": "paragraph",
+        "text": "跟 Blonde 比起來，山崎12年的層次多很多，適合倒一小杯慢慢純飲；Blonde 則走輕盈、加氣泡的路線。"
+      },
+      {
+        "type": "paragraph",
+        "text": "價格是它最大的門檻。建議售價在6,000到6,200元之間，台灣通路價大約4,230到4,580元。就算在日本，它也常常不好買，實際成交價可能比定價還高。另外，它43%的酒精濃度比其他3款的40%稍高，完全沒喝過烈酒的人可以先加點水或冰塊。"
+      },
+      {
+        "type": "heading",
+        "text": "送禮與下一步：依預算和口味怎麼選"
+      },
+      {
+        "type": "paragraph",
+        "text": "想送得體面又不怕出錯，醇金13年有2026年的豐年禮盒，建議售價1,680元，冰成凍飲或加冰都好入口，收禮人就算不常喝酒也容易接受。如果預算充足、對方本身懂酒，山崎12年的名氣最有分量，但記得先比價、確認有貨。山崎太貴或買不到時，醇金13年價格親民、好買，又有禮盒包裝，是很實際的替代選擇。"
+      },
+      {
+        "type": "paragraph",
+        "text": "喝完入門酒之後，可以照自己的口味往下走：喜歡 Blonde 的清爽，就多試試不同的 Highball 搭配；喜歡蘇格登的果香，可以去找不同桶型的單一麥芽；想挑戰煙燻味，建議從帶一點泥煤的調和式開始，例如 Johnnie Walker 黑牌12年，標價2,800元，風味有泥煤、果香、奶油、煙燻、香草和太妃糖。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "mybest：威士忌入門推薦",
+        "url": "https://tw.my-best.com/117361"
+      },
+      {
+        "title": "工商時報：帝亞吉歐精選兩款入門威士忌（Johnnie Walker Blonde 波浪、蘇格登醇金13年）",
+        "url": "https://www.ctee.com.tw/news/20250325701413-431207"
+      },
+      {
+        "title": "Johnnie Walker Blonde Launches in Japan on April 7 — A New Scotch Made for Mixing",
+        "url": "https://haveagood-holiday.com/en/articles/johnnie-walker-blonde-launch"
+      },
+      {
+        "title": "工商時報（2026年7月）：Johnnie Walker 波浪 Highball 相關報導（只看到搜尋摘要）",
+        "url": "https://www.ctee.com.tw/news/20260717701278-431207"
+      },
+      {
+        "title": "世達酒業 STAR LIQUOR：蘇格登12年（亞洲版）單一純麥蘇格蘭威士忌",
+        "url": "https://www.star9.com.tw/product-detail-2342994.html"
+      },
+      {
+        "title": "BigGo：蘇格登12年 價格比較（2026年10月）",
+        "url": "https://biggo.com.tw/s/%E8%98%87%E6%A0%BC%E7%99%BB12%E5%B9%B4"
+      },
+      {
+        "title": "uptogo 部落格：蘇格登12年評測（只看到搜尋摘要，打開頁面回傳403）",
+        "url": "https://uptogo.com.tw/?p=38974"
+      },
+      {
+        "title": "工商時報（2026年1月）：蘇格登醇金13年 豐年禮盒（只看到搜尋摘要）",
+        "url": "https://www.ctee.com.tw/news/20260130700351-439901"
+      },
+      {
+        "title": "上層發酵 Top Fermenting：山崎威士忌12年",
+        "url": "https://topfermenting.com.tw/zh-TW/products/%E5%B1%B1%E5%B4%8E%E5%A8%81%E5%A3%AB%E5%BF%8C12%E5%B9%B4-yamazaki-12-years-old-single-malt-whisky"
+      },
+      {
+        "title": "洋酒城：山崎 Yamazaki 12年（只看到搜尋摘要）",
+        "url": "https://www.9city.com.tw/product/P220511008936?category_sn=775"
+      },
+      {
+        "title": "BigGo：山崎 12年 價格比較（2026年10月）",
+        "url": "https://biggo.com.tw/s/%E5%B1%B1%E5%B4%8E%2012%E5%B9%B4/"
+      },
+      {
+        "title": "FindPrice 價格網：山崎威士忌 12年（2026年9月）",
+        "url": "https://www.findprice.com.tw/g/%E5%B1%B1%E5%B4%8E%E5%A8%81%E5%A3%AB%E5%BF%8C%2012%E5%B9%B4"
+      },
+      {
+        "title": "山崎12年を買いたい（日本購買指南，只看到搜尋摘要）",
+        "url": "https://uridoki.net/sake/kiji_206843/"
+      }
+    ]
+  },
+  {
+    "id": "how-to-drink-whisky",
+    "title": "威士忌怎麼喝？新手純飲、加水、加冰一次懂",
+    "type": "howto",
+    "description": "威士忌怎麼喝？純飲怎麼聞、加水一次加幾滴、冰塊和威士忌石差在哪，再加上 Highball 的比例與做法，新手一次學會。",
+    "publishedAt": "2026-11-13T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://thewhiskeywash.com/wp-content/uploads/2026/02/featured-image-1770648918.webp",
+      "sourceUrl": "https://thewhiskeywash.com/whiskey-articles/mastering-the-whisky-highball-the-definitive-guide-to-this-simple-serve/",
+      "credit": "The Whiskey Wash"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "年底聚會多，不少人第一次買威士忌之前，會先查查該怎麼喝。其實純飲、加水、加冰都沒有錯，差別只在香氣、溫度和稀釋的程度。下面先講純飲時怎麼聞、怎麼入口，再講加水和加冰各要注意什麼。接著看三款常見的 12 年單一麥芽各適合怎麼喝，最後整理派對上用得到的 Highball 做法和備酒份量。"
+      },
+      {
+        "type": "heading",
+        "text": "先試純飲：杯子、聞香與入口"
+      },
+      {
+        "type": "paragraph",
+        "text": "起步有兩種方式，選順手的就好。第一種是直接純飲。一般裝瓶的威士忌，酒精度大多在 40% 到 46%，已經比原桶強度稀釋過了。第二種是先從加冰開始，等習慣了再慢慢改成純飲。"
+      },
+      {
+        "type": "paragraph",
+        "text": "杯子會影響你聞到多少香氣。Glencairn、copita 這類鬱金香形的杯子會把香氣集中到鼻子前，白蘭地杯也有類似效果。古典杯適合隨興喝，但不會集中香氣。倒酒時不要超過杯身最寬的地方，用其他杯子的話，以 50ml 為一份，在室溫下喝。"
+      },
+      {
+        "type": "paragraph",
+        "text": "倒好之後先放幾分鐘，可以的話把杯口蓋住。聞的時候嘴唇微微張開，平穩地吸氣，比較不會被酒精嗆到。一開始聞不太出什麼很正常，多練習就會進步。"
+      },
+      {
+        "type": "paragraph",
+        "text": "入口時喝一小口，讓酒從舌頭中間往外布滿整個舌面，留意風味和口感，吞下後再感受留下的餘韻。純飲的烈酒會讓味蕾麻木，所以兩口之間可以喝點水，或吃味道中性的小點心清一下味覺。"
+      },
+      {
+        "type": "heading",
+        "text": "加水：一滴一滴加，不要一次倒太多"
+      },
+      {
+        "type": "paragraph",
+        "text": "想加水的話，最好用吸管或滴管，一次只加一滴，等它跟酒融合了再喝，然後決定要不要加下一滴。"
+      },
+      {
+        "type": "paragraph",
+        "text": "這樣慢慢加，是因為水一多，風味就會變淡、口感也會變稀薄，而且加進去就收不回來了。一般說的「一兩滴」或「幾滴」只是大概的量，沒有標準答案，要靠自己邊喝邊調。也有人覺得加一點水，能讓威士忌的層次「打開」。"
+      },
+      {
+        "type": "paragraph",
+        "text": "舉個實際的例子：英國酒商 Enotria 在蘇格登 12 年的品飲筆記裡寫到，加一滴水會帶出典型斯佩賽的果甜香氣。所以不妨倒兩小份，一份純飲、一份加一滴水，對照著喝，最容易感覺到差別。"
+      },
+      {
+        "type": "heading",
+        "text": "加冰：大冰塊、冰球與威士忌石的差別"
+      },
+      {
+        "type": "paragraph",
+        "text": "加冰會壓抑香氣，酒越冰，風味越扁平。冰塊融化後稀釋也不平均，越後面的幾口越水。不過在隨興的場合，加冰反而方便，也能讓比較衝的酒柔和一點。評酒人 Whisky Kirk 把冰稱為「最大的平衡器」，因為它會把一支酒的高低起伏都壓平。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要減少稀釋，可以用單顆大冰塊。威士忌石則完全不會稀釋，但降溫效果和冰塊差很多。有個實驗讓酒從約 55°F 開始，20 分鐘後，放一顆冰塊的酒降到 49.5°F，放三顆威士忌石的反而升到 63.7°F。原因是冰塊靠融化吸熱，石頭吸了熱之後會再慢慢釋放回酒裡。所以想喝冰涼一點就用冰塊；不想喝太冰，可以用威士忌石，專家認為理想的飲用溫度是 60 到 65°F。"
+      },
+      {
+        "type": "paragraph",
+        "text": "威士忌石也有缺點：不鏽鋼款可能帶來金屬味，放在冷凍庫裡也會吸附其他食物的氣味，所以要定期清洗；喝的時候還可能撞到牙齒。如果不想稀釋，又想稍微涼一點，也可以只把杯子先冰過。"
+      },
+      {
+        "type": "heading",
+        "text": "三款 12 年單一麥芽：各適合怎麼喝"
+      },
+      {
+        "type": "paragraph",
+        "text": "**The Glenlivet 12 年**：酒精度 40%，用歐洲和美國橡木桶熟成。酒商的描述是有鳳梨、白桃、西洋梨等花果香，入口順、偏甜，尾段帶一點生薑辛辣。評酒人 Whisky Kirk 則覺得餘韻偏短，不過他也說這款加冰喝沒問題，拿來調酒也很適合。700ml 售價新台幣 750 元。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Glenfiddich 12 年**：用美國波本桶和西班牙雪莉桶熟成，酒商描述有新鮮洋梨和奶油糖的風味，不重泥煤、也不煙燻。純飲、加冰、加少量水都適合，也很適合做 Highball。700ml 售價新台幣 738 元。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**The Singleton 12 年**：Enotria 的筆記寫到烤堅果和濃郁果香，餘韻優雅、偏乾，建議加一滴水喝。加少許冰塊口感也會變柔和，適合新手在長時間聊天時慢慢啜飲。要注意蘇格登有不同版本，例如 Glen Ord 雪莉版有黑棗、葡萄乾等比較濃的果香，買之前先看清楚酒標。"
+      },
+      {
+        "type": "paragraph",
+        "text": "從酒商的描述來看，三款都偏向花果香、順口、不煙燻，派對上大家口味不同時，比較不容易踩雷。"
+      },
+      {
+        "type": "heading",
+        "text": "聚會喝法：Highball 做法與備酒份量"
+      },
+      {
+        "type": "paragraph",
+        "text": "Highball 的比例大約是威士忌 1 份配蘇打水 2.5 到 3 份，也就是 50ml 威士忌配 125 到 150ml 蘇打水。蘇打太少會辣口，太多又會變淡。第一次調的話，可以先從 1:3 開始，喜歡酒感強一點再調成 1:2.5。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要準備的東西有：冰過的高球杯、大顆結實的冰塊，還有非常冰、剛開瓶的蘇打水，裝飾可以用檸檬皮或薄荷。"
+      },
+      {
+        "type": "paragraph",
+        "text": "步驟是先冰杯，再把冰塊放滿，倒入威士忌稍微攪一下，然後把蘇打水沿著杯壁慢慢倒進去。如果還要攪拌，只從杯底輕輕往上提一次就好，用力攪會把氣泡打掉。蘇打水最能保留威士忌本身的味道，換成薑汁汽水的話，會蓋掉比較多酒味。"
+      },
+      {
+        "type": "paragraph",
+        "text": "份量方面，6 到 10 人可以準備 2 到 4 瓶，另外備好蘇打水和冰塊；如果聚會時間長、調酒又多，可以再多準備一瓶 1L。以每份 50ml 估算，一瓶 700ml 大約可以倒 14 杯，可以照人數抓一下要買幾瓶。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "Cotswolds Distillery：The Complete Guide on How to Drink Whisky",
+        "url": "https://www.cotswoldsdistillery.com/blogs/advice/complete-guide-on-how-to-drink-whisky"
+      },
+      {
+        "title": "宸瀧菸酒量販｜聚會選酒文章（主題指定來源）",
+        "url": "https://www.wine0222.com/news_detail/731.htm"
+      },
+      {
+        "title": "Food Republic：When To Invest In Whiskey Stones And When To Leave It Alone",
+        "url": "https://www.foodrepublic.com/1428857/when-buy-vs-skip-whiskey-stones/"
+      },
+      {
+        "title": "Enotria&Coe：The Singleton 12yo Single Malt Whisky",
+        "url": "https://www.enotria.com/products/the-singleton-12yo-single-malt-whisky"
+      },
+      {
+        "title": "The Whiskey Wash：Whisky Review – The Glenlivet 12 Year Old（評論者 Whisky Kirk，2021 年 10 月 11 日）",
+        "url": "https://thewhiskeywash.com/scotch-whiskey/whisky-review-the-glenlivet-12-year-old/"
+      },
+      {
+        "title": "世達酒業 STAR LIQUOR：格蘭利威12年單一麥芽蘇格蘭威士忌",
+        "url": "https://www.star9.com.tw/product-detail-2350997.html"
+      },
+      {
+        "title": "宸瀧菸酒量販：格蘭菲迪12年單一麥芽威士忌700ML",
+        "url": "https://www.wine0222.com/products_detail/%E6%A0%BC%E8%98%AD%E8%8F%B2%E8%BF%AA12%E5%B9%B4%E5%96%AE%E4%B8%80%E9%BA%A5%E8%8A%BD%E5%A8%81%E5%A3%AB%E5%BF%8C700ML.htm"
+      },
+      {
+        "title": "友和 YOHO：The Singleton of Glen Ord 12 Years Old Sherry 700ml",
+        "url": "https://www.yohohongkong.com/zh-hk/product/105502-The-Singleton-of-Glen-Ord-12-Years-Old-700ml"
+      },
+      {
+        "title": "The Whiskey Wash：Mastering The Whisky Highball",
+        "url": "https://thewhiskeywash.com/whiskey-articles/mastering-the-whisky-highball-the-definitive-guide-to-this-simple-serve/"
+      }
+    ]
+  },
+  {
+    "id": "sherry-cask-whisky",
+    "title": "雪莉桶威士忌是什麼？Oloroso、PX、Fino差別一次懂",
+    "type": "guide",
+    "description": "雪莉桶威士忌是什麼？看懂 Fino、Amontillado、Oloroso、PX 帶給威士忌的風味差異，以及酒標上過桶、首次填裝的意思。",
+    "publishedAt": "2026-11-13T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://cdn11.bigcommerce.com/s-vagfena5nz/product_images/uploaded_images/miguelmartinbodega-02.jpg",
+      "sourceUrl": "https://smws.com/unfiltered/what-is-sherry",
+      "credit": "SMWS"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "今年秋天的新酒，幾乎每一款都和雪莉桶有關：皇家禮炮21年流金沙漠用PX桶過桶，格蘭傑13年台灣限定換上Amontillado桶，奧特摩台灣限定單桶用的是初次填裝Oloroso桶，格蘭菲迪16年的Aston Martin F1聯名款更把Fino桶也放了進去。這些名稱到底差在哪？下面先講雪莉桶是什麼，再拆解各種雪莉酒的個性、教你讀懂酒標，最後拿三款新品實際看看怎麼挑、怎麼送。"
+      },
+      {
+        "type": "heading",
+        "text": "雪莉桶是什麼？威士忌為什麼要用它"
+      },
+      {
+        "type": "paragraph",
+        "text": "雪莉酒只產自西班牙安達魯西亞的「雪莉金三角」。主要葡萄是Palomino，大約佔九成產量。所謂雪莉桶，就是裝過雪莉酒的橡木桶。1986年西班牙禁止雪莉酒整桶出口，之後才出現「調味桶」：新橡木桶先裝雪莉酒一段時間，再送到威士忌酒廠。現在大部分雪莉桶都是這樣專門為威士忌業做的。"
+      },
+      {
+        "type": "paragraph",
+        "text": "雪莉酒在桶裡最重要的作用其實落在木頭上。它把橡木粗澀的單寧和苦味磨圓，威士忌才會出現果乾、堅果、黑巧克力這類風味。雪莉桶威士忌的顏色從古金色到紅褐色都有，不過顏色主要來自橡木，不是雪莉酒染上去的。"
+      },
+      {
+        "type": "heading",
+        "text": "Fino、Amontillado、Oloroso、PX：風味差在哪"
+      },
+      {
+        "type": "paragraph",
+        "text": "先認識兩種熟成方式。第一種是在酒花酵母（flor）底下進行的「生物熟成」。這層酵母把酒和氧氣隔開，所以酒體輕，也不會上色。第二種是「氧化熟成」，酒會慢慢變深、變濃。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Fino**：不甜，輕盈清新。它給威士忌淡淡的杏仁和礦物感，讓麥芽和木頭的味道透出來。Fino的酒精度只有15%左右，運送途中容易變質，所以蘇格蘭威士忌不常用。有趣的是，Fino桶反而可能讓威士忌顏色更深，因為木頭裡留下的單寧比較多。Manzanilla同樣在flor下熟成，只產自Sanlúcar de Barrameda，比Fino多一點海風般的鹹味。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Amontillado**：先在flor下熟成，酵母消退後再接著氧化熟成。它兼有花香的優雅和堅果味，因為做起來很花時間，比較少見。放進威士忌裡會帶出杏仁、柑橘和中等的堅果味，風格均衡。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Oloroso**：不甜，刻意讓它氧化。它是最濃郁的雪莉酒之一，也是最常拿來調味威士忌桶的一種。Oloroso桶帶給威士忌核桃、榛果、椰棗、橙皮、丁香，酒體偏乾、結構紮實，許多「重雪莉」酒款都以它為基礎。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**PX（Pedro Ximénez）**：用曬乾的葡萄釀成，每公升糖分高達好幾百克，是道地的甜點酒。PX桶帶來葡萄乾、黑糖、蜜漬無花果，尾韻像糖漿一樣濃稠，常被拿來過桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "簡單記：Fino最清爽，Amontillado居中，Oloroso最濃郁但不甜，PX最甜。"
+      },
+      {
+        "type": "heading",
+        "text": "看懂酒標：全程熟成、過桶、首次填裝"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒標寫「Sherry Cask Matured」，代表新酒一入桶就全程待在雪莉桶裡，風味最深。寫「Sherry Cask Finish」，則是先在波本桶熟成，再放進雪莉桶約2個月到2年，甜感明顯，但酒體比較輕。市面上大多數雪莉桶酒款屬於後者。"
+      },
+      {
+        "type": "paragraph",
+        "text": "接著看桶子裝過幾次威士忌。First-Fill（首次填裝）是桶子第一次裝威士忌，殘留的糖分和雪莉風味最多，酒色深、果乾甜味強。Refill（多次填裝）的雪莉風味已經被前幾批酒吸走大半，影響溫和細緻。奧特摩台灣限定單桶標示的「初次填裝Oloroso桶」，意思就是第一次拿來裝威士忌的Oloroso桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "木頭種類也有差別。歐洲橡木的單寧大約是美國橡木的五倍，酒色偏紅，會帶來比較深的果乾、巧克力和香料味。美國橡木則帶來香草、焦糖、柑橘皮，味道比較甜、比較柔。"
+      },
+      {
+        "type": "heading",
+        "text": "秋季三款雪莉桶新品，風格怎麼看"
+      },
+      {
+        "type": "paragraph",
+        "text": "**皇家禮炮21年流金沙漠**：21年以上的原酒再進PX桶過桶18個月，總熟成至少22.5年。酒款介紹寫有蔓越莓、糖漬櫻桃、芒果、蜜漬椰棗、杏仁糖，尾韻是溫暖的薑味，正是PX甜潤、果乾多的路線。建議售價NT$4,900。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**格蘭傑13年台灣限定雪莉桶**：先在波本桶熟成，再進Amontillado桶二次熟成，酒精濃度40%。靈感來自總製酒師Bill Lumsden博士過去在台灣和朋友喝高山茶的回憶。官方品飲筆記有太妃糖、葡萄乾、核桃、烤栗子、熟哈密瓜，最後收在焙茶，核桃和栗子的堅果感正好對應Amontillado的個性。建議售價NT$1,500。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**麥卡倫「時空旅行－雪莉桶工藝」20年**（英文名TIME : SPACE Sherry Cask）：先在以歐洲橡木為主的雪莉調味桶熟成，再和麥卡倫旗下Valdespino酒窖最早調味的那批雪莉桶裡挑出的幾桶調和，酒精濃度44.8%。品飲筆記的香氣有葡萄乾、無花果、蜂巢太妃糖、黑巧克力，尾韻是木質辛香和濃縮咖啡。10月1日起在授權零售店限量販售，英國售價£1,100。"
+      },
+      {
+        "type": "heading",
+        "text": "送禮怎麼挑？雪莉桶不等於比較高級"
+      },
+      {
+        "type": "paragraph",
+        "text": "先看口味。喜歡甜、喜歡果乾的人，選PX桶的流金沙漠。喜歡堅果味、要濃郁但不甜，就找Oloroso桶。想要均衡一點，Amontillado二次熟成的格蘭傑13年剛好。"
+      },
+      {
+        "type": "paragraph",
+        "text": "雪莉桶本身確實比較貴，高品質雪莉桶的桶價是波本桶的十倍以上，而且雪莉酒產量也在減少。不過過桶款不一定貴：蘇格登12年雙桶熟成建議售價NT$1,340，格蘭傑13年也只要NT$1,500。預算較高可以選流金沙漠，在指定菸酒專賣店買兩瓶，加送一瓶50ml。麥卡倫20年比較適合送給喜歡收藏的朋友，The Gentleman's Journal的作者也坦言，以這個價格，它「絕對不是日常喝的酒」。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "Yahoo 新聞：2026秋季酒款推薦（百富88年、皇家禮炮流金沙漠等）",
+        "url": "https://tw.news.yahoo.com/2026%E7%A7%8B%E5%AD%A3%E9%85%92%E6%AC%BE%E6%8E%A8%E8%96%A6-%E5%A8%81%E5%A3%AB%E5%BF%8C%E5%80%91%E5%A4%A7%E5%B1%95%E8%BA%AB%E6%89%8B%E7%9A%84%E5%AD%A3%E7%AF%80-%E7%99%BE%E5%AF%8C88%E5%B9%B4%E6%9C%80%E9%AB%98%E5%B9%B4%E4%BB%BD%E7%99%BB%E5%A0%B4-%E7%9A%87%E5%AE%B6%E7%A6%AE%E7%82%AE%E5%85%A8%E6%96%B0%E6%B5%81%E9%87%91%E6%B2%99%E6%BC%A0-%E6%9E%97%E5%AE%A5%E5%98%89%E4%BB%A3%E8%A8%80%E8%98%87%E6%A0%BC%E7%99%BB-160000361.html"
+      },
+      {
+        "title": "鏡週刊：格蘭傑13年台灣限定雪莉桶（2026年9月）",
+        "url": "https://www.mirrormedia.mg/story/20260919-watch-spirit-glenmorangie"
+      },
+      {
+        "title": "SMWS Unfiltered：What is sherry?",
+        "url": "https://smws.com/unfiltered/what-is-sherry"
+      },
+      {
+        "title": "Alcohol Please HK：From Sherry to Whisky – A Comprehensive Guide of Sherry Cask",
+        "url": "https://alcoholpleasehk.com/en/blogs/information/sherry-cask-for-whisky"
+      },
+      {
+        "title": "The Whisky Club：Guide to Sherry and Sherry Casks",
+        "url": "https://thewhiskyclub.com.au/journal/guide-to-sherry-and-sherry-casks-the-whisky-club"
+      },
+      {
+        "title": "Laphroaig 官網：Sherry Cask Whisky Guide",
+        "url": "https://www.laphroaig.com/sherry-cask-whisky-guide-casks-flavour"
+      },
+      {
+        "title": "The Whisky Club：Superstar sherry casks and what they do to whisky",
+        "url": "https://thewhiskyclub.com.au/journal/superstar-sherry-casks-and-what-they-do-to-whisky"
+      },
+      {
+        "title": "The Gentleman's Journal：Whisky of the Week – The Macallan TIME : SPACE Sherry Cask",
+        "url": "https://www.thegentlemansjournal.com/article/whisky-of-the-week-the-macallan-time-space-sherry-cask/"
+      }
+    ]
+  },
+  {
+    "id": "single-malt-vs-blended",
+    "title": "單一麥芽與調和威士忌差別：送禮前看懂酒標",
+    "type": "guide",
+    "description": "單一麥芽、調和麥芽、調和威士忌差在哪？依蘇格蘭法規說明三種酒標寫法、常見誤會，以及酒標上的 12 年代表什麼。",
+    "publishedAt": "2026-11-13T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://mscwordpresscontent.s3.amazonaws.com/wa/wp-content/uploads/2017/03/Enjoy21_WA0216-1600.jpg",
+      "sourceUrl": "https://whiskyadvocate.com/scotch-whisky-explained",
+      "credit": "Whisky Advocate（攝影：Martin Hunter）"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "年底買酒送禮的人多，站在酒架前，常會看到「Single Malt」、「Blended Malt」、「Blended」這幾個字，卻分不清差在哪裡。這篇從蘇格蘭法規講起，先說明這三種寫法各代表什麼，再拿約翰走路黑牌、三隻猴子、格蘭菲迪12年這三款常見酒款比較風格，最後談酒標上的年份怎麼看。不管是剛入門還是準備送禮，看完都能很快挑到合適的一瓶。"
+      },
+      {
+        "type": "heading",
+        "text": "酒標上的三種寫法：單一麥芽、調和麥芽、調和"
+      },
+      {
+        "type": "paragraph",
+        "text": "依照《2009年蘇格蘭威士忌規章》，單一麥芽蘇格蘭威士忌（Single Malt Scotch Whisky）必須在單一酒廠蒸餾，原料只能是水和發芽大麥，不加其他穀物，而且要用壺式蒸餾器。實際做法是用銅製壺式蒸餾器一批一批蒸餾。從2012年起，單一麥芽也規定要在蘇格蘭裝瓶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "調和麥芽（Blended Malt）由兩支以上、來自不同酒廠的單一麥芽調和而成，裡面沒有穀物威士忌。它以前叫「vatted malt」，很多人到現在還比較喜歡這個舊名，2009年改名也是那次修法中爭議最大的一項。"
+      },
+      {
+        "type": "paragraph",
+        "text": "調和蘇格蘭威士忌（Blended Scotch Whisky）則是一支以上的單一麥芽，加上一支以上的單一穀物威士忌，並以穀物威士忌當基底。這裡順便說一下單一穀物：它同樣出自單一酒廠，但原料常用小麥等穀物，用連續式柱式蒸餾器蒸餾。"
+      },
+      {
+        "type": "paragraph",
+        "text": "在店裡要快速分辨，看英文字就好：寫 Single Malt、Blended Malt，還是 Blended Scotch Whisky。不管是哪一類，蘇格蘭威士忌都必須在容量不超過700公升的橡木桶中熟成至少3年。"
+      },
+      {
+        "type": "heading",
+        "text": "常見誤會：「單一」不是單桶，調和也不等於比較差"
+      },
+      {
+        "type": "paragraph",
+        "text": "最常見的誤會，是以為「單一麥芽」就是同一個橡木桶裝出來的。其實法規說的「單一」指的是單一酒廠，而且可以用一個或多個批次蒸餾；這條法規根本沒有定義「單桶」。"
+      },
+      {
+        "type": "paragraph",
+        "text": "再來是調和麥芽和調和威士忌常被搞混。兩者的差別在原料：調和麥芽全部是麥芽威士忌，調和威士忌則加入了穀物威士忌。"
+      },
+      {
+        "type": "paragraph",
+        "text": "這些定義講的只是酒廠、原料和蒸餾方式，沒有一條在比好壞。調和威士忌其實是最大的類別，占全球銷量九成以上，Johnnie Walker、Chivas Regal、Dewar's 都屬於這一類。很多人第一口喝到的威士忌，很可能就是調和。"
+      },
+      {
+        "type": "heading",
+        "text": "三款入門酒款風格比較：黑牌、三隻猴子、格蘭菲迪12年"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Johnnie Walker Black Label（調和）**：由單一麥芽和單一穀物威士忌調和，所有原酒都至少12年，酒精度40%。Whisky for Everyone 的評酒人聞到太妃糖、蜂蜜、葡萄乾，還有柔和帶甜的泥煤煙燻。他形容入口濃郁、滑順如奶油，尾韻留下淡淡煙燻和像餅乾的麥芽味。他也直說這「不是最複雜的威士忌」，但認為這正是它的魅力。台灣店家現金價約600元。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Monkey Shoulder（調和麥芽）**：由 Balvenie、Glenfiddich、Kininvie 三支斯貝賽麥芽調和，酒精度40%，瓶肩上的三隻猴子就代表這三支麥芽。名字來自以前的翻麥工人，他們常戲稱自己有「猴子肩膀」。Difford's Guide 的品飲紀錄寫到蜂蜜、熟透鳳梨、香草卡士達和肉桂，評語是好入口、物有所值。台灣店家會員價680元，建議售價716元。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Glenfiddich 12 Year（單一麥芽）**：這是斯貝賽的單一麥芽，酒廠1886年由 William Grant 創立，酒精度40%。Whisky for Everyone 的評酒人聞到青蘋果、梨子、香草軟糖，覺得入口柔和，尾韻是偏乾的橡木和烘焙香料。他的評價是清爽、平衡、接受度廣。台灣店家會員價約1,125元。"
+      },
+      {
+        "type": "paragraph",
+        "text": "給新手的建議：喜歡一點煙燻感，選黑牌；想要果香和甜感，選三隻猴子；想認識經典的單一麥芽，就從格蘭菲迪12年開始。"
+      },
+      {
+        "type": "heading",
+        "text": "酒標上的「12 Year」是什麼？送禮怎麼挑"
+      },
+      {
+        "type": "paragraph",
+        "text": "在蘇格蘭，酒齡必須用「年」來標示，而且標的是瓶中最年輕的原酒。所以「12 Year」代表裡面每一支原酒都至少熟成了12年。"
+      },
+      {
+        "type": "paragraph",
+        "text": "如果酒標寫的是蒸餾年份，瓶中所有酒液都必須是那一年蒸餾的，同一個視野裡還要標出裝瓶年份或酒齡。法規也禁止酒標上出現會讓人誤以為是酒齡的數字。"
+      },
+      {
+        "type": "paragraph",
+        "text": "黑牌和格蘭菲迪都標12年，可見調和和單一麥芽都能標年份。送禮時把年份和類別一起看清楚，會比只看是單一麥芽還是調和更準。預算約600元可以選黑牌12年，預算1,100元以上可以選格蘭菲迪12年。"
+      },
+      {
+        "type": "heading",
+        "text": "其他產區也照同一套規則嗎？以日本為例"
+      },
+      {
+        "type": "paragraph",
+        "text": "上面講的是蘇格蘭的規則，其他產區各有自己的標準。以日本為例，要標成「日本威士忌」，原料必須用發芽穀物、用日本的水，在日本蒸餾，並在日本用木桶熟成至少3年後裝瓶。這套基準從2024年4月起適用於日本洋酒酒造組合的會員。不過這些條件只規定什麼酒能叫「日本威士忌」，沒有說明單一麥芽和調和怎麼分。所以看到日本酒標上的這些字，別直接拿蘇格蘭的定義來套。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "The Scotch Whisky Regulations 2009 – Regulation 3（英國法規原文）",
+        "url": "https://legislation.gov.uk/uksi/2009/2890/regulation/3?view=plain"
+      },
+      {
+        "title": "Whisky for Everyone – 5 Categories of Scotch Whisky",
+        "url": "https://whiskyforeveryone.com/5-categories-of-scotch-whisky/"
+      },
+      {
+        "title": "Whisky Advocate – Scotch Whisky Explained",
+        "url": "https://whiskyadvocate.com/scotch-whisky-explained"
+      },
+      {
+        "title": "Whisky for Everyone – Review: Johnnie Walker Black Label 12 Years Old",
+        "url": "https://whiskyforeveryone.com/review-johnnie-walker-black-label-12-years-old/"
+      },
+      {
+        "title": "世達酒業 – 約翰走路黑牌12年蘇格蘭威士忌 700ml",
+        "url": "https://www.star9.com.tw/product-detail-2336928.html"
+      },
+      {
+        "title": "Difford's Guide – Monkey Shoulder",
+        "url": "https://www.diffordsguide.com/beer-wine-spirits/259/monkey-shoulder"
+      },
+      {
+        "title": "驚嘆 drinks.com.tw – 三隻猴子三重麥芽威士忌 Monkey Shoulder 40%",
+        "url": "https://www.drinks.com.tw/product.aspx?Id=15463"
+      },
+      {
+        "title": "Whisky for Everyone – Review: Glenfiddich 12 Years Old",
+        "url": "https://whiskyforeveryone.com/review-glenfiddich-12-years-old/"
+      },
+      {
+        "title": "酒樂網 – 格蘭菲迪12年威士忌",
+        "url": "https://chiule.com/products/%E6%A0%BC%E8%98%AD%E8%8F%B2%E8%BF%AA12%E5%B9%B4%E5%A8%81%E5%A3%AB%E5%BF%8C/"
+      },
+      {
+        "title": "The Scotch Whisky Regulations 2009 – Regulation 12（年份與熟成標示）",
+        "url": "https://legislation.gov.uk/uksi/2009/2890/regulation/12?view=plain"
+      },
+      {
+        "title": "Suntory – Japanese Whisky Definition（日本威士忌標示基準說明）",
+        "url": "https://house.suntory.com/japanese-whisky-definition"
+      }
+    ]
+  }
+]

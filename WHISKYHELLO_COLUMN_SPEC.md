@@ -1,6 +1,6 @@
 # WhiskyHello 專欄規格書
 
-> 狀態：試行版（2026-11-14）。
+> 狀態：試行版（2026-11-14 上線 5 篇，2026-11-15 增至 12 篇）。
 > 主規格：`WHISKYHELLO_SPEC.md`。
 > 文章由獨立專案 whisky-column-agent 撰寫，本文件只規範 WhiskyHello 端的資料與顯示。
 

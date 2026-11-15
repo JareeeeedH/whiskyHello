@@ -1,5 +1,1048 @@
 [
   {
+    "id": "whisky-storage-after-opening",
+    "title": "威士忌開瓶後保存指南：能放多久、要不要冰、怎麼擺",
+    "type": "howto",
+    "description": "威士忌開瓶後會壞嗎？說明開瓶後大約能放多久、剩半瓶怎麼分裝、要不要放冰箱、直放還是躺放，以及怎麼判斷走味。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://thewhiskeywash.com/wp-content/uploads/2022/01/Does-whiskey-go-bad.jpg",
+      "sourceUrl": "https://thewhiskeywash.com/bourbon/how-long-does-whiskey-keep-opened/",
+      "credit": "The Whiskey Wash"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "家裡第一瓶威士忌開了還沒喝完，很多人會擔心：酒會不會壞？要不要收進冰箱？能不能像葡萄酒一樣躺著放？先說好消息：威士忌開瓶後不會像牛奶那樣變質，喝了也不會讓人生病，只是光線、空氣和溫度起伏會讓風味慢慢改變。下面依序說明開瓶後大概能放多久、剩半瓶怎麼處理、該放在哪裡、該直放還是躺放，以及怎麼判斷一瓶酒是不是已經走味。"
+      },
+      {
+        "type": "heading",
+        "text": "開瓶後能放多久？多數建議落在半年到兩年"
+      },
+      {
+        "type": "paragraph",
+        "text": "威士忌沒有明確的到期日，開瓶後喝了也無害。真正的問題是氧化：先讓風味變得平淡，再久一點還可能出現金屬味。倫敦專賣店 Milroy's 認為，這種「狀態走下坡」是威士忌最常見的缺陷。"
+      },
+      {
+        "type": "paragraph",
+        "text": "至於能放多久，各家看法不太一樣。帝亞吉歐官方網站 Malts.com 訪問的專家 Daan van der Toorn 建議大約6個月到一年內喝完；Whisky Advocate 認為開瓶後6到12個月內，酒仍保持明亮的狀態；Milroy's 說半年內多半喝不出差別，許多專家認為最多可以放兩年；也有人主張只要保存得當，放到五年也行。"
+      },
+      {
+        "type": "paragraph",
+        "text": "個人經驗的估計也差不多落在這個範圍：馬德里的 Monti 估約18個月，部落客 W. Blake Gray 自己估約2.5年，他有一瓶開了約四年的蘇格蘭威士忌，喝起來令他失望。不過他也坦白說，臨界點到底在哪裡，他只找到個人經驗，沒找到科學研究。"
+      },
+      {
+        "type": "paragraph",
+        "text": "有趣的是，開瓶後的頭幾週，酒接觸空氣後有時反而更融合、更圓順，只是時間一長，香氣和複雜度就會慢慢流失。老酒更要小心：1960年代的 Red Label 開瓶一個月內，就可能因為氧化而明顯變平淡。所以開了就好好喝，不必一直留到特殊場合。"
+      },
+      {
+        "type": "heading",
+        "text": "剩不到半瓶怎麼辦？分裝小瓶減少空氣"
+      },
+      {
+        "type": "paragraph",
+        "text": "一般認為瓶裡的酒越少、空氣越多，氧化就越明顯；也有人認為酒液接觸空氣的面積不管剩多少都一樣，這點目前沒有定論。"
+      },
+      {
+        "type": "paragraph",
+        "text": "The Whiskey Reserve 依剩餘量給了一個好記的估算：剩四分之三以上，約1到2年才會有明顯變化；剩一半到四分之三，約一年；剩四分之一到一半，約6個月；剩不到四分之一，就只能放幾週。"
+      },
+      {
+        "type": "paragraph",
+        "text": "剩不到一半時，可以分裝到小瓶，迷你瓶也行，重點是盡量裝滿、減少瓶頸空間。不過拉弗格提醒，「醒酒瓶用來倒酒，原瓶用來保存」，醒酒瓶的密封不夠好時，長期保存還是用原瓶比較穩當。其他方法還有灌入氮氣、氬氣等惰性氣體後立刻蓋緊，或用保鮮膜、實驗室封口膜（Parafilm）包住瓶口。"
+      },
+      {
+        "type": "paragraph",
+        "text": "如果你習慣同時開好幾瓶，Whisky Advocate 建議把瓶數控制在喝得完的範圍：一個月大概喝一瓶的話，同時開10到15瓶左右就好。"
+      },
+      {
+        "type": "heading",
+        "text": "要不要放冰箱？陰涼、陰暗、溫度穩定最重要"
+      },
+      {
+        "type": "paragraph",
+        "text": "答案是不建議。太冷會讓威士忌的香氣和風味變鈍，穩定的室溫比冰箱好；溫度太低也可能讓酒液混濁，不過回溫後就會恢復。"
+      },
+      {
+        "type": "paragraph",
+        "text": "溫度建議各家略有差異：拉弗格建議15到18°C，Milroy's 說約15°C，買購網則說平均20度左右。共同點是避開高溫和大幅溫差。"
+      },
+      {
+        "type": "paragraph",
+        "text": "光線同樣要避開。紫外線會讓酒色變淡、引起化學反應，也會加快揮發。W. Blake Gray 甚至認為陽光比高溫更危險，Monti 也說吧台上方的層架又熱又亮，不適合放酒；曬得到太陽的窗台也一樣。"
+      },
+      {
+        "type": "paragraph",
+        "text": "比較理想的位置是櫥櫃或食物儲藏室，地下室或食物櫃下層也不錯。要放在倉庫或車庫的話，可以用保溫箱隔絕濕氣和溫差。潮濕會讓酒標發霉、留下水漬，也會讓金屬蓋的圓筒包裝生鏽。"
+      },
+      {
+        "type": "heading",
+        "text": "直放還是躺放？軟木塞與旋蓋的差別"
+      },
+      {
+        "type": "paragraph",
+        "text": "這點大家意見一致：直放。高酒精度的酒長期泡著軟木塞，會讓木塞劣化、帶來異味，也可能破壞密封，這和葡萄酒剛好相反。Whisky Advocate 的 Jonny McCormick 說得很直白：「請讓威士忌和層架保持垂直！」"
+      },
+      {
+        "type": "paragraph",
+        "text": "不過木塞也不能太乾，否則可能失去密封力。專家建議大約一年把瓶子傾斜或翻轉幾次，讓木塞短暫沾濕。Mashed 則說木塞乾掉的情況不常見，因為瓶中揮發的酒精會讓木塞保持濕潤，問題主要出在放了幾十年的老酒。"
+      },
+      {
+        "type": "paragraph",
+        "text": "萬一木塞乾掉或斷掉，可以先換上備用酒塞，或換新塞、用蠟封住瓶口；實在不行，就把酒移到密封瓶並濾掉碎屑。"
+      },
+      {
+        "type": "paragraph",
+        "text": "用旋蓋或合成塞的酒沒有木塞劣化的問題，鋁製旋蓋記得轉緊就好。同一個品牌也可能依瓶款使用不同的塞子，例如 Buffalo Trace 有的用天然塞、有的用合成塞，最好確認一下自己那瓶是哪一種。"
+      },
+      {
+        "type": "heading",
+        "text": "沒開過的酒、禮盒，以及怎麼判斷走味"
+      },
+      {
+        "type": "paragraph",
+        "text": "沒開過的酒只要保存得當，可以放上好幾十年。不過威士忌裝瓶後不會繼續熟成，12年就是12年，不會像葡萄酒一樣越放越好，也沒有所謂的適飲期。原本的禮盒、圓筒和紙盒都有助於擋光，連盒一起收著就好。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要判斷一瓶開過的酒是不是走味了，可以留意幾個跡象：香氣變平淡、酒色變淡、喝起來異常單薄或發酸、軟木塞碎裂，或是出現金屬味。如果只是比記憶中柔和一點，酒還是可以安心喝，只是沒有原本那麼精彩。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "The Whiskey Wash：How Long Does Whiskey Keep Once Opened?",
+        "url": "https://thewhiskeywash.com/bourbon/how-long-does-whiskey-keep-opened/"
+      },
+      {
+        "title": "Malts.com（帝亞吉歐官方）：An expert's guide to proper whisky storage",
+        "url": "https://www.malts.com/en/articles/an-experts-guide-to-proper-whisky-storage"
+      },
+      {
+        "title": "Milroy's of Soho（倫敦威士忌專賣店）：How long does whisky last?",
+        "url": "https://milroysofsoho.com/blogs/the-whisky-librarian/how-long-does-whisky-last"
+      },
+      {
+        "title": "Whisky Advocate：Mastering Whisky Storage（作者 Jonny McCormick）",
+        "url": "https://whiskyadvocate.com/mastering-whisky-storage"
+      },
+      {
+        "title": "W. Blake Gray 部落格：Booze will not last indefinitely in an open bottle",
+        "url": "https://blog.wblakegray.com/2013/07/booze-will-not-last-indefinitely-in.html"
+      },
+      {
+        "title": "買購網（maigoo）：威士忌開瓶後保存方法",
+        "url": "https://m.maigoo.com/goomai/60350.html"
+      },
+      {
+        "title": "The Whiskey Reserve：Does Whiskey Go Off? How Long It Lasts Opened vs Unopened",
+        "url": "https://thewhiskeyreserve.com/blogs/the-whiskey-reserve-blog/does-whiskey-go-off-how-long-it-lasts-opened-vs-unopened"
+      },
+      {
+        "title": "Laphroaig 拉弗格官方：How to Store Whisky",
+        "url": "https://laphroaig.com/whisky-stories/whisky-storage"
+      },
+      {
+        "title": "Mashed：The Overlooked Detail That Can Ruin Whiskey's Flavor Over Time",
+        "url": "https://www.mashed.com/2080705/what-happens-whiskey-cork-dries-out"
+      }
+    ]
+  },
+  {
+    "id": "yamazaki-hibiki-hakushu",
+    "title": "山崎、響、白州差別比較：風味、價格與怎麼選",
+    "type": "comparison",
+    "description": "山崎、響、白州差在哪？從兩座蒸餾廠與調和說起，比較三款核心酒款的風味、台灣價格與限定版行情，幫你挑對第一瓶。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://img.shoujiuonline.com/blog-japanese-whisky-discontinued-market-guide-hero-20260409.jpg",
+      "sourceUrl": "https://shoujiuonline.com/blog/japanese-whisky-discontinued-market-guide",
+      "credit": "鴻鑫商行"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "三得利旗下的山崎、白州和響，常常是大家入門日本威士忌時最先認識的三個名字。山崎和白州是兩座蒸餾廠的單一麥芽，響則是用兩廠麥芽加上知多穀物原酒調和而成的威士忌。這篇用山崎12年、白州12年和響 Japanese Harmony 三款核心酒款來比較，從製程、品飲、價格一路談到限定版行情，幫剛入門的人、老手和要送禮的人各自找到適合的一瓶。"
+      },
+      {
+        "type": "heading",
+        "text": "風味差異從哪來：兩座蒸餾廠與一款調和"
+      },
+      {
+        "type": "paragraph",
+        "text": "山崎在1923年由鳥井信治郎創立，位在京都附近，1924年11月11日開始蒸餾。這裡是三條河流匯流的地方，水的礦物質約90 mg/l，屬於半軟水。白州的水更軟，大約只有30 mg/l。白州蒸餾廠位在甲斐駒岳山腳，三得利叫它「森林蒸餾所」。"
+      },
+      {
+        "type": "paragraph",
+        "text": "設備也不一樣。山崎有八對壺式蒸餾器，其中七對形狀各不相同。發酵槽有木製和不鏽鋼兩種，一般認為乳酸菌會留在木槽裡，讓酒多一些奶油感。白州則全部用木製發酵槽。"
+      },
+      {
+        "type": "paragraph",
+        "text": "真正拉開兩廠距離的是酒桶。山崎用五種桶，其中包括自製的水楢桶和西班牙橡木雪莉桶；白州只用四種桶型，而且不用水楢。所以山崎偏甜美濃郁，帶雪莉桶的影響和水楢的辛香；白州則輕盈、果香明亮，還帶一點煙燻。"
+      },
+      {
+        "type": "paragraph",
+        "text": "響 Japanese Harmony 是把這兩廠的麥芽和知多的穀物威士忌調在一起，用了美國白橡木桶、水楢桶和雪莉桶，酒精度43%。它2014年先在澳洲上市，2015年才推到其他主要市場。"
+      },
+      {
+        "type": "heading",
+        "text": "三款並排品飲：香氣、口感、尾韻與喝法"
+      },
+      {
+        "type": "paragraph",
+        "text": "**山崎12年**是43%，用波本桶、雪莉桶和水楢大桶熟成。官方描述的香氣有桃子、鳳梨、糖漬橙皮、香草和水楢，口感是椰子和奶油，尾韻有甜薑和肉桂。評論者 Barry Bradford 給它84/100，認為它結構好、很平衡，水楢還帶出一點近乎鮮味的感覺。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**白州12年**同樣是43%，有泥煤。Whiskeyful 的 Duncan Cairns 喝到綠色草本和近乎高山的清新氣息，覺得酒體比很多蘇格蘭12年單一麥芽輕。The Whiskey Wash 的 Scott Bernard Nelson 則記下木煙、泥煤、蜂蜜和蘋果，尾韻有肉桂和檸檬皮。兩人都給了8分。Cairns 也坦白說，這不是他當年喝過最複雜的酒，但個性很鮮明。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**響 Japanese Harmony**依 Whisky For Everyone 的記錄，香氣有桃子、橙花、蜂蜜和木質辛香，入口是白桃、杏桃、檸檬皮和薑，尾韻中等，清爽乾淨。"
+      },
+      {
+        "type": "paragraph",
+        "text": "三杯並排喝的時候，可以留意幾個重點：山崎的水楢辛香和奶油甜，白州的草本和煙燻，響的花果香和順口。"
+      },
+      {
+        "type": "paragraph",
+        "text": "喝法方面，Cairns 建議白州12年拿來調 Highball，或在室溫下純飲。如果是新手，Nelson 覺得白州12年順口，適合入門；Whisky For Everyone 則推薦響 Japanese Harmony，說它是很理想的日本威士忌入門款。"
+      },
+      {
+        "type": "heading",
+        "text": "台灣價格與預算怎麼選"
+      },
+      {
+        "type": "paragraph",
+        "text": "山崎12年700ml在台灣大約落在 NT$4,400 到 4,880 之間。世達酒業的現金價是 NT$4,400，買酒網 NT$4,500，酒立購 NT$4,580，品迷網 NT$4,880。想先試試味道，買酒網的迷你瓶賣 NT$790。山崎12年的100週年紀念版則要 NT$7,250 到 8,900。"
+      },
+      {
+        "type": "paragraph",
+        "text": "往上一級，山崎18年700ml大約要 NT$21,500 到 23,500，機場限定版賣 NT$27,888。山崎18年水楢桶100週年紀念版更是要 NT$100,000。"
+      },
+      {
+        "type": "paragraph",
+        "text": "響 Japanese Harmony 和白州可以先參考日本的價格。在 AEON Net Super，山崎和白州的無年份款各賣8,250日圓，響 JAPANESE HARMONY 是8,800日圓，三者價差不大。"
+      },
+      {
+        "type": "paragraph",
+        "text": "照預算來分："
+      },
+      {
+        "type": "paragraph",
+        "text": "**五千元左右**：可以買山崎12年。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**六千元上下**：可以考慮三得利限定版。2026年的三款在花落一杯酒各標 NT$5,999，三瓶一組 NT$17,997。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**接近一萬元**：可以找2026年回歸的響12年。官方只在機場免稅店賣，建議價 US$188；花落一杯酒標 NT$9,250。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**兩萬元以上**：就是山崎18年的級距了。"
+      },
+      {
+        "type": "heading",
+        "text": "限定版、取得難度與送禮購買提醒"
+      },
+      {
+        "type": "paragraph",
+        "text": "2021到2023年，三得利每年推出山崎 LIMITED EDITION 和響 BLOSSOM HARMONY 兩款；2024到2026年改成每年三款，也就是山崎、白州 Story of the Distillery 和響 BLOSSOM HARMONY，六年下來一共15瓶。響 BLOSSOM HARMONY 每年都用櫻花桶過桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "響12年在2026年重新推出，定位是重新詮釋，不是復刻舊配方，而且只在機場免稅通路販售。台灣在2026年7月於桃園機場首賣，官方建議價 US$188。剛上市時，曾有某個櫃位要搭購才能買，但那只是當時的情況，不是固定規定。"
+      },
+      {
+        "type": "paragraph",
+        "text": "在日本，山崎18年、白州18年和響21年大多要靠抽選，每瓶67,100日圓，而且很多抽選要先加入會員或下載 App。香港回收商的說法是，山崎10年已經停產，響12年和17年也退出穩定供應，原因是原酒熟成沒辦法加速，高年份原酒出現斷層。"
+      },
+      {
+        "type": "paragraph",
+        "text": "送禮時也要注意真假。現代裝瓶常見全息貼紙、自毀式封膜和撕裂線，但要先查清楚那個年代原本有沒有這些設計，沒有現代貼紙的舊瓶不一定是假酒。買限定版時，記得向店員確認庫存和瓶盒狀況。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "Whisky For Everyone：Hibiki Japanese Harmony 評論",
+        "url": "https://whiskyforeveryone.com/review-hibiki-japanese-harmony/"
+      },
+      {
+        "title": "The Whiskey Wash：山崎蒸餾所參訪",
+        "url": "https://thewhiskeywash.com/world/visit-yamazaki-distillery/"
+      },
+      {
+        "title": "The Whiskey Wash：Hakushu 12 Year Old 評論（2021）",
+        "url": "https://thewhiskeywash.com/reviews/hakushu-12-year-old-japanese-single-malt/"
+      },
+      {
+        "title": "The Whiskyphiles：Yamazaki 12 Years Old 評論（2014）",
+        "url": "https://thewhiskyphiles.com/2014/11/23/yamazaki-12-years-old/"
+      },
+      {
+        "title": "Whiskeyful：Hakushu 12 Year Old 評論",
+        "url": "https://whiskeyful.com/reviews/hakushu-12-year-old-japanese-single-malt-whisky"
+      },
+      {
+        "title": "世達酒業 STAR LIQUOR：山崎12年",
+        "url": "https://www.star9.com.tw/product-detail-2373862.html"
+      },
+      {
+        "title": "FindPrice 價格網：山崎12年",
+        "url": "https://www.findprice.com.tw/g/%E5%B1%B1%E5%B4%8E%2012%E5%B9%B4"
+      },
+      {
+        "title": "FindPrice 價格網：山崎18年",
+        "url": "https://www.findprice.com.tw/g/%E5%B1%B1%E5%B4%8E%2018%E5%B9%B4"
+      },
+      {
+        "title": "nyuka-now：三得利威士忌日本到貨與抽選資訊",
+        "url": "https://nyuka-now.com/archives/834"
+      },
+      {
+        "title": "花落一杯酒：三得利限定版2021–2026整理",
+        "url": "https://www.thewhiskeyonflor.com/suntory-limited-edition-2021-2026/"
+      },
+      {
+        "title": "花落一杯酒：響12年2026機場限定版回歸",
+        "url": "https://www.thewhiskeyonflor.com/hibiki-12-2026-return-guide/"
+      },
+      {
+        "title": "鴻鑫商行：山崎、響、白州停產版回收行情",
+        "url": "https://shoujiuonline.com/blog/japanese-whisky-discontinued-market-guide"
+      }
+    ]
+  },
+  {
+    "id": "whisky-gift-guide",
+    "title": "威士忌送禮推薦：聖誕年終送長輩、朋友這樣挑",
+    "type": "recommendation",
+    "description": "年底送威士忌怎麼挑？依長輩主管、朋友同事、懂酒同好三種對象，比較皇家禮炮21年、格蘭菲迪15年等五款的價格與風味。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://v3-statics.mirrormedia.mg/images/177ea6f7-1254-4a73-b9bd-f242d95e6df5-w1600.jpg",
+      "sourceUrl": "https://www.mirrormedia.mg/story/20260915-spirit-glenfiddich-15-years",
+      "credit": "鏡週刊"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "年底聖誕、跨年的送禮季到了，可是常見的威士忌禮盒清單多半是為農曆年寫的。這篇依收禮對象分成三種情況：長輩主管、朋友同事、懂酒的同好，挑了皇家禮炮21年、格蘭菲迪15年、格蘭多納12年、約翰走路金牌珍藏和大摩15年。每款都附上目前的售價和風味重點，最後再講幾件買禮盒前要注意的事。"
+      },
+      {
+        "type": "heading",
+        "text": "送長輩、主管：皇家禮炮21年，外型體面又好入口"
+      },
+      {
+        "type": "paragraph",
+        "text": "送主管、長輩或 VIP 客戶這種講究體面的場合，皇家禮炮21年是很穩的首選。招牌的寶藍色陶瓷瓶配上金色裝飾，就算對方不懂酒，拿到手也知道不是隨便挑的。"
+      },
+      {
+        "type": "paragraph",
+        "text": "它是調和式威士忌，帶深色水果、焦糖、木質與香料，層次細緻，不常喝酒的人也不會覺得太衝。"
+      },
+      {
+        "type": "paragraph",
+        "text": "價格方面，700ml 目前大約 NT$2,298–3,648，買酒網賣 NT$2,680。有些價目表把21年標在 NT$4,000–6,000，和實際售價差了一大截，下單前多比幾家就不會買貴。"
+      },
+      {
+        "type": "paragraph",
+        "text": "想送得更有份量，可以選 1L 裝，NT$3,680。也可以改送大摩15年，它同樣適合送長輩和主管，700ml 約 NT$2,398–2,780，不少禮盒版還附威士忌杯或水晶杯。"
+      },
+      {
+        "type": "heading",
+        "text": "送朋友、同事：格蘭菲迪15年和格蘭多納12年怎麼選"
+      },
+      {
+        "type": "paragraph",
+        "text": "送朋友或酒友，格蘭菲迪15年和格蘭多納12年都很合適，拿來炒熱跨年倒數的氣氛也不錯。"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭菲迪15年的酒液由三部分組成：波本桶原酒、雪莉桶原酒，還有一批在波本桶熟成15年後，再進全新美國橡木桶放幾個月的原酒。三者調和後放進1998年啟用的索雷拉融合桶。喝起來有蜂蜜、熟果和肉桂，尾韻溫和。它在2026年9月換上全大寫字體的新酒標，建議售價 NT$1,685，招牌的三角瓶很好認。"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭多納12年只用 PX 和 Oloroso 雪莉桶熟成，酒精濃度43%。風味有深色果乾、巧克力和焦糖，口感厚實，BoozeMakers 的評者另外喝到橙皮和肉桂。700ml 大約 NT$1,100–1,250。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要怎麼挑，看對方的口味就好：喜歡濃郁偏甜的雪莉風味，就送格蘭多納；喜歡溫和果香和蜂蜜甜感，就送格蘭菲迪。"
+      },
+      {
+        "type": "paragraph",
+        "text": "評價上兩款差很多。Dramface 的評者覺得格蘭菲迪15年香氣不錯，但入口甜得有點假，尾段又苦又乾，只給了3/10。BoozeMakers 則給格蘭多納12年88分，說它是同類中 CP 值最高的一款。"
+      },
+      {
+        "type": "heading",
+        "text": "預算兩千元以內：送出去也不會太普通的選擇"
+      },
+      {
+        "type": "paragraph",
+        "text": "約翰走路金牌珍藏在買酒網賣 NT$950，1L 裝 NT$1,180。它以 Clynelish 為核心麥芽，Mark Littler 喝到蜂蜜、香草、水果和焦糖，順口偏甜，尾韻帶一點淡淡的煙燻。他認為這款走的是安全好入口的路線，很適合送禮和慶祝，但也很靠品牌形象。要注意的是，金牌珍藏不太容易找到禮盒版。"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭多納12年禮盒大約 NT$1,190–1,250，花一千出頭就能送出一瓶雪莉桶單一麥芽。"
+      },
+      {
+        "type": "paragraph",
+        "text": "預算再緊一點，可以考慮仕高利達金雪莉，有葡萄乾和焦糖的甜感，價格也比較親民。"
+      },
+      {
+        "type": "heading",
+        "text": "送懂酒的同好：從桶型和限定版找話題"
+      },
+      {
+        "type": "paragraph",
+        "text": "大摩15年先在美國白橡木前波本桶熟成，再長時間放進來自赫雷斯的前 Oloroso 雪莉桶。Whisky For Everyone 的評者喝到焦糖、果乾、橙皮、咖啡、可可和肉桂，尾韻最後帶一點薑餅味，很有冬天的感覺。他建議飯後配甜點或雪茄喝，但也提醒有些人可能會覺得太甜太重，送之前最好先確認對方喜不喜歡濃郁的雪莉桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "對懂酒的人來說，製程本身就是話題。格蘭菲迪15年的索雷拉桶從1998年啟用以來從沒完全清空過，每次取酒都會留下一部分，再補進新酒。格蘭多納12年則有一場盲飲可以聊：和麥卡倫12年雪莉桶比，三位品飲者裡有兩位更喜歡格蘭多納。"
+      },
+      {
+        "type": "paragraph",
+        "text": "想送得特別一點，可以看皇家禮炮21年的限定版，例如馬球系列流金沙漠限定版，約 NT$4,300–4,900；或是2002年復古混合酒，NT$4,870。"
+      },
+      {
+        "type": "heading",
+        "text": "買禮盒前要注意的事"
+      },
+      {
+        "type": "paragraph",
+        "text": "現在市面上的禮盒多半是中秋或農曆年版本，像大摩15年的中秋禮盒、皇家禮炮21年的新年節限定，拿來送聖誕禮物也完全沒問題。"
+      },
+      {
+        "type": "paragraph",
+        "text": "附杯的禮盒比較划算。大摩15年有些禮盒附威士忌杯或水晶杯，價格和單瓶差不多。另外，大摩15年（含禮盒版）任買兩瓶就送品牌隨行杯，數量有限。有些酒專不標價，要用 LINE 詢價，或請店家幫你做客製化酒單。"
+      },
+      {
+        "type": "paragraph",
+        "text": "同一款酒在不同通路可能差到上千元，下單前記得先比價。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "2026跨年威士忌酒單（酒專文章）",
+        "url": "https://www.wine0222.com/news_detail/731.htm"
+      },
+      {
+        "title": "威士忌禮盒送禮攻略（jv.com.tw）",
+        "url": "https://www.jv.com.tw/modules/news/print.php?storyid=160&uid=0"
+      },
+      {
+        "title": "FindPrice 比價：皇家禮炮",
+        "url": "https://www.findprice.com.tw/g/皇家禮炮"
+      },
+      {
+        "title": "FindPrice 比價：大摩15年",
+        "url": "https://www.findprice.com.tw/g/大摩15年"
+      },
+      {
+        "title": "鏡週刊：格蘭菲迪15年改版（陳哲民，2026/09/15）",
+        "url": "https://www.mirrormedia.mg/story/20260915-spirit-glenfiddich-15-years"
+      },
+      {
+        "title": "BoozeMakers：GlenDronach 12 Original 評測",
+        "url": "https://www.boozemakers.com/articles/glendronach-12-original-review"
+      },
+      {
+        "title": "FindPrice 比價：格蘭多納12年",
+        "url": "https://www.findprice.com.tw/g/格蘭多納12年"
+      },
+      {
+        "title": "Dramface：Glenfiddich 12、15、18 年評測",
+        "url": "https://www.dramface.com/all-reviews/glenfiddich-12-15-18-review"
+      },
+      {
+        "title": "FindPrice 比價：約翰走路",
+        "url": "https://www.findprice.com.tw/a/johnnie"
+      },
+      {
+        "title": "The Whiskey Wash：Johnnie Walker Gold Label——有料還是虛有其表？（Mark Littler）",
+        "url": "https://thewhiskeywash.com/whiskey-articles/johnnie-walker-gold-label-a-whisky-of-substance-or-faux-luxury/"
+      },
+      {
+        "title": "Whisky For Everyone：The Dalmore 15 Years Old 評測",
+        "url": "https://whiskyforeveryone.com/review-the-dalmore-15-years-old/"
+      }
+    ]
+  },
+  {
+    "id": "new-whisky-autumn-2026",
+    "title": "威士忌新品2026秋季：千元新酒四款怎麼選",
+    "type": "recommendation",
+    "description": "2026 秋季千元威士忌新品怎麼選？比較格蘭利威普羅旺斯、蘇格登甜醺三桶、格蘭傑13年台灣限定與百富12年手工翻麥。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://v3-statics.mirrormedia.mg/images/52b674b2-e4cd-47fe-ac47-41647c1bc74b-w1600.jpg",
+      "sourceUrl": "https://www.mirrormedia.mg/story/20260529-watch-luxury-the-singleton",
+      "credit": "鏡週刊"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "2026年秋天，台灣同時上市了好幾款千元上下的威士忌新品。最便宜的是格蘭利威12年普羅旺斯限定版，建議售價NT$1,000。蘇格登12年甜醺三桶約NT$1,200，格蘭傑13年台灣限定雪莉桶NT$1,500。百富12年手工翻麥貴一截，要NT$2,500。下面整理每款的桶型、風味、喝法和購買通路。剛入門的、喝了好幾年的、要送禮的，都能從中挑到一款合適的。"
+      },
+      {
+        "type": "heading",
+        "text": "一次看懂四款：價格、酒精度與桶型"
+      },
+      {
+        "type": "paragraph",
+        "text": "**格蘭利威12年普羅旺斯**：酒精度40%，700ml，建議售價NT$1,000。美國與歐洲橡木桶熟成12年，再經三款法國白酒桶過桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**蘇格登12年甜醺三桶**：酒精度40%，售價約NT$1,200。雪莉桶、葡萄酒復活桶、西班牙紅酒桶三段熟成。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**格蘭傑13年台灣限定**：酒精度40%，建議售價NT$1,500。波本桶打底，再進阿蒙提拉多雪莉桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**百富12年手工翻麥**：酒精度47.5%，建議售價NT$2,500。熟成桶型未公開。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒標上的「過桶」或「二次陳釀」，是指酒先在一種桶裡熟成，再換到另一種桶繼續熟成，讓風味多一層。格蘭利威用的三款白酒桶，分別是普羅旺斯頂級白酒桶、波爾多蘇玳甜白酒桶和麗維薩特甜白酒桶，全都是初次填裝。蘇格登第一段用的是Pedro Ximénez／Oloroso雪莉桶。至於百富手工翻麥，桶型和「手工翻麥」到底怎麼做，目前都還沒有公開說明。"
+      },
+      {
+        "type": "heading",
+        "text": "新手先看：格蘭利威普羅旺斯與蘇格登甜醺三桶"
+      },
+      {
+        "type": "paragraph",
+        "text": "這兩款價格最低，酒精度都是40%。預算一千多元、第一次自己買酒，從這兩款開始最輕鬆。"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭利威普羅旺斯走花果甜香路線。聞香有奶油香草布蕾、白桃、野花，入口是木梨、迷迭香和花蜜，再延伸出杏仁糖與白巧克力，尾韻是綿長的蜂蜜感。它以經典12年為基底，多加了三重白酒桶過桶，風味因此更偏花蜜與果香。剛上市就拿下2026年蘇格蘭威士忌大師賽金獎。搭餐可以試試康提起司（Comté），或迷迭香蜂蜜烤白桃。"
+      },
+      {
+        "type": "paragraph",
+        "text": "蘇格登甜醺三桶是專為台灣市場打造的酒款，由首席調酒大師Dr. Craig Wilson主導開發。風味描述有乾果、太妃糖、蔓越莓、黑糖、烘焙香料和橙皮，也有人寫到磅蛋糕香。鏡週刊的作者覺得它保留了雪莉風格，葡萄酒桶的組合又讓它「甜而不膩」。它和常規款不只是包裝不同：蘇格登12年經典款是雪莉桶加波本桶雙桶熟成，建議售價NT$1,340，主打濃甜莓果與絲滑香草，甜醺三桶的桶型組合整個換過，價格還便宜一些。建議加冰喝，會釋放出蜂蜜蘋果香，口感也更清爽。"
+      },
+      {
+        "type": "heading",
+        "text": "格蘭傑13年台灣限定：少見的阿蒙提拉多雪莉桶"
+      },
+      {
+        "type": "paragraph",
+        "text": "這款先用波本桶打底熟成，再轉入阿蒙提拉多（Amontillado）雪莉桶二次熟成，補上乾果與堅果風味。鏡週刊提到，台灣的威士忌限定版大多偏好雪莉桶，這款卻選了比較少見的阿蒙提拉多，這正是喝過不少雪莉桶的老饕會想試的原因。"
+      },
+      {
+        "type": "paragraph",
+        "text": "它的靈感來自總製酒師比爾・梁思敦博士（Dr. Bill Lumsden），他想起以前來台時和朋友一起喝的高山茶，發表晚宴也因此辦在新北三峽的茶園。"
+      },
+      {
+        "type": "paragraph",
+        "text": "根據格蘭傑官方品飲筆記，聞香有太妃糖、葡萄乾、奶油酥餅、核桃、烤栗子；入口是熟哈密瓜、松露巧克力和溫暖的辛香料，並帶出焙茶氣息；尾韻是皮革、胡桃與烘烤橡木。另一位撰文者則喝到巴薩米克醋香，以及肉桂、丁香、八角。"
+      },
+      {
+        "type": "paragraph",
+        "text": "限量數沒有公布，品牌也沒有拿它跟常規款做比較。所以值不值得為了「限定」入手，主要看你對阿蒙提拉多這種少見桶型有沒有興趣。"
+      },
+      {
+        "type": "heading",
+        "text": "百富12年手工翻麥：多花的錢買到什麼"
+      },
+      {
+        "type": "paragraph",
+        "text": "這款47.5%、NT$2,500，配合百富88年展覽同步推出，只在全台特選菸酒專賣店與私藏酒窖限量販售。撰文者的描述是：聞香有起司餅乾、奶油太妃糖，再帶出薑香；入口是麥芽糖的甜，接著是葡萄乾與香料；尾韻濃郁滑順。"
+      },
+      {
+        "type": "paragraph",
+        "text": "拿常規的百富12年雙桶來比，雙桶是40%、NT$1,930，帶Oloroso雪莉酒香、蜂蜜和香草，在全家、大全聯、萬家福等通路都買得到。手工翻麥能確定的差別有三點：酒精度比較高、限量、通路比較少。因為桶型沒有公開，沒辦法從桶型來比較。另一個價格參考是百富12年蒙地亞甜酒桶，47.3%、NT$1,880，是每瓶都標有桶號的單桶限量款。"
+      },
+      {
+        "type": "heading",
+        "text": "送禮與購買：去哪買、哪款不容易出錯"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭傑在全台指定菸酒專賣店及量販通路都買得到，格蘭利威則在全台指定通路販售。格蘭利威普羅旺斯是「超越斯佩賽系列」的第一款，之後每年推出一款，屬於年度限定，總瓶數沒有公布。"
+      },
+      {
+        "type": "paragraph",
+        "text": "想挑有話題的禮物，格蘭利威有金獎可以說。蘇格登則是2026年正式登台20週年，10/19至11/20在指定通路購買並登錄，還能參加抽獎。送給不太懂威士忌的人，風味偏甜、果香明顯的格蘭利威或蘇格登比較不會出錯。預算再高一些，同季還有格蘭菲迪16年F1聯名NT$2,900，以及皇家禮炮21年流金沙漠NT$4,900。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "工商時報：格蘭利威12年普羅旺斯限定版（2026/09/11）",
+        "url": "https://www.ctee.com.tw/news/20260911700796-431207"
+      },
+      {
+        "title": "鏡週刊：蘇格登12年甜醺三桶發表（2026/05/29）",
+        "url": "https://www.mirrormedia.mg/story/20260529-watch-luxury-the-singleton"
+      },
+      {
+        "title": "鏡週刊：格蘭傑13年台灣限定版雪莉桶（2026/09/18）",
+        "url": "https://www.mirrormedia.mg/story/20260919-watch-spirit-glenmorangie"
+      },
+      {
+        "title": "Yahoo新聞：2026秋季酒款推薦（百富88年、皇家禮炮流金沙漠、蘇格登等）",
+        "url": "https://tw.news.yahoo.com/2026%E7%A7%8B%E5%AD%A3%E9%85%92%E6%AC%BE%E6%8E%A8%E8%96%A6-%E5%A8%81%E5%A3%AB%E5%BF%8C%E5%80%91%E5%A4%A7%E5%B1%95%E8%BA%AB%E6%89%8B%E7%9A%84%E5%AD%A3%E7%AF%80-%E7%99%BE%E5%AF%8C88%E5%B9%B4%E6%9C%80%E9%AB%98%E5%B9%B4%E4%BB%BD%E7%99%BB%E5%A0%B4-%E7%9A%87%E5%AE%B6%E7%A6%AE%E7%82%AE%E5%85%A8%E6%96%B0%E6%B5%81%E9%87%91%E6%B2%99%E6%BC%A0-%E6%9E%97%E5%AE%A5%E5%98%89%E4%BB%A3%E8%A8%80%E8%98%87%E6%A0%BC%E7%99%BB-160000361.html"
+      },
+      {
+        "title": "Marie Claire 美麗佳人：2026秋季威士忌新品整理",
+        "url": "https://www.marieclaire.com.tw/lifestyle/taste/95610"
+      },
+      {
+        "title": "工商時報：百富系列酒款與售價（2026/07/31）",
+        "url": "https://www.ctee.com.tw/news/20260731700045-431207"
+      },
+      {
+        "title": "工商時報：百富故事系列「窖藏奇遇」12年蒙地亞甜酒桶（2025/10）",
+        "url": "https://www.ctee.com.tw/news/20251003700784-431207"
+      }
+    ]
+  },
+  {
+    "id": "glenmorangie-13-taiwan-exclusive",
+    "title": "格蘭傑13年台灣限定雪莉桶評價：風味、價格與送禮",
+    "type": "review",
+    "description": "格蘭傑13年台灣限定雪莉桶值得買嗎？整理阿蒙提拉多雪莉桶規格、風味、和10年經典款的差別，以及價格與送禮重點。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://v3-statics.mirrormedia.mg/images/bd3ad891-95af-4e4a-8fe0-36a5a0acfde0-w1600.jpg",
+      "sourceUrl": "https://www.mirrormedia.mg/story/20260919-watch-spirit-glenmorangie",
+      "credit": "鏡週刊"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "格蘭傑13年台灣限定版雪莉桶，是品牌第一次把「台灣限定版」印在品名和外盒上，建議售價NT$1,500。它其實2026年8月就開賣了，到了秋季又出現在新酒推薦裡，所以最近搜尋的人越來越多。這篇會談它的桶型與規格、風味、和格蘭傑10年經典款的差別，還有價格、通路和送禮時要注意的地方。先說一件事：目前公開的品飲描述幾乎都是品牌說法，還沒有看到獨立評分。"
+      },
+      {
+        "type": "heading",
+        "text": "酒款規格：波本桶之後再進阿蒙提拉多雪莉桶"
+      },
+      {
+        "type": "paragraph",
+        "text": "這瓶不是全程雪莉桶。酒液先在波本桶熟成，再換進阿蒙提拉多（Amontillado）雪莉桶做二次熟成。阿蒙提拉多是介於清爽與濃厚之間的雪莉酒款，用它的桶子過桶，風味通常會帶出堅果和果乾味。波本桶這一段則帶來柑橘、柔和奶油和香草。"
+      },
+      {
+        "type": "paragraph",
+        "text": "依總製酒師比爾・梁思敦博士（Dr. Bill Lumsden）的說法，酒液大約80%來自阿蒙提拉多桶，20%來自波本桶。至於在雪莉桶裡放了多久，品牌沒有公布。"
+      },
+      {
+        "type": "paragraph",
+        "text": "基本規格是酒精度40%、容量700ml。有沒有冷凝過濾、有沒有添加焦糖色，品牌都沒有說明，這裡也不猜。至於為什麼是13年，品牌的解釋是這個配方在這個年份表現最好。"
+      },
+      {
+        "type": "heading",
+        "text": "風味：太妃糖、葡萄乾，尾韻帶焙茶"
+      },
+      {
+        "type": "paragraph",
+        "text": "先說清楚：鏡週刊刊出的是標明「官方品飲筆記」的版本，其他媒體的描述內容也差不多，所以以下都算是品牌的說法。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒色是深紅棕色。香氣有芝麻油、太妃糖、葡萄乾、紅棗，還有陳年巴薩米克醋的酸甜。加幾滴水後，會出現蘇格蘭奶油酥餅和冰糖，接著是核桃和烤栗子。"
+      },
+      {
+        "type": "paragraph",
+        "text": "入口是熟哈密瓜的甜，接著是巧克力松露和黑松露，再來是肉桂、丁香、八角這類溫暖的香料，後段帶出焙茶味。尾韻有皮革、核桃、甜菸草和烤橡木，餘韻偏長。焙茶這個印象是刻意設計的：梁思敦博士多次來台，和朋友圍坐喝高山茶，這款酒的靈感就來自這些回憶。鏡週刊記者也說，焙茶的印象讓這瓶酒和台灣「馬上近了許多」。"
+      },
+      {
+        "type": "paragraph",
+        "text": "如果你是新手，可以這樣理解：描述的主軸是甜味和果乾，整體偏甜、溫暖，屬於好入口的風格；香料、皮革和菸草則讓它多了一些層次，不會只有一種甜。"
+      },
+      {
+        "type": "heading",
+        "text": "和格蘭傑10年經典差在哪？新手先買哪瓶"
+      },
+      {
+        "type": "paragraph",
+        "text": "格蘭傑10年經典（The Original）只用一次與二次填充的美國白橡木前波本桶熟成。它的風味走明亮路線，以柑橘、熟蜜桃和香草為主。Whiskeyful總編輯Joe Whitfield形容它香氣有夏天感，有梅爾檸檬、杏桃和香草太妃糖，入口有蘋果、香蕉麵包和蜂蜜，尾韻是清爽的柑橘皮。他給了7/10，認為它雖然不算最複雜，卻是這個價位最好的入門單一麥芽之一。不過他評的是43%的版本，台灣常見的是40%。"
+      },
+      {
+        "type": "paragraph",
+        "text": "13年台灣限定多了雪莉桶這一段，風味從柑橘、香草轉向太妃糖、果乾、香料和焙茶，整體更濃郁、更溫暖。兩瓶擺在一起喝，很容易感受到雪莉桶對酒的影響。"
+      },
+      {
+        "type": "paragraph",
+        "text": "價格差距也不小。10年經典在台灣各店的標價大約從NT$620到NT$880，比較高的那幾家多半是禮盒版；13年台灣限定的建議售價是NT$1,500。"
+      },
+      {
+        "type": "paragraph",
+        "text": "怎麼選？如果你想先認識格蘭傑的基本風格，或預算有限，10年經典是很穩的起點。如果你本來就愛甜味和果乾味，或想試試雪莉桶風格，可以直接買13年。"
+      },
+      {
+        "type": "heading",
+        "text": "價格、通路與送禮：包裝夠體面嗎"
+      },
+      {
+        "type": "paragraph",
+        "text": "建議售價是NT$1,500，但實際上通路價可能比較低，例如巷弄洋酒標價NT$1,299。買之前多比幾家，通常能省下一點。"
+      },
+      {
+        "type": "paragraph",
+        "text": "販售通路是全台指定的菸酒專賣店和量販通路。這裡的「限定」是指只在台灣賣，品牌沒有公布產量，所以不必當成搶不到的限量酒。"
+      },
+      {
+        "type": "paragraph",
+        "text": "送禮的話，包裝算有誠意。外盒有燙金的台灣地圖線條和「敬台灣」字樣，用中英雙語介紹酒款故事；盒子內側有台式窗花的壓花玻璃圖案，瓶身還有梁思敦博士的手寫簽名。"
+      },
+      {
+        "type": "paragraph",
+        "text": "品牌把它定位成「以茶會友」、適合親友聚會的酒款。純飲、加冰、加水都可以，也能配鹹酥雞或紅燒料理。喝法這麼隨意，又有台灣故事可以聊，拿來送不太懂威士忌的長輩或朋友很合適。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "Yahoo 新聞（Marie Claire 美麗佳人）：2026 秋季酒款推薦",
+        "url": "https://tw.news.yahoo.com/2026%E7%A7%8B%E5%AD%A3%E9%85%92%E6%AC%BE%E6%8E%A8%E8%96%A6-%E5%A8%81%E5%A3%AB%E5%BF%8C%E5%80%91%E5%A4%A7%E5%B1%95%E8%BA%AB%E6%89%8B%E7%9A%84%E5%AD%A3%E7%AF%80-%E7%99%BE%E5%AF%8C88%E5%B9%B4%E6%9C%80%E9%AB%98%E5%B9%B4%E4%BB%BD%E7%99%BB%E5%A0%B4-%E7%9A%87%E5%AE%B6%E7%A6%AE%E7%82%AE%E5%85%A8%E6%96%B0%E6%B5%81%E9%87%91%E6%B2%99%E6%BC%A0-%E6%9E%97%E5%AE%A5%E5%98%89%E4%BB%A3%E8%A8%80%E8%98%87%E6%A0%BC%E7%99%BB-160000361.html"
+      },
+      {
+        "title": "自由電子報 iStyle：格蘭傑把「台灣」印上限定酒款！13年雪莉桶融入高山茶韻",
+        "url": "https://istyle.ltn.com.tw/article/40906"
+      },
+      {
+        "title": "壹蘋新聞網：格蘭傑13年台灣限定版雪莉桶 百年首次專為台灣打造",
+        "url": "https://news.nextapple.com/lifestyle/20260828/4D4113CAB949738CDABB5707D2C4AF34"
+      },
+      {
+        "title": "經濟日報：台灣高山茶席為靈感 格蘭傑重磅推出「13年台灣限定版雪莉桶」",
+        "url": "https://money.udn.com/money/story/5637/9716552"
+      },
+      {
+        "title": "鏡週刊：當 Amontillado 遇上台灣！格蘭傑發表「13 年台灣限定版雪莉桶」",
+        "url": "https://www.mirrormedia.mg/story/20260919-watch-spirit-glenmorangie"
+      },
+      {
+        "title": "WE PEOPLE CLUB：格蘭傑推出「13 年台灣限定版雪莉桶」",
+        "url": "https://www.wepeople.club/glenmorangie-13yrs-taiwan-edition/"
+      },
+      {
+        "title": "巷弄洋酒：格蘭傑13年雪莉桶台灣限定版",
+        "url": "https://alleywhiskyshop.com.tw/product/%E6%A0%BC%E8%98%AD%E5%82%9113%E5%B9%B4%E9%9B%AA%E8%8E%89%E6%A1%B6%E5%8F%B0%E7%81%A3%E9%99%90%E5%AE%9A%E7%89%88/"
+      },
+      {
+        "title": "Difford's Guide：Glenmorangie The Original",
+        "url": "http://www.diffordsguide.com/beer-wine-spirits/1288/glenmorangie-the-original"
+      },
+      {
+        "title": "加佳酒 Plus9：格蘭傑10年經典單一麥芽蘇格蘭威士忌",
+        "url": "https://www.plus9.tw/wine-detail/K01116"
+      },
+      {
+        "title": "Whiskeyful：Glenmorangie The Original 10 Year Old 評測",
+        "url": "https://whiskeyful.com/reviews/glenmorangie-original-10-year-old"
+      },
+      {
+        "title": "飛比價格：格蘭傑10年經典 價格比較（2026年11月）",
+        "url": "https://feebee.com.tw/s/%E6%A0%BC%E8%98%AD%E5%82%9110%E5%B9%B4%E7%B6%93%E5%85%B8/"
+      }
+    ]
+  },
+  {
+    "id": "kavalan-distillery",
+    "title": "噶瑪蘭威士忌：2026奪IWC、TWSC世界冠軍的宜蘭酒廠",
+    "type": "distillery",
+    "description": "噶瑪蘭 2026 年拿下 IWC、TWSC 世界冠軍。認識這座宜蘭酒廠的亞熱帶熟成，整理今年獎項，比較三款得獎酒的風味與價格。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://pgw.udn.com.tw/gw/photo.php?u=https://uc.udn.com.tw/photo/t3/2026/07/29/35181201.jpg&M=1&s=Y&x=0&y=0&sw=1280&sh=720&sl=W&fw=1050&exp=3600",
+      "sourceUrl": "https://money.udn.com/money/story/5637/9658252",
+      "credit": "經濟日報"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "噶瑪蘭的 2026 年，幾乎被獎盃填滿了。泥煤探尋者 Oloroso 雪莉桶原酒拿下 IWC「威士忌世界冠軍」，經典獨奏 Oloroso 雪莉桶原酒在東京 TWSC 封王。酒廠在英國 ISC 抱回 19 面金牌，還第一次拿到 IOW 全球「年度蒸餾酒廠冠軍」。巧的是，今年正好是噶瑪蘭蒸餾出第一滴新酒的二十週年。這篇先帶大家認識這座宜蘭酒廠，整理今年的獎項，再聊三款得獎酒的風味、價格和送禮怎麼挑。"
+      },
+      {
+        "type": "heading",
+        "text": "宜蘭員山的噶瑪蘭酒廠：亞熱帶氣候讓熟成變快"
+      },
+      {
+        "type": "paragraph",
+        "text": "噶瑪蘭酒廠在宜蘭員山，四周有山也有海。金車集團 2005 年建廠，2006 年蒸餾出第一滴新酒，2008 年推出台灣第一瓶自釀威士忌。從磨麥到裝瓶都在廠內完成。2016 年蒸餾二廠落成後，廠內有 10 組蘇格蘭式銅製壺式蒸餾器、超過 40 個發酵槽，年產量約 1,000 萬瓶，銷往 30 多個國家及地區。"
+      },
+      {
+        "type": "paragraph",
+        "text": "和蘇格蘭最大的差別在氣候。宜蘭屬亞熱帶，夏天酷熱、冬天又冷，酒液放幾年，色澤、香氣和複雜度就很明顯，熟成較快，風味也較濃縮。代價是蒸發得多：李玉鼎說過，噶瑪蘭的天使分享大約是蘇格蘭的兩到三倍。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒廠用的桶也很多元。雪莉桶由西班牙赫雷斯的製桶廠打造，用過 Oloroso、Fino、Manzanilla、PX 等雪莉酒潤桶。另外還有前波本桶、前波特桶，以及已故 Jim Swan 博士推動的 STR 葡萄酒桶。"
+      },
+      {
+        "type": "heading",
+        "text": "2026得獎整理：IWC、TWSC、ISC、IOW各拿了什麼"
+      },
+      {
+        "type": "paragraph",
+        "text": "**IWC**：2025 年上市的泥煤探尋者 Oloroso 雪莉桶原酒以 96.97 分拿下「威士忌世界冠軍」，是全場最高分。楊順清帶領的釀酒團隊也以全場最高平均分數，獲頒「年度最佳首席釀酒師」。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**TWSC（東京）**：經典獨奏 Oloroso 雪莉桶原酒拿下「年度最佳單一麥芽威士忌」。這是噶瑪蘭第七度在 TWSC 拿到世界冠軍，也是連續四年拿下最高榮譽。山川首席葡萄酒風味桶已連續三年拿到金賞，今年進入名人堂。酒廠也獲選「亞洲年度最佳酒廠」，今年共拿 22 面獎牌（7 面最高金賞、15 面金賞），是噶瑪蘭在 TWSC 歷年最好的成績。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**ISC（英國）**：第七度拿下「世界產區年度酒廠冠軍獎盃」。19 面金牌也是噶瑪蘭參賽以來最多的一次。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**IOW（英國 Icons of Whisky）**：第一次拿下全球「年度蒸餾酒廠冠軍」。噶瑪蘭過去在 IWSC、WWA、SFWSC、IWC 也多次拿過這類獎，加上這次，酒廠類最高榮譽已累計 19 項。歷年國際金牌超過 900 面，也有統計說已經破千。"
+      },
+      {
+        "type": "heading",
+        "text": "三款得獎酒風味比較：泥煤探尋者、經典獨奏、山川首席"
+      },
+      {
+        "type": "paragraph",
+        "text": "**泥煤探尋者 Oloroso 雪莉桶原酒**是「輕泥煤」，煙燻感比傳統泥煤威士忌輕。記者黃若綾說它酒色像深色葡萄乾，聞得到堅果、鳳梨、芒果，尾韻有巧克力與咖啡。酒條通的介紹還寫到奶油糖、炭燻烏梅和深色果乾，最後收在巧克力、咖啡與堅果。泥煤的煙和雪莉桶的果乾甜感互相襯托，想認識雪莉桶泥煤風格的人，很適合從這瓶開始。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**經典獨奏 Oloroso 雪莉桶原酒**沒有泥煤，主角是雪莉桶的果香和甜感。TWSC 評審寫到熟透的哈密瓜與黃桃，尾韻是細緻的橡木與可可。加佳酒則形容它有烏梅、葡萄乾、肉桂、龍眼蜜。要注意它是單桶原酒，每桶個性都不同。BTI 評過一支 2025 年、56.3% 的版本，筆記偏楓糖燒肉、焦糖、菸草，給了 94 分，和 TWSC 的評語差很多。所以店裡架上那瓶，不一定是得獎的那一桶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "**山川首席葡萄酒風味桶**酒精度 40%，最後一段放進葡萄酒桶熟成，這段通常不到一年。它已連續三年拿下 TWSC 金賞。"
+      },
+      {
+        "type": "paragraph",
+        "text": "怎麼挑？怕煙燻的人，先從經典獨奏或山川首席開始。想試泥煤又怕太重，泥煤探尋者的輕泥煤比較好入口。剛開始喝威士忌、想喝順口一點，選 40% 的山川首席。"
+      },
+      {
+        "type": "heading",
+        "text": "價格、通路與送禮怎麼選"
+      },
+      {
+        "type": "paragraph",
+        "text": "泥煤探尋者 Oloroso 雪莉桶是 700ml、酒精度 50～59.9%，建議售價 NT$3,500，部分通路的會員價約 NT$2,998。經典獨奏 Oloroso 雪莉桶原酒各通路價差很大：有店家賣 NT$3,200，也有標 S09 的商品賣到 NT$5,999。它是單桶、單一瓶號，買之前一定要看清楚編號和酒精度。山川首席葡萄酒風味桶 2022 年上市時建議售價 NT$1,500，是三款裡最好入手的。"
+      },
+      {
+        "type": "paragraph",
+        "text": "這幾款可以在噶瑪蘭展售中心、酒堡門市、噶瑪蘭威士忌酒吧，以及全台各大酒類專賣店買到。"
+      },
+      {
+        "type": "paragraph",
+        "text": "送懂酒的朋友，泥煤探尋者或經典獨奏原酒都很合適，還能順便聊 IWC 和 TWSC 的冠軍話題。送不常喝酒的長輩，40% 的山川首席比較不會出錯。兩款原酒的酒精度在 50～59.9%，比較適合有品飲經驗的人。人在宜蘭的話，酒堡的二十週年「從宜蘭到世界」特展展到 2027 年 1 月 15 日，看完展可以順便帶一瓶回家。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "經濟日報：噶瑪蘭泥煤探尋者 Oloroso 雪莉桶原酒奪 2026 IWC 威士忌世界冠軍",
+        "url": "https://money.udn.com/money/story/5637/9658252"
+      },
+      {
+        "title": "經濟日報：噶瑪蘭 2026 TWSC 第七度封王",
+        "url": "https://money.udn.com/money/story/5637/9684066"
+      },
+      {
+        "title": "自由時報 iStyle：噶瑪蘭 2026 ISC 抱回 19 面金牌",
+        "url": "https://istyle.ltn.com.tw/article/41407"
+      },
+      {
+        "title": "壹蘋新聞網：噶瑪蘭首度奪 IOW 全球年度蒸餾酒廠冠軍",
+        "url": "https://news.nextapple.com/lifestyle/20260407/AE15B7F54862EEFCF12A39E377E8305F"
+      },
+      {
+        "title": "Whisky Magazine：Kavalan celebrating 20 years of sub-tropical single malt whisky",
+        "url": "https://whiskymag.com/articles/kavalan-celebrating-20-years-of-sub-tropical-single-malt-whisky/"
+      },
+      {
+        "title": "壹蘋新聞網：噶瑪蘭 PEATIST 泥煤探尋者雙酒款登場",
+        "url": "https://news.nextapple.com/lifestyle/20250730/3C806A62A7AA88262B978B26BBBA89F0"
+      },
+      {
+        "title": "酒條通：噶瑪蘭泥煤探尋者系列雪莉桶泥煤威士忌原酒 700ml",
+        "url": "https://www.609.com.tw/Product/113758"
+      },
+      {
+        "title": "加佳酒 Plus9：噶瑪蘭經典獨奏 Oloroso 雪莉桶原酒",
+        "url": "https://www.plus9.tw/wine-detail/K01296"
+      },
+      {
+        "title": "巷弄洋酒：噶瑪蘭經典獨奏 Oloroso 雪莉桶原酒（S09）",
+        "url": "https://alleywhiskyshop.com.tw/product/%E5%99%B6%E7%91%AA%E8%98%AD%E7%B6%93%E5%85%B8%E7%8D%A8%E5%A5%8F-oloroso%E9%9B%AA%E8%8E%89%E6%A1%B6-%E5%8E%9F%E9%85%92-s09/"
+      },
+      {
+        "title": "Tastings.com（BTI）：Kavalan Solist Oloroso Sherry Single Cask Strength 2025 評鑑",
+        "url": "https://www.tastings.com/Spirits-Review/Kavalan-Solist-Oloroso-Sherry-Single-Cask-Strength-Single-Malt-Whisky-Taiwan-112-6-Proof-700-ml-07-04-2025.aspx"
+      },
+      {
+        "title": "鏡週刊：噶瑪蘭山川首席葡萄酒風味桶上市",
+        "url": "https://www.mirrormedia.mg/story/amp/20221125wine001"
+      },
+      {
+        "title": "噶瑪蘭威士忌中秋佳禮推薦（2025/09/02）",
+        "url": "https://www.tw-tw.com.tw/breaking-news/2025/kavalan-moon-festival/"
+      }
+    ]
+  },
+  {
+    "id": "bruichladdich-distillery",
+    "title": "布萊迪酒廠介紹：艾雷島上不只有重泥煤",
+    "type": "distillery",
+    "description": "布萊迪不只有重泥煤：一間酒廠做出布萊迪、波夏、奧特摩三條產品線。入門該喝哪款、11月台灣限量款是什麼，一次看懂。",
+    "publishedAt": "2026-11-15T00:00:00.000Z",
+    "readingMinutes": 4,
+    "cover": {
+      "imageUrl": "https://us.bruichladdich.com/cdn/shop/articles/Octomore_13_5f40c64d-7646-45ec-bcc9-5178f122869f.jpg?v=1788536060",
+      "sourceUrl": "https://us.bruichladdich.com/blogs/news/octomore-the-founders-story",
+      "credit": "Bruichladdich 布萊迪官方"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "說到艾雷島，很多人第一個想到的就是重泥煤，不喝煙燻味的新手常常因此不敢碰。布萊迪酒廠卻三種都做：無泥煤的布萊迪、重泥煤的波夏，還有泥煤值極高的奧特摩。2026年是酒廠重新開廠25週年，11月台灣又限量販售 PC5 Redux 和 OBA Redux。這篇先講酒廠背景，再說明三條產品線怎麼分、入門該喝哪一款，最後介紹這次限量款的來歷，也給一些送禮建議。"
+      },
+      {
+        "type": "heading",
+        "text": "布萊迪是什麼樣的酒廠？一間酒廠、三個名字"
+      },
+      {
+        "type": "paragraph",
+        "text": "布萊迪由 Harvey 兄弟在1881年建於艾雷島 Loch Indaal 西岸，現在屬於人頭馬君度，台灣也由人頭馬君度代理。酒廠在2001年重新開廠，到今年剛好25週年。"
+      },
+      {
+        "type": "paragraph",
+        "text": "三條產品線看酒標就能分辨：Bruichladdich（布萊迪）是無泥煤；Port Charlotte（波夏）是重泥煤，泥煤值40 ppm；Octomore（奧特摩）在2008年推出，泥煤值在160 ppm 以上。"
+      },
+      {
+        "type": "paragraph",
+        "text": "酒廠只用100%蘇格蘭大麥，也大量使用有機大麥。2004年，布萊迪成為第一間在艾雷島當地種大麥的酒廠，和十座當地農場合作。它的酒不做冷凝過濾，也不加焦糖調色。廠內的裝瓶廠在2003年完工，所以酒能直接在島上裝瓶。2020年，布萊迪成為全球第一間拿到 B 型企業認證的蘇格蘭威士忌酒廠。"
+      },
+      {
+        "type": "heading",
+        "text": "不喝泥煤從這裡開始：經典萊迪與布萊迪12年"
+      },
+      {
+        "type": "paragraph",
+        "text": "艾雷島的酒為什麼也能沒有泥煤？煙燻味是烘麥時讓泥煤的煙滲進大麥而來的，布萊迪這條線本來就是無泥煤風格，所以不會有濃厚的煙燻。"
+      },
+      {
+        "type": "paragraph",
+        "text": "經典萊迪（The Classic Laddie）是50% ABV，用美國橡木桶熟成，100%無泥煤，沒有標示年份。Difford's Guide 的品飲筆記寫到海水浪花、青蘋果和香草軟糖，入口是乾而辛香的橡木，加上麥芽糖的甜；雖然沒有泥煤，仍有淡淡的煙燻感，加水後表現更好。"
+      },
+      {
+        "type": "paragraph",
+        "text": "布萊迪12年在2025年6月於台灣首發上市，46% ABV，建議售價新台幣1,670元。它用波本桶、雪莉桶和法國橡木葡萄酒桶的原酒調和，大麥裡有艾雷島農民種的批次。官方筆記有熟梨、水蜜桃、蜂蜜和奶油香草，尾韻是海鹽和橡木香料。"
+      },
+      {
+        "type": "paragraph",
+        "text": "要注意版本差異。Drink Britain 評的12年只用波本桶，和台灣新版的桶型不同；作者 Susanna 的筆記裡還提到一點泥煤。買之前最好看清楚是哪一版。"
+      },
+      {
+        "type": "paragraph",
+        "text": "怎麼選呢？想要果香、圓潤、價格親民，先喝12年；想要酒感強一點、更乾的海風感，再試經典萊迪。"
+      },
+      {
+        "type": "heading",
+        "text": "波夏與奧特摩：泥煤可以重到什麼程度"
+      },
+      {
+        "type": "paragraph",
+        "text": "波夏的泥煤值是40 ppm，屬於重泥煤。波夏10年為50% ABV，用波本桶和葡萄酒桶熟成。The Whiskey Wash 的評論者 Margarett Waterbury 聞到橘子、堅果和柴火煙燻，入口有深色焦糖、巧克力和鹹香的煙燻，給了8分（滿分10分）。"
+      },
+      {
+        "type": "paragraph",
+        "text": "奧特摩的泥煤值為什麼能這麼高？2002年，布萊迪請小批次發麥的 Bairds of Inverness 麥芽廠，做出他們做得到泥煤最重的大麥。Jim McEwan 從燻鯡魚得到靈感，改用時間更長、溫度更低的烘麥方式，讓煙滲進大麥，又不會把大麥烤熟。"
+      },
+      {
+        "type": "paragraph",
+        "text": "Bairds 位在蘇格蘭東部高地，用的是纖維型泥煤，煙燻帶甜，沒有碘酒或藥水味。再加上布萊迪的蒸餾器高而頸窄、回流多，創辦人認為這就是奧特摩優雅的來源。所以奧特摩泥煤值很高，喝起來卻偏優雅、帶果香。"
+      },
+      {
+        "type": "paragraph",
+        "text": "目前泥煤值最高的是第8系列 Masterclass 的309.1 PPM，創辦人說到現在還不知道煙燻的上限在哪裡。"
+      },
+      {
+        "type": "heading",
+        "text": "11月台灣限量：PC5 Redux 與 OBA Redux 是什麼來頭"
+      },
+      {
+        "type": "paragraph",
+        "text": "這兩款都是2026年艾雷島嘉年華（Fèis Ìle）的限定酒款，5月24日在酒廠活動日 Rock'ndaal 發表。首席調酒師 Adam Hannett 重新詮釋了原版的風味，全球各限量2,500瓶。"
+      },
+      {
+        "type": "paragraph",
+        "text": "原版 PC5 是酒廠2001年重新開廠後推出的第一款威士忌，奠定了波夏的重泥煤風格。它的原酒是2001年5月29日蒸餾器流出的第一批新酒。"
+      },
+      {
+        "type": "paragraph",
+        "text": "PC5 Redux 是5年、63.5% ABV，用美國橡木桶熟成。Hannett 說橡木桶在後面撐住酒體，不會蓋過原酒。他的品飲筆記是活潑的煙燻加上明亮的柑橘，呈現年輕重泥煤原酒的活力。"
+      },
+      {
+        "type": "paragraph",
+        "text": "OBA 最早是 Hannett 在2016年嘉年華大師班上倒給大家喝的酒，2017年推出的 OBA Concept_01 幾乎一上市就賣完。OBA Redux 為54.2% ABV，沿用 Black Art 系列不公開配方的做法，酒齡、泥煤值都不公開，熟成配方也保密。官方筆記有持續的泥煤煙燻、熱帶水果和烤杏仁膏。"
+      },
+      {
+        "type": "paragraph",
+        "text": "台灣只透過官方 LINE 販售，兩款各分到120瓶，目前還沒公布確切開賣日期。建議售價是 OBA Redux 新台幣11,900元、PC5 Redux 新台幣2,750元。"
+      },
+      {
+        "type": "heading",
+        "text": "送禮怎麼選才不會出錯"
+      },
+      {
+        "type": "paragraph",
+        "text": "如果不確定對方喝不喝泥煤，布萊迪12年最穩：無泥煤、果香討喜，新台幣1,670元也好入手。包裝也夠體面。水藍色酒瓶由法國 Saver Glass 製造，新版約60%是再生玻璃，用有機墨水印製，外盒採用永續認證紙材。"
+      },
+      {
+        "type": "paragraph",
+        "text": "如果對方是已經喝泥煤的資深飲家，送 Redux 很有話題。PC5 Redux 的酒瓶上印有 Adam Hannett 的肖像，又是向重開廠第一款酒致敬的版本。不過台灣各只有120瓶，而且只在官方 LINE 販售，要早點留意。也記得提醒對方，PC5 Redux 的酒精濃度高達63.5%。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "Difford's Guide：Bruichladdich Distillery 酒廠介紹",
+        "url": "https://www.diffordsguide.com/producers/255/bruichladdich-distillery"
+      },
+      {
+        "title": "Yahoo 新聞：2026 秋季酒款推薦（含奧特摩 OBA Redux、PC5 Redux 台灣販售資訊）",
+        "url": "https://tw.news.yahoo.com/2026%E7%A7%8B%E5%AD%A3%E9%85%92%E6%AC%BE%E6%8E%A8%E8%96%A6-%E5%A8%81%E5%A3%AB%E5%BF%8C%E5%80%91%E5%A4%A7%E5%B1%95%E8%BA%AB%E6%89%8B%E7%9A%84%E5%AD%A3%E7%AF%80-%E7%99%BE%E5%AF%8C88%E5%B9%B4%E6%9C%80%E9%AB%98%E5%B9%B4%E4%BB%BD%E7%99%BB%E5%A0%B4-%E7%9A%87%E5%AE%B6%E7%A6%AE%E7%82%AE%E5%85%A8%E6%96%B0%E6%B5%81%E9%87%91%E6%B2%99%E6%BC%A0-%E6%9E%97%E5%AE%A5%E5%98%89%E4%BB%A3%E8%A8%80%E8%98%87%E6%A0%BC%E7%99%BB-160000361.html"
+      },
+      {
+        "title": "工商時報：布萊迪12年、15年台灣首發上市（2025年6月11日）",
+        "url": "https://www.ctee.com.tw/news/20250611701459-431207"
+      },
+      {
+        "title": "布萊迪官方：Octomore, The Founders' Story",
+        "url": "https://us.bruichladdich.com/blogs/news/octomore-the-founders-story"
+      },
+      {
+        "title": "Difford's Guide：Bruichladdich The Classic Laddie",
+        "url": "https://www.diffordsguide.com/beer-wine-spirits/4181/bruichladdich-the-classic-laddie"
+      },
+      {
+        "title": "Drink Britain：Bruichladdich 12 Year Old",
+        "url": "https://drinkbritain.com/bruichladdich-12-year-old/"
+      },
+      {
+        "title": "The Whiskey Wash：Whisky Review: Port Charlotte 10",
+        "url": "https://thewhiskeywash.com/reviews/whisky-review-port-charlotte-10/"
+      },
+      {
+        "title": "The Whiskey Wash：Bruichladdich Fèis Ìle 2026: PC5 & OBA Redux",
+        "url": "https://thewhiskeywash.com/whiskey-news/bruichladdich-feis-ile-2026-pc5-oba-redux/"
+      },
+      {
+        "title": "Dram1：Bruichladdich Revives PC5 & OBA For Fèis Ìle 2026",
+        "url": "https://dram1.com/bruichladdich-pc5-redux-oba-redux-feis-ile-2026/"
+      }
+    ]
+  },
+  {
     "id": "what-is-bourbon",
     "title": "波本威士忌是什麼？和蘇格蘭威士忌差在哪一次看懂",
     "type": "guide",
@@ -243,7 +1286,7 @@
       },
       {
         "type": "paragraph",
-        "text": "喝完入門酒之後，可以照自己的口味往下走：喜歡 Blonde 的清爽，就多試試不同的 Highball 搭配；喜歡蘇格登的果香，可以去找不同桶型的單一麥芽；想挑戰煙燻味，建議從帶一點泥煤的調和式開始，例如 Johnnie Walker 黑牌12年，標價2,800元，風味有泥煤、果香、奶油、煙燻、香草和太妃糖。"
+        "text": "喝完入門酒之後，可以照自己的口味往下走：喜歡 Blonde 的清爽，就多試試不同的 Highball 搭配；喜歡蘇格登的果香，可以去找不同桶型的單一麥芽；想挑戰煙燻味，建議從帶一點泥煤的調和式開始，例如 Johnnie Walker 黑牌12年，風味有泥煤、果香、奶油、煙燻、香草和太妃糖。"
       }
     ],
     "sources": [
@@ -352,7 +1395,7 @@
       },
       {
         "type": "paragraph",
-        "text": "舉個實際的例子：英國酒商 Enotria 在蘇格登 12 年的品飲筆記裡寫到，加一滴水會帶出典型斯佩賽的果甜香氣。所以不妨倒兩小份，一份純飲、一份加一滴水，對照著喝，最容易感覺到差別。"
+        "text": "舉個實際的例子：英國酒商 Enotria 在蘇格登 12 年的品飲筆記裡寫到，加一滴水會帶出果甜香氣。所以不妨倒兩小份，一份純飲、一份加一滴水，對照著喝，最容易感覺到差別。"
       },
       {
         "type": "heading",
@@ -384,11 +1427,11 @@
       },
       {
         "type": "paragraph",
-        "text": "**The Singleton 12 年**：Enotria 的筆記寫到烤堅果和濃郁果香，餘韻優雅、偏乾，建議加一滴水喝。加少許冰塊口感也會變柔和，適合新手在長時間聊天時慢慢啜飲。要注意蘇格登有不同版本，例如 Glen Ord 雪莉版有黑棗、葡萄乾等比較濃的果香，買之前先看清楚酒標。"
+        "text": "**The Singleton 12 年**：買之前先看清楚版本。台灣常見的是 Glen Ord 酒廠的雪莉版，有黑棗、葡萄乾等比較濃的果香。英國等歐洲市場賣的則是 Dufftown 酒廠的版本，前面 Enotria 筆記寫的烤堅果、濃郁果香和偏乾的餘韻，說的是這一版。加少許冰塊口感也會變柔和，適合新手在長時間聊天時慢慢啜飲。"
       },
       {
         "type": "paragraph",
-        "text": "從酒商的描述來看，三款都偏向花果香、順口、不煙燻，派對上大家口味不同時，比較不容易踩雷。"
+        "text": "從酒商的描述來看，三款都順口、不煙燻：格蘭利威和格蘭菲迪偏花果香，台灣的蘇格登雪莉版則多一點果乾甜。派對上大家口味不同時，比較不容易踩雷。"
       },
       {
         "type": "heading",

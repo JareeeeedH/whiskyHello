@@ -1,0 +1,22 @@
+[
+  { "id": 1, "type": "flavour", "question": "我想要煙燻味重一點的，像消毒水那種", "mustHave": [["smok", "peat"], ["medicinal", "iodine", "antiseptic", "bandage", "hospital"]] },
+  { "id": 2, "type": "flavour", "question": "雪莉桶，喝起來有葡萄乾跟巧克力的感覺", "mustHave": [["raisin", "sultana", "prune"], ["chocolate", "cocoa", "mocha"]] },
+  { "id": 3, "type": "flavour", "question": "有沒有像香草冰淇淋一樣甜甜的威士忌", "mustHave": [["vanilla"], ["cream", "custard"]] },
+  { "id": 4, "type": "flavour", "question": "我喜歡喝起來有熱帶水果，像芒果鳳梨", "mustHave": [["mango", "pineapple", "passion", "papaya", "tropical", "guava"]] },
+  { "id": 5, "type": "flavour", "question": "喜歡波本桶那種香草、椰子的味道", "mustHave": [["vanilla"], ["coconut"]] },
+  { "id": 6, "type": "flavour", "question": "喜歡辛香料的感覺，像肉桂、丁香、黑胡椒，尾韻長一點", "mustHave": [["cinnamon", "clove", "pepper", "nutmeg", "ginger"]] },
+  { "id": 7, "type": "flavour", "question": "最近迷上葡萄酒桶過桶的，喜歡紅色莓果和一點單寧的感覺", "mustHave": [["wine", "port", "pinot", "claret", "madeira"], ["berr", "cherr", "redcurrant"]] },
+  { "id": 8, "type": "flavour", "question": "想找水果味很明顯的威士忌，像是蘋果、水蜜桃、西洋梨那種清新的果香", "mustHave": [["apple", "peach", "pear"]] },
+  { "id": 9, "type": "negation", "question": "適合新手入門，不要泥煤", "mustNot": ["peat", "smok", "phenol", "iodine", "medicinal"] },
+  { "id": 10, "type": "negation", "question": "有點辛辣胡椒感，但不要泥煤", "mustHave": [["pepper", "spic"]], "mustNot": ["peat", "smok"] },
+  { "id": 11, "type": "negation", "question": "不太能接受泥煤味，想要帶點熱帶水果和奶油香的，喝起來柔和一點", "mustHave": [["mango", "pineapple", "banana", "tropical", "papaya"]], "mustNot": ["peat", "smok"] },
+  { "id": 12, "type": "negation", "question": "想試試看有點鹹鹹的、海風味，但煙燻不要太重的那種", "mustHave": [["salt", "brine", "briny", "sea", "coastal", "maritime", "seaweed"]] },
+  { "id": 13, "type": "similar", "question": "想找跟 Lagavulin 16 很像的酒", "mustHave": [["peat", "smok"]], "notBrand": "lagavulin" },
+  { "id": 14, "type": "similar", "question": "我平常喝 Macallan 12 雪莉桶，喜歡那種乾果和甜甜的感覺，想找類似的", "mustHave": [["sherry", "raisin", "sultana", "date", "fig"]], "notBrand": "macallan" },
+  { "id": 15, "type": "english", "question": "Light and floral with some honey, nothing smoky", "mustHave": [["floral", "flower", "blossom", "heather"], ["honey"]], "mustNot": ["peat", "smok"] },
+  { "id": 16, "type": "vague", "question": "送給爸爸的生日禮物，預算三千左右" },
+  { "id": 17, "type": "vague", "question": "天冷想喝點暖身的" },
+  { "id": 18, "type": "offTopic", "question": "你好" },
+  { "id": 19, "type": "offTopic", "question": "雪莉桶是什麼？" },
+  { "id": 20, "type": "offTopic", "question": "推薦一款清酒" }
+]

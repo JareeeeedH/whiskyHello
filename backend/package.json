@@ -8,16 +8,19 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test --test-concurrency=1 src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/middlewares/sommelierQuota.test.ts src/middlewares/auth.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/mailService.test.ts src/services/registrationVerification.test.ts src/services/passwordReset.test.ts src/services/adminRbac.test.ts src/validations/sommelierValidation.test.ts src/services/sommelierService.test.ts src/services/translationService.test.ts src/utils/flavourSentence.test.ts",
+    "test": "tsx --test --test-concurrency=1 src/middlewares/errorHandler.test.ts src/middlewares/rateLimit.test.ts src/middlewares/sommelierQuota.test.ts src/middlewares/auth.test.ts src/validations/reviewValidation.test.ts src/services/reviewService.test.ts src/services/authService.google.test.ts src/services/mailService.test.ts src/services/registrationVerification.test.ts src/services/passwordReset.test.ts src/services/adminRbac.test.ts src/validations/sommelierValidation.test.ts src/services/sommelierService.test.ts src/services/translationService.test.ts src/utils/dedupeWhiskies.test.ts",
     "test:rag": "tsc -p scripts && tsx --test scripts/rag/chunk.test.mts",
     "rag:chunks": "tsx scripts/rag/buildChunks.mts",
     "rag:build": "tsx scripts/rag/buildVectors.mts",
+    "rag:eval": "tsx scripts/rag/evalSearch.mts",
+    "rag:eval:real": "tsx scripts/rag/evalReal.mts",
     "news:fetch": "tsx scripts/news/fetchNews.mts"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^11.0.2",

@@ -33,12 +33,12 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
 
 ### Phase 2｜AI
 
-6. **AI Whisky Sommelier**（已上線）
+6. **AI Whisky Sommelier**（已上線；自然語言版待部署）
    - 今日喝什麼
-   - 根據口味、酒體、預算、當下情境推薦兩款，並解釋推薦原因
+   - 使用者用一段話描述想喝的，從評論家筆記推薦 3 款並解釋原因
    - 詳細規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md`
 
-7. **AI 口味搜尋（RAG）**（重建中：清洗後資料、Atlas Vector Search；口味搜尋 API 與前端未做）
+7. **AI 口味搜尋（RAG）**（向量庫與 rerank 完成，Sommelier 已使用；口味搜尋 API 與前端未做）
    - 在 Whisky 頁以自然語言描述風味，從評論家品飲筆記找出最接近的酒款
    - MVP 只做檢索（語意搜尋），不由 LLM 生成回答
    - 詳細規格見第 11 節與 `WHISKY_RAG_SPEC.md`
@@ -89,6 +89,7 @@ Whisky 主資料維持 Static Dataset，透過 Frontend Data Layer 進行資料�
 - Joi
 - REST API
 - OpenAI SDK（Sommelier、翻譯、RAG embedding）
+- Transformers.js（`@huggingface/transformers`，Sommelier rerank 的 cross-encoder）
 - google-auth-library（Google 登入）
 - Nodemailer（Gmail SMTP 寄信；正式站以 Resend 寄信）
 
@@ -449,7 +450,7 @@ GET    /api/v1/admin/reviews
 POST   /api/v1/sommelier/recommendations
 ```
 
-規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.5。
+規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` §3。
 
 ### Translation
 
@@ -547,11 +548,13 @@ Recommendation
 
 Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
+現行做法：使用者用一段話描述 → LLM 判斷意圖並改寫 → RAG 搜尋與 rerank → LLM 寫推薦卡，詳見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md`。
+
 ### 11.1 AI 口味搜尋（RAG）
 
 完整規格與進度見 `WHISKY_RAG_SPEC.md`。
 
-- 用途：Sommelier 第二款從前 5 名候選中由 LLM 挑選（第一款仍由 LLM 自由推薦，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）；之後用於口味搜尋。
+- 用途：Sommelier（改寫後英文查詢 → 向量前 30 → 去重 → rerank 前 3）；之後用於口味搜尋。
 - 資料：清洗後的 Static Dataset，全部 14,553 塊。
 - 切塊：一瓶酒一塊，內容為酒名、Nose、Mouth、Finish、Comments。
 - Embedding：後端以 OpenAI `text-embedding-3-small`（1536 維）產生。
@@ -561,7 +564,7 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 ```text
 【建庫】Static Dataset → 清洗 → 切段落 → chunk → OpenAI embedding → whiskychunks → 向量索引
-【搜尋】Backend → OpenAI embedding → $vectorSearch → 酒款與命中摘句
+【搜尋】英文查詢 → OpenAI embedding → $vectorSearch 前 30 → 去重 → cross-encoder rerank → 前 3
 ```
 
 ---
@@ -674,7 +677,8 @@ Phase 1 ✅  專案骨架、Whisky Data Layer、會員、Review、News
 Phase 2
   ✅ AI Whisky Sommelier
   ✅ AI 評論家筆記翻譯
-  🔄 RAG 重建（清洗後全部酒款、Atlas Vector Search），用於 Sommelier 第二款
+  ✅ RAG 向量庫（清洗後全部酒款、Atlas Vector Search、rerank）
+  🔄 Sommelier 自然語言版（完成，待部署）
   ⬜ 口味搜尋 API 與前端
   🔄 專欄（試行：12 篇、首頁區塊、列表頁、文章頁）
 ```

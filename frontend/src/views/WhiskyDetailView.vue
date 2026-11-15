@@ -555,7 +555,7 @@ watch(
         <div class="sommelier-cta-body">
           <p class="sommelier-cta-eyebrow">SOMMELIER</p>
           <h2 id="sommelier-cta-title" class="sommelier-cta-title">找到你的下一杯</h2>
-          <p class="sommelier-cta-text">聊聊口味與預算，讓侍酒師為你挑選。</p>
+          <p class="sommelier-cta-text">說說你想喝的風味，讓侍酒師為你挑選。</p>
         </div>
         <RouterLink to="/sommelier" class="sommelier-cta-link">
           與侍酒師聊聊 <span aria-hidden="true">→</span>

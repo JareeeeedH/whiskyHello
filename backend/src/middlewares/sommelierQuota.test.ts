@@ -8,8 +8,11 @@ type Quota = ReturnType<typeof dailyRecommendationQuota>
 
 type Caller = { ip?: string; userId?: string }
 
-/** Runs one request through the quota; the controller then answers with `finalStatus`. */
-function hit(quota: Quota, caller: Caller, finalStatus = 200): { status: number; code?: string } {
+/**
+ * Runs one request through the quota; the controller then answers with `finalStatus`,
+ * marking the reply as not counted when `counted` is false.
+ */
+function hit(quota: Quota, caller: Caller, finalStatus = 200, counted = true): { status: number; code?: string } {
   let status = 200
   let body: { code?: string } = {}
   let passed = false
@@ -36,6 +39,9 @@ function hit(quota: Quota, caller: Caller, finalStatus = 200): { status: number;
   }) as NextFunction)
 
   if (passed) {
+    if (!counted) {
+      Object.assign(res, { locals: { countsTowardQuota: false } })
+    }
     res.statusCode = finalStatus
     res.writableFinished = true
     res.emit('close')
@@ -67,6 +73,16 @@ describe('dailyRecommendationQuota', () => {
     assert.equal(hit(quota, { userId: 'u1', ip: '10.0.0.9' }).status, 200)
     assert.equal(hit(quota, { userId: 'u1' }).status, 200)
     assert.deepEqual(hit(quota, { userId: 'u1' }), { status: 429, code: SOMMELIER_QUOTA_CODES.member })
+  })
+
+  it('gives the use back when the reply recommends nothing', () => {
+    const quota = createQuota()
+
+    assert.equal(hit(quota, {}, 200, false).status, 200)
+    assert.equal(hit(quota, {}, 200, false).status, 200)
+    assert.equal(hit(quota, {}).status, 200)
+    assert.equal(hit(quota, {}).status, 200)
+    assert.equal(hit(quota, {}).code, SOMMELIER_QUOTA_CODES.guest)
   })
 
   it('gives the use back when the recommendation fails', () => {

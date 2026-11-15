@@ -10,93 +10,43 @@ import {
   SommelierApiError,
   fetchRecommendations,
 } from '../services/sommelierService'
-import type {
-  OccasionChoice,
-  RecommendationResult,
-  SommelierInput,
-  SommelierInputDraft,
-  SommelierInputErrors,
-  SommelierInputField,
-  TasteKey,
-  WhiskyRecommendation,
-} from '../types/sommelier'
+import type { RecommendationResult, WhiskyRecommendation } from '../types/sommelier'
 import {
-  BUDGET_MAX,
-  BUDGET_MIN,
-  BUDGET_STEP,
-  OCCASION_OPTIONS,
-  RATING_DEFAULT,
-  RATING_MAX,
-  RATING_MIN,
-  STYLE_LABELS,
-  STYLE_SCALE_HINTS,
-  TASTE_EXAMPLES,
-  TASTE_GROUPS,
-  TASTE_LABELS,
-  TASTE_PICKS_MAX,
-  TASTE_PICKS_MIN,
-  TASTE_SCALE_HINTS,
-  canPickMoreTastes,
-  createEmptySommelierDraft,
-  describeStyleRating,
-  describeTasteLevel,
-  pickedTastes,
-  toggleTastePick,
-  validateSommelierInput,
-} from '../utils/sommelierInput'
-import {
-  BETWEEN_MESSAGES_MS,
-  CONVERSATION_STEPS,
   LONG_WAIT_MS,
   LONG_WAIT_TEXT,
+  MESSAGE_MAX_LENGTH,
+  MESSAGE_PLACEHOLDER,
   QUESTION_TO_INPUT_MS,
   SELECTION_LONG_WAIT_MS,
   SELECTION_LONG_WAIT_TEXT,
   SELECTION_STEP_MS,
+  SELECTION_STEPS,
   SOMMELIER_ARRIVAL_MS,
   SOMMELIER_ARRIVAL_TEXT,
   USER_TO_THINKING_MS,
-  composeClosingMessage,
-  composeSelectionSteps,
-  composeUnableMessage,
-  describeBudgetAnswer,
-  describeOccasionAnswer,
-  describeStyleAnswer,
-  describeTastePicks,
-  describeTasteRatings,
-  formatAmount,
-  formatPrice,
-  MAX_ACKNOWLEDGEMENTS,
-  getAcknowledgement,
-  getQuestion,
+  describeMessage,
   getSommelierGreeting,
   getThinkingCue,
   getThinkingDurationMs,
-  type ConversationStep,
-  type QuestionPrompt,
-  type StepKind,
   type ThinkingMoment,
 } from '../utils/sommelierConversation'
 
 const router = useRouter()
 
 /**
- * opening → answering ⇄ responding → done. `error` replaces `done` when the
- * recommendation API fails; `responding` covers every Sommelier turn.
+ * opening → answering ⇄ responding: after every reply the message box comes back, so the
+ * user can keep asking. `error` replaces `answering` when the recommendation API fails.
  */
-type Phase = 'opening' | 'answering' | 'responding' | 'error' | 'done'
+type Phase = 'opening' | 'answering' | 'responding' | 'error'
 
 interface SommelierMessage {
   id: number
   type: 'sommelier'
   lines: string[]
-  /** Set when the message asks one of the questions; `prompt` is its wording at that moment. */
-  question?: ConversationStep
-  prompt?: QuestionPrompt
-  /** Questions, the closing summary and errors become the auto-scroll reading position. */
+  /** The greeting; its last line is styled as the question. */
+  greeting?: boolean
+  /** The greeting and errors become the auto-scroll reading position. */
   anchor?: boolean
-  /** A short reaction to the previous answer. */
-  acknowledgement?: boolean
   tone?: 'error'
   details?: string[]
 }
@@ -104,8 +54,9 @@ interface SommelierMessage {
 interface UserMessage {
   id: number
   type: 'user'
-  step: ConversationStep
   lines: string[]
+  /** The message as sent, put back in the box when the user edits it. */
+  text: string
 }
 
 interface ThinkingMessage {
@@ -114,10 +65,12 @@ interface ThinkingMessage {
   text: string
 }
 
+/** Each round keeps its own cards, so earlier answers stay as they were. */
 interface SystemMessage {
   id: number
   type: 'system'
   content: 'recommendations'
+  recommendations: WhiskyRecommendation[]
 }
 
 type ChatMessage = SommelierMessage | UserMessage | ThinkingMessage | SystemMessage
@@ -135,27 +88,17 @@ const SCROLL_MARGIN_BOTTOM = 24
 const RECOMMENDATION_ERROR_FALLBACK = '推薦暫時無法使用，請稍後再試'
 const RECOMMENDATION_ERROR_INTRO = '抱歉，剛剛挑酒的時候出了點問題。'
 
-/** The first question of each kind that a validation error sends the user back to. */
-const FIELD_STEP_TYPES: Record<SommelierInputField, StepKind['type']> = {
-  taste: 'pickTaste',
-  style: 'style',
-  occasion: 'occasion',
-  budget: 'budget',
-}
-
-const draft = ref<SommelierInputDraft>(createEmptySommelierDraft())
+/** The text in the message box; kept when the user goes back to edit it. */
+const draft = ref('')
 const messages = ref<ChatMessage[]>([])
 const phase = ref<Phase>('opening')
 /** True while the Sommelier is "on the way", before the first message. */
 const arriving = ref(true)
-const activeStep = ref<ConversationStep>(1)
-const errors = ref<SommelierInputErrors>({})
-/** The validated answers, sent for recommendations and kept for a retry. */
-const submittedInput = ref<SommelierInput | null>(null)
-const recommendations = ref<WhiskyRecommendation[]>([])
+/** The message sent for recommendations, kept for a retry. */
+const submittedMessage = ref<string | null>(null)
 const chatRef = ref<HTMLElement | null>(null)
-const headerRef = ref<HTMLElement | null>(null)
 const replyRef = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLTextAreaElement | null>(null)
 const endRef = ref<HTMLElement | null>(null)
 /** Holds the chat height while the reply input is swapped out, so the scroll position never snaps. */
 const heldHeight = ref('')
@@ -166,48 +109,13 @@ let flowToken = 0
 let timers: ReturnType<typeof setTimeout>[] = []
 let focusReplyOnEnter = false
 
-const totalSteps = CONVERSATION_STEPS.length
-/** The last question; answering it submits the conversation. */
-const budgetStep = stepOf('budget')
-const progressStep = computed(() => (submittedInput.value ? totalSteps : activeStep.value))
-const progressLabel = computed(() => `${padStep(progressStep.value)} / ${padStep(totalSteps)}`)
-const progressWidth = computed(() => `${(progressStep.value / totalSteps) * 100}%`)
-const activeKind = computed(() => kindAt(activeStep.value))
-const pickedCount = computed(() => pickedTastes(draft.value.taste).length)
-const canPickMore = computed(() => canPickMoreTastes(draft.value.taste))
-const activeStyleKey = computed(() => (activeKind.value.type === 'style' ? activeKind.value.key : null))
-const canContinue = computed(() => {
-  if (activeKind.value.type === 'occasion') {
-    return draft.value.occasion !== null
-  }
-  return activeKind.value.type !== 'pickTaste' || pickedCount.value >= TASTE_PICKS_MIN
-})
-const pickHint = computed(() => {
-  if (pickedCount.value >= TASTE_PICKS_MAX) {
-    return `已經選滿 ${TASTE_PICKS_MAX} 種，想換的話先取消一種。`
-  }
-  if (pickedCount.value < TASTE_PICKS_MIN) {
-    return `再選 ${TASTE_PICKS_MIN - pickedCount.value} 種就能繼續。`
-  }
-  return ''
-})
-const continueLabel = computed(() => {
-  if (activeKind.value.type === 'pickTaste') {
-    return '下一步'
-  }
-  if (activeKind.value.type === 'budget') {
-    return '幫我推薦'
-  }
-  return '繼續'
-})
-const canModify = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
+const trimmedLength = computed(() => draft.value.trim().length)
+const canSend = computed(() => trimmedLength.value > 0 && trimmedLength.value <= MESSAGE_MAX_LENGTH)
+const canModify = computed(() => phase.value === 'answering' || phase.value === 'error')
+/** Only the latest message can be edited; editing it takes back that round. */
+const lastUserMessageId = computed(() => [...messages.value].reverse().find((message) => message.type === 'user')?.id)
 const replyVisible = computed(() => phase.value !== 'opening' && phase.value !== 'responding')
-const replyKey = computed(() =>
-  phase.value === 'answering' ? `step-${activeStep.value}` : phase.value,
-)
-const replyLabel = computed(() =>
-  phase.value === 'answering' ? `回覆：${getQuestion(activeKind.value).title}` : '下一步',
-)
+const replyLabel = computed(() => (phase.value === 'answering' ? '回覆侍酒師' : '下一步'))
 
 onMounted(() => {
   void openConversation()
@@ -217,27 +125,6 @@ onBeforeUnmount(() => {
   flowToken++
   clearTimers()
 })
-
-function kindAt(step: ConversationStep): StepKind {
-  return CONVERSATION_STEPS[step - 1] ?? { type: 'budget' }
-}
-
-function stepOf(type: StepKind['type']): ConversationStep {
-  return CONVERSATION_STEPS.findIndex((kind) => kind.type === type) + 1
-}
-
-function padStep(value: number): string {
-  return String(value).padStart(2, '0')
-}
-
-/** Two examples are enough on the compact taste cards. */
-function shortTasteExamples(key: TasteKey): string {
-  return TASTE_EXAMPLES[key].split('、').slice(0, 2).join('、')
-}
-
-function fillPercent(value: number, min: number, max: number): string {
-  return `${((value - min) / (max - min)) * 100}%`
-}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -294,8 +181,8 @@ function setThinkingText(id: number, text: string) {
 
 /**
  * Scrolls just enough to show the end of the conversation without pushing the
- * latest anchor (the user's message, the current question, …) under the
- * sticky header. Scrolls up only when that anchor is already out of view.
+ * latest anchor (the user's message, the greeting, …) off the top of the screen.
+ * Scrolls up only when that anchor is already out of view.
  */
 async function revealLatest() {
   await nextTick()
@@ -308,7 +195,7 @@ async function revealLatest() {
   const anchors = chat.querySelectorAll<HTMLElement>('[data-anchor]')
   const anchor = anchors[anchors.length - 1]
   const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-  const minTop = (headerRef.value?.offsetHeight ?? 0) + SCROLL_MARGIN_TOP
+  const minTop = SCROLL_MARGIN_TOP
 
   let delta = Math.max(0, end.getBoundingClientRect().bottom - (viewportHeight - SCROLL_MARGIN_BOTTOM))
   if (anchor) {
@@ -336,7 +223,7 @@ function onReplyEnter() {
 function onReplyAfterEnter() {
   if (focusReplyOnEnter) {
     focusReplyOnEnter = false
-    replyRef.value?.focus({ preventScroll: true })
+    ;(inputRef.value ?? replyRef.value)?.focus({ preventScroll: true })
   }
 }
 
@@ -378,11 +265,13 @@ async function thinkWhile<T>(
  * Rotates the thinking line through `steps` while `work` runs. Every step stays
  * up for SELECTION_STEP_MS even when `work` settles sooner; the last one holds
  * until it settles, then gives way to a reassuring line if that takes long.
+ * A result that `stopEarly` accepts ends the rotation at once (nothing was searched).
  */
 async function thinkThroughSteps<T>(
-  steps: string[],
+  steps: readonly string[],
   token: number,
   work: Promise<T>,
+  stopEarly: (result: T) => boolean = () => false,
 ): Promise<{ id: number; result: T } | null> {
   await wait(USER_TO_THINKING_MS)
   if (token !== flowToken) {
@@ -400,7 +289,8 @@ async function thinkThroughSteps<T>(
     longWait = setTimeout(() => setThinkingText(id, SELECTION_LONG_WAIT_TEXT), SELECTION_LONG_WAIT_MS)
     timers.push(longWait)
   })()
-  const [result] = await Promise.all([work, rotation])
+  const early = work.then((value) => (stopEarly(value) ? value : new Promise<never>(() => {})))
+  const result = await Promise.race([Promise.all([work, rotation]).then(([value]) => value), early])
   clearTimeout(longWait)
   return token === flowToken ? { id, result } : null
 }
@@ -415,20 +305,6 @@ async function showReply(next: Phase, token: number, focus = true) {
   await releaseHeight()
 }
 
-async function askQuestion(step: ConversationStep, token: number, focus = true) {
-  await wait(BETWEEN_MESSAGES_MS)
-  if (token !== flowToken) {
-    return
-  }
-  activeStep.value = step
-  addMessage({ type: 'sommelier', lines: [], ...questionMessage(step) })
-  await showReply('answering', token, focus)
-}
-
-function questionMessage(step: ConversationStep) {
-  return { question: step, prompt: getQuestion(kindAt(step)), anchor: true }
-}
-
 async function openConversation() {
   const token = flowToken
   await wait(SOMMELIER_ARRIVAL_MS)
@@ -437,146 +313,44 @@ async function openConversation() {
   }
   arriving.value = false
   const greeting = getSommelierGreeting(new Date().getHours())
-  const thought = await thinkWhile('opening', token, Promise.resolve(), greeting)
+  const thought = await thinkWhile('opening', token, Promise.resolve(), greeting.join(''))
   if (!thought) {
     return
   }
-  // The greeting leads straight into the taste picks, without a question of its own.
-  activeStep.value = 1
-  replaceMessage(thought.id, { type: 'sommelier', lines: [greeting], question: 1, anchor: true })
-  await wait(BETWEEN_MESSAGES_MS)
-  if (token !== flowToken) {
-    return
-  }
+  replaceMessage(thought.id, { type: 'sommelier', lines: greeting, greeting: true, anchor: true })
   await showReply('answering', token, false)
 }
 
-/** Reactions stay rare: capped per conversation and never on two answers in a row. */
-function canAcknowledge(step: ConversationStep): boolean {
-  const reactions = messages.value.filter((message) => message.type === 'sommelier' && message.acknowledgement)
-  if (reactions.length >= MAX_ACKNOWLEDGEMENTS) {
-    return false
+/** Enter sends; Shift+Enter starts a new line; Enter that confirms an IME word does neither. */
+function onMessageKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {
+    return
   }
-  const questionIndex = messages.value.findIndex(
-    (message) => message.type === 'sommelier' && message.question === step,
-  )
-  const previous = messages.value[questionIndex - 1]
-  return !(previous?.type === 'sommelier' && previous.acknowledgement)
+  event.preventDefault()
+  void onSend()
 }
 
-/**
- * User message → thinking → either the next question takes the thinking
- * state's place, or a short reaction does and the question follows.
- */
-async function sendAnswer(step: ConversationStep, answerLines: string[]) {
+async function onSend() {
+  if (phase.value !== 'answering' || !canSend.value) {
+    return
+  }
+  const message = draft.value.trim()
   const token = await beginTurn()
   if (token === null) {
     return
   }
-  const kind = kindAt(step)
-  const next = step + 1
-  const reaction = canAcknowledge(step) ? getAcknowledgement(kind, draft.value) : null
-  addMessage({ type: 'user', step, lines: answerLines })
-  const upcoming = reaction ?? getQuestion(kindAt(next)).title
-  const thought = await thinkWhile(kind.type, token, Promise.resolve(), upcoming)
-  if (!thought) {
-    return
-  }
-  if (reaction) {
-    replaceMessage(thought.id, { type: 'sommelier', lines: [reaction], acknowledgement: true })
-    await askQuestion(next, token)
-    return
-  }
-  activeStep.value = next
-  replaceMessage(thought.id, { type: 'sommelier', lines: [], ...questionMessage(next) })
-  await showReply('answering', token)
+  addMessage({ type: 'user', lines: describeMessage(message), text: message })
+  submittedMessage.value = message
+  await deliverRecommendations(message, token, false)
 }
 
-function describeAnswer(): string[] | null {
-  const kind = activeKind.value
-  const { taste, style, occasion, budget } = draft.value
-  switch (kind.type) {
-    case 'pickTaste':
-      return canContinue.value ? describeTastePicks(pickedTastes(taste)) : null
-    case 'rateTaste':
-      return describeTasteRatings(taste)
-    case 'style':
-      return describeStyleAnswer(style, kind.key)
-    case 'occasion':
-      return occasion ? describeOccasionAnswer(occasion) : null
-    case 'budget':
-      return describeBudgetAnswer(budget)
-    default:
-      return null
-  }
+function isOffTopic(outcome: RecommendationOutcome): boolean {
+  return outcome.ok && outcome.result.status === 'off_topic'
 }
 
-function onContinue() {
-  if (phase.value !== 'answering') {
-    return
-  }
-  if (activeKind.value.type === 'budget') {
-    void onFinish()
-    return
-  }
-  const answer = describeAnswer()
-  if (!answer) {
-    return
-  }
-  errors.value = {}
-  void sendAnswer(activeStep.value, answer)
-}
-
-function onToggleTaste(key: TasteKey) {
-  draft.value.taste = toggleTastePick(draft.value.taste, key)
-  if (errors.value.taste) {
-    errors.value = {}
-  }
-}
-
-function onPickOccasion(choice: OccasionChoice) {
-  draft.value.occasion = choice
-  if (errors.value.occasion) {
-    errors.value = {}
-  }
-}
-
-/**
- * Answers the last question: validates every answer, then the Sommelier sums
- * them up and goes straight on to recommend.
- */
-async function onFinish() {
-  if (phase.value !== 'answering') {
-    return
-  }
-  const result = validateSommelierInput(draft.value)
-  if (!result.ok) {
-    errors.value = result.errors
-    const fields = Object.keys(result.errors) as SommelierInputField[]
-    rewindTo(Math.min(...fields.map((field) => stepOf(FIELD_STEP_TYPES[field]))), false)
-    return
-  }
-
-  errors.value = {}
-  const input = result.value
-  const token = await beginTurn()
-  if (token === null) {
-    return
-  }
-  addMessage({ type: 'user', step: budgetStep, lines: describeBudgetAnswer(draft.value.budget) })
-  submittedInput.value = input
-  const closing = composeClosingMessage(input)
-  const thought = await thinkWhile('closing', token, Promise.resolve(), closing.join(''))
-  if (!thought) {
-    return
-  }
-  replaceMessage(thought.id, { type: 'sommelier', lines: closing, anchor: true })
-  await deliverRecommendations(input, token, false)
-}
-
-async function requestRecommendations(input: SommelierInput): Promise<RecommendationOutcome> {
+async function requestRecommendations(message: string): Promise<RecommendationOutcome> {
   try {
-    return { ok: true, result: await fetchRecommendations(input) }
+    return { ok: true, result: await fetchRecommendations({ message }) }
   } catch (error) {
     // Guests who used up today's free recommendations go straight to login (then home).
     if (error instanceof SommelierApiError && error.code === GUEST_LIMIT_CODE) {
@@ -590,14 +364,14 @@ async function requestRecommendations(input: SommelierInput): Promise<Recommenda
 }
 
 /**
- * Calls the recommendation API while the Sommelier narrows things down (or, on a
- * retry, simply thinks), then shows the cards, a reason or an error.
+ * Calls the recommendation API while the Sommelier narrates its steps (or, on a
+ * retry, simply thinks), then shows the cards or an error.
  */
-async function deliverRecommendations(input: SommelierInput, token: number, retry: boolean) {
-  const work = requestRecommendations(input)
+async function deliverRecommendations(message: string, token: number, retry: boolean) {
+  const work = requestRecommendations(message)
   const thought = retry
     ? await thinkWhile('retry', token, work)
-    : await thinkThroughSteps(composeSelectionSteps(input), token, work)
+    : await thinkThroughSteps(SELECTION_STEPS, token, work, isOffTopic)
   if (!thought) {
     return
   }
@@ -615,69 +389,52 @@ async function deliverRecommendations(input: SommelierInput, token: number, retr
     return
   }
 
-  if (outcome.result.status === 'ok') {
-    recommendations.value = outcome.result.recommendations
-    replaceMessage(thought.id, { type: 'system', content: 'recommendations' })
-    await showReply('done', token, false)
+  // Not a whisky request: the Sommelier says what it can do, and the box comes back empty.
+  if (outcome.result.status === 'off_topic') {
+    submittedMessage.value = null
+    draft.value = ''
+    replaceMessage(thought.id, { type: 'sommelier', lines: [outcome.result.message], anchor: true })
+    await showReply('answering', token)
     return
   }
 
+  // The cards stay in the conversation and an empty box comes back for the next question.
+  // No focus: the cards are what the user should read first.
+  submittedMessage.value = null
+  draft.value = ''
   replaceMessage(thought.id, {
-    type: 'sommelier',
-    lines: composeUnableMessage(outcome.result.message),
-    anchor: true,
+    type: 'system',
+    content: 'recommendations',
+    recommendations: outcome.result.recommendations,
   })
-  await showReply('done', token)
+  await showReply('answering', token, false)
 }
 
 async function onRetry() {
-  const input = submittedInput.value
-  if (phase.value !== 'error' || !input) {
+  const message = submittedMessage.value
+  if (phase.value !== 'error' || !message) {
     return
   }
   const token = await beginTurn()
   if (token !== null) {
-    await deliverRecommendations(input, token, true)
+    await deliverRecommendations(message, token, true)
   }
 }
 
-/** Clears the conversation and every answer, then starts over from the greeting. */
-function onRestart() {
-  flowToken++
-  clearTimers()
-  heldHeight.value = ''
-  draft.value = createEmptySommelierDraft()
-  messages.value = []
-  submittedInput.value = null
-  recommendations.value = []
-  errors.value = {}
-  activeStep.value = 1
-  phase.value = 'opening'
-  arriving.value = true
-  chatRef.value?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
-  void openConversation()
-}
-
-/** Returns to an earlier question, keeping every answer in the draft. */
-function rewindTo(step: ConversationStep, clearErrors = true) {
-  const index = messages.value.findIndex(
-    (message) => message.type === 'sommelier' && message.question === step,
-  )
-  if (index === -1) {
+/** Takes back the latest round: its message returns to the box, ready to edit; earlier rounds stay. */
+function onEditMessage() {
+  const index = messages.value.findIndex((message) => message.id === lastUserMessageId.value)
+  const message = messages.value[index]
+  if (message?.type !== 'user') {
     return
   }
 
   flowToken++
   clearTimers()
   heldHeight.value = ''
-  submittedInput.value = null
-  recommendations.value = []
-  if (clearErrors) {
-    errors.value = {}
-  }
-
-  messages.value = messages.value.slice(0, index + 1)
-  activeStep.value = step
+  draft.value = message.text
+  submittedMessage.value = null
+  messages.value = messages.value.slice(0, index)
   focusReplyOnEnter = true
   phase.value = 'answering'
   void revealLatest()
@@ -691,8 +448,8 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
       <div class="discovery-hero-inner">
         <header class="page-header">
           <p class="eyebrow"><span class="eyebrow-mark" /> WHISKYHELLO · SOMMELIER</p>
-          <h1 id="sommelier-title">威士忌推薦，<br />先從了解你的口味開始</h1>
-          <p class="lead">喜歡泥煤、雪莉桶、果香，還是正在找一支適合送禮的威士忌？與侍酒師聊聊你的偏好。</p>
+          <h1 id="sommelier-title">威士忌推薦</h1>
+          <p class="lead">喜歡泥煤、雪莉桶、果香，還是想找一支像你喝過的那款？告訴侍酒師。</p>
         </header>
       </div>
     </section>
@@ -705,18 +462,6 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
       aria-label="與侍酒師的對話"
       :style="{ minHeight: heldHeight || undefined, '--reply-exit': `${REPLY_EXIT_MS}ms` }"
     >
-      <header ref="headerRef" class="chat-header">
-        <div class="chat-header-row">
-          <span class="chat-title">Sommelier</span>
-          <span class="chat-progress" :aria-label="`第 ${progressStep} 題，共 ${totalSteps} 題`">
-            {{ progressLabel }}
-          </span>
-        </div>
-        <div class="progress-line" aria-hidden="true">
-          <span :style="{ width: progressWidth }" />
-        </div>
-      </header>
-
       <Transition name="arrival" appear>
         <p v-if="arriving" class="arrival" role="status">
           <span class="avatar is-arriving"><SommelierAvatar /></span>
@@ -742,11 +487,11 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
             <span v-if="isGroupStart(index)" class="msg-label">YOU</span>
             <div class="user-row">
               <button
-                v-if="canModify"
+                v-if="canModify && message.id === lastUserMessageId"
                 type="button"
                 class="modify-link"
-                :aria-label="`修改第 ${message.step} 題的回答`"
-                @click="rewindTo(message.step)"
+                aria-label="修改描述"
+                @click="onEditMessage"
               >
                 修改
               </button>
@@ -759,7 +504,8 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
           </template>
 
           <template v-else>
-            <template v-if="isGroupStart(index)">
+            <!-- The cards are wider than the chat column, so they carry their own avatar row. -->
+            <template v-if="isGroupStart(index) && message.type !== 'system'">
               <span class="avatar"><SommelierAvatar /></span>
               <span class="msg-label">SOMMELIER</span>
             </template>
@@ -782,9 +528,13 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 class="msg-body is-wide"
                 :class="{ 'is-showcase': message.content === 'recommendations' }"
               >
+                <div class="showcase-author">
+                  <span class="avatar"><SommelierAvatar /></span>
+                  <span class="msg-label">SOMMELIER</span>
+                </div>
                 <SommelierRecommendations
                   v-if="message.content === 'recommendations'"
-                  :recommendations="recommendations"
+                  :recommendations="message.recommendations"
                 />
               </div>
               <div
@@ -793,11 +543,12 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
                 class="msg-body"
                 :class="{ 'is-error': message.tone === 'error' }"
               >
-                <template v-if="message.prompt">
-                  <p class="question">{{ message.prompt.title }}</p>
-                  <p v-if="message.prompt.hint" class="question-hint">{{ message.prompt.hint }}</p>
-                </template>
-                <p v-for="(line, lineIndex) in message.lines" :key="lineIndex" class="msg-line">
+                <p
+                  v-for="(line, lineIndex) in message.lines"
+                  :key="lineIndex"
+                  class="msg-line"
+                  :class="{ question: message.greeting && lineIndex === message.lines.length - 1 }"
+                >
                   {{ line }}
                 </p>
                 <ul v-if="message.details?.length" class="error-details">
@@ -812,7 +563,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
       <Transition name="reply" mode="out-in" @enter="onReplyEnter" @after-enter="onReplyAfterEnter">
         <div
           v-if="replyVisible"
-          :key="replyKey"
+          :key="phase"
           ref="replyRef"
           class="reply"
           :class="{ 'is-plain': phase !== 'answering' }"
@@ -821,137 +572,29 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
           :aria-label="replyLabel"
         >
           <template v-if="phase === 'answering'">
-            <div v-if="activeKind.type === 'pickTaste'">
-              <div class="taste-sections" role="group" :aria-label="replyLabel">
-                <div v-for="(group, groupIndex) in TASTE_GROUPS" :key="groupIndex" class="choice-options">
-                  <button
-                    v-for="key in group"
-                    :key="key"
-                    type="button"
-                    class="choice-option"
-                    :class="{ 'is-selected': draft.taste[key] !== undefined }"
-                    :aria-pressed="draft.taste[key] !== undefined"
-                    :disabled="draft.taste[key] === undefined && !canPickMore"
-                    @click="onToggleTaste(key)"
-                  >
-                    <span class="choice-name">{{ TASTE_LABELS[key] }}</span>
-                    <span class="choice-note">{{ shortTasteExamples(key) }}</span>
-                  </button>
-                </div>
-              </div>
-              <p class="pick-count" aria-live="polite">
-                已選 {{ pickedCount }} / {{ TASTE_PICKS_MAX }}
-                <span v-if="pickHint" class="pick-hint">{{ pickHint }}</span>
-              </p>
-              <p v-if="errors.taste" class="field-error" role="alert">{{ errors.taste }}</p>
-            </div>
-
-            <div v-else-if="activeKind.type === 'rateTaste'" class="slider-stack">
-              <div v-for="key in pickedTastes(draft.taste)" :key="key">
-                <div class="slider-head">
-                  <label :for="`taste-${key}`" class="slider-label">{{ TASTE_LABELS[key] }}</label>
-                  <output :for="`taste-${key}`" class="slider-value">
-                    <span class="slider-word">{{ describeTasteLevel(draft.taste[key] ?? RATING_DEFAULT) }}</span>
-                    {{ draft.taste[key] }}
-                  </output>
-                </div>
-                <input
-                  :id="`taste-${key}`"
-                  v-model.number="draft.taste[key]"
-                  class="range"
-                  type="range"
-                  :min="RATING_MIN"
-                  :max="RATING_MAX"
-                  step="1"
-                  :aria-valuetext="`${draft.taste[key]} ${describeTasteLevel(draft.taste[key] ?? RATING_DEFAULT)}`"
-                  :style="{ '--fill': fillPercent(draft.taste[key] ?? RATING_DEFAULT, RATING_MIN, RATING_MAX) }"
-                />
-              </div>
-              <div class="slider-hints" aria-hidden="true">
-                <span>{{ RATING_MIN }} {{ TASTE_SCALE_HINTS.min }}</span>
-                <span>{{ RATING_MAX }} {{ TASTE_SCALE_HINTS.max }}</span>
-              </div>
-            </div>
-
-            <div v-else-if="activeStyleKey">
-              <div class="slider-head">
-                <label for="style-rating" class="slider-label">{{ STYLE_LABELS[activeStyleKey] }}</label>
-                <output for="style-rating" class="slider-value">
-                  <span class="slider-word">{{ describeStyleRating(activeStyleKey, draft.style[activeStyleKey]) }}</span>
-                  {{ draft.style[activeStyleKey] }}
-                </output>
-              </div>
-              <input
-                id="style-rating"
-                v-model.number="draft.style[activeStyleKey]"
-                class="range"
-                type="range"
-                :min="RATING_MIN"
-                :max="RATING_MAX"
-                step="1"
-                :aria-valuetext="`${draft.style[activeStyleKey]} ${describeStyleRating(activeStyleKey, draft.style[activeStyleKey])}`"
-                :style="{ '--fill': fillPercent(draft.style[activeStyleKey], RATING_MIN, RATING_MAX) }"
-              />
-              <div class="slider-hints" aria-hidden="true">
-                <span>{{ RATING_MIN }} {{ STYLE_SCALE_HINTS[activeStyleKey].min }}</span>
-                <span>{{ RATING_MAX }} {{ STYLE_SCALE_HINTS[activeStyleKey].max }}</span>
-              </div>
-              <p v-if="errors.style" class="field-error" role="alert">{{ errors.style }}</p>
-            </div>
-
-            <div v-else-if="activeKind.type === 'occasion'">
-              <div class="choice-options" role="radiogroup" :aria-label="replyLabel">
-                <button
-                  v-for="option in OCCASION_OPTIONS"
-                  :key="option.value"
-                  type="button"
-                  role="radio"
-                  class="choice-option is-inline"
-                  :class="{ 'is-selected': draft.occasion === option.value }"
-                  :aria-checked="draft.occasion === option.value"
-                  @click="onPickOccasion(option.value)"
-                >
-                  <span class="choice-icon" aria-hidden="true">{{ option.icon }}</span>
-                  <span class="choice-name">{{ option.label }}</span>
-                </button>
-              </div>
-              <p v-if="errors.occasion" class="field-error" role="alert">{{ errors.occasion }}</p>
-            </div>
-
-            <div v-else-if="activeKind.type === 'budget'">
-              <label for="budget" class="budget-display">
-                <span class="budget-currency">NT$</span>
-                <span class="budget-amount">{{ formatAmount(draft.budget) }}</span>
-                <span class="budget-suffix">左右</span>
-              </label>
-              <input
-                id="budget"
-                v-model.number="draft.budget"
-                class="range"
-                type="range"
-                :min="BUDGET_MIN"
-                :max="BUDGET_MAX"
-                :step="BUDGET_STEP"
-                :aria-valuetext="`${formatPrice(draft.budget)} 左右`"
-                :style="{ '--fill': fillPercent(draft.budget, BUDGET_MIN, BUDGET_MAX) }"
-              />
-              <div class="slider-hints" aria-hidden="true">
-                <span>{{ formatPrice(BUDGET_MIN) }}</span>
-                <span>{{ formatPrice(BUDGET_MAX) }}</span>
-              </div>
-              <p v-if="errors.budget" class="field-error" role="alert">{{ errors.budget }}</p>
-            </div>
+            <label for="sommelier-message" class="sr-only">描述你想喝的威士忌</label>
+            <textarea
+              id="sommelier-message"
+              ref="inputRef"
+              v-model="draft"
+              class="message-input"
+              rows="3"
+              :maxlength="MESSAGE_MAX_LENGTH"
+              :placeholder="MESSAGE_PLACEHOLDER"
+              enterkeyhint="send"
+              @keydown="onMessageKeydown"
+            />
 
             <div class="reply-actions">
+              <span class="char-count" aria-live="polite">{{ trimmedLength }} / {{ MESSAGE_MAX_LENGTH }}</span>
               <Button
                 type="button"
-                :label="continueLabel"
+                label="幫我推薦"
                 icon="pi pi-arrow-right"
                 icon-pos="right"
-                class="primary-btn"
-                :class="{ 'is-gold': activeKind.type === 'budget' }"
-                :disabled="!canContinue"
-                @click="onContinue"
+                class="primary-btn is-gold"
+                :disabled="!canSend"
+                @click="onSend"
               />
             </div>
           </template>
@@ -959,11 +602,11 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
           <div v-else-if="phase === 'error'" class="reply-actions">
             <Button
               type="button"
-              label="修改需求"
+              label="修改描述"
               severity="secondary"
               text
               class="quiet-btn"
-              @click="rewindTo(budgetStep)"
+              @click="onEditMessage"
             />
             <Button
               type="button"
@@ -972,30 +615,6 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
               icon-pos="right"
               class="primary-btn"
               @click="onRetry"
-            />
-          </div>
-
-          <div v-else-if="recommendations.length" class="reply-actions">
-            <Button
-              type="button"
-              label="再次探索"
-              icon="pi pi-refresh"
-              severity="secondary"
-              text
-              class="quiet-btn"
-              @click="onRestart"
-            />
-          </div>
-
-          <div v-else class="reply-actions">
-            <Button
-              type="button"
-              label="修改需求"
-              icon="pi pi-pencil"
-              severity="secondary"
-              text
-              class="quiet-btn"
-              @click="rewindTo(budgetStep)"
             />
           </div>
         </div>
@@ -1115,52 +734,6 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   overflow-anchor: none;
 }
 
-.chat-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding-top: 1.25rem;
-  background: rgba(250, 250, 249, 0.94);
-  backdrop-filter: blur(8px);
-}
-
-.chat-header-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.chat-title,
-.chat-progress {
-  font-size: var(--fs-eyebrow);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.chat-title {
-  color: var(--wh-ink-soft);
-}
-
-.chat-progress {
-  color: var(--wh-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.progress-line {
-  height: 1px;
-  margin-top: 0.75rem;
-  background: var(--wh-line);
-}
-
-.progress-line span {
-  display: block;
-  height: 100%;
-  background: var(--wh-gold);
-  transition: width 400ms ease;
-}
-
 .arrival {
   display: flex;
   align-items: center;
@@ -1210,7 +783,7 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
 
 .transcript {
   margin: 0;
-  padding: 2rem 0 0;
+  padding: 1.25rem 0 0;
   list-style: none;
 }
 
@@ -1272,6 +845,23 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   grid-column: 1 / -1;
 }
 
+/* Avatar and label at the showcase's own left edge, lined up with the cards' title. */
+.showcase-author {
+  display: flex;
+  align-items: center;
+  gap: var(--avatar-gap);
+  margin-bottom: 0.5rem;
+}
+
+/* Side-by-side cards need more room than the chat column: widen the showcase, still centred. */
+@media (min-width: 900px) {
+  .from-sommelier .msg-body.is-showcase {
+    --showcase-width: min(64rem, calc(100vw - 3rem));
+    width: var(--showcase-width);
+    margin-inline: calc((100% - var(--showcase-width)) / 2);
+  }
+}
+
 .question {
   margin: 0;
   color: var(--wh-ink);
@@ -1279,14 +869,6 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   font-size: 1.1875rem;
   font-weight: 600;
   line-height: 1.6;
-  text-wrap: pretty;
-}
-
-.question-hint {
-  margin: 0.2rem 0 0;
-  color: var(--wh-muted);
-  font-size: 0.9rem;
-  line-height: 1.7;
   text-wrap: pretty;
 }
 
@@ -1514,260 +1096,34 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
   margin-top: 0;
 }
 
-.choice-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
-  gap: 0.5rem;
-}
-
-.taste-sections {
-  display: grid;
-  gap: 1rem;
-}
-
-.taste-sections .choice-options {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.taste-sections .choice-option {
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.6rem 0.4rem;
-  text-align: center;
-}
-
-.taste-sections .choice-name {
-  font-size: 0.92rem;
-}
-
-.taste-sections .choice-note {
-  font-size: 0.72rem;
-  line-height: 1.35;
-}
-
-.choice-option {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid #e2d9cc;
-  border-radius: 12px;
-  background: var(--wh-paper);
-  color: var(--wh-ink-soft);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
-}
-
-.choice-option:not(:disabled):hover {
-  border-color: var(--wh-gold);
-}
-
-.choice-option:focus-visible {
-  outline: 2px solid var(--wh-amber);
-  outline-offset: 2px;
-}
-
-.choice-option.is-selected {
-  border-color: #b77932;
-  background: #f6e7c8;
-  color: #6f381c;
-}
-
-.choice-option:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.choice-option.is-inline {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.choice-icon {
-  font-size: 1.15rem;
-  line-height: 1;
-}
-
-.choice-name {
-  color: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.choice-note {
-  color: var(--wh-muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.choice-option.is-selected .choice-note {
-  color: #8f5a22;
-}
-
-.pick-count {
-  margin: 0.75rem 0 0;
-  color: var(--wh-muted);
-  font-size: 0.84rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.pick-hint {
-  margin-left: 0.5rem;
-  color: #8f5a22;
-}
-
-.slider-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.slider-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.slider-label {
-  color: var(--wh-ink-soft);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.slider-value {
-  min-width: 3ch;
-  color: var(--wh-ink);
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.slider-word {
-  margin-right: 0.5rem;
-  color: #8f5a22;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.range {
-  --fill: 0%;
+/* The message box sits flush inside the reply tray, which draws the border and focus ring. */
+.message-input {
   display: block;
   width: 100%;
-  height: 2.5rem;
-  margin: 0;
+  min-height: 5.25rem;
+  padding: 0;
+  border: none;
   background: transparent;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
+  color: var(--wh-ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.7;
+  resize: vertical;
 }
 
-.range:focus-visible {
+.message-input:focus {
   outline: none;
 }
 
-.range::-webkit-slider-runnable-track {
-  height: 2px;
-  border-radius: 2px;
-  background:
-    linear-gradient(var(--wh-amber), var(--wh-amber)) 0 / var(--fill) 100% no-repeat,
-    #e2dacd;
-}
-
-.range::-webkit-slider-thumb {
-  box-sizing: border-box;
-  width: 22px;
-  height: 22px;
-  margin-top: -10px;
-  border: 1.5px solid var(--wh-ink);
-  border-radius: 50%;
-  background: var(--wh-paper);
-  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.14);
-  transition: box-shadow 150ms ease;
-  -webkit-appearance: none;
-}
-
-.range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 5px rgba(201, 164, 106, 0.35);
-}
-
-.range::-moz-range-track {
-  height: 2px;
-  border-radius: 2px;
-  background: #e2dacd;
-}
-
-.range::-moz-range-progress {
-  height: 2px;
-  border-radius: 2px;
-  background: var(--wh-amber);
-}
-
-.range::-moz-range-thumb {
-  box-sizing: border-box;
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid var(--wh-ink);
-  border-radius: 50%;
-  background: var(--wh-paper);
-  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.14);
-}
-
-.range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 5px rgba(201, 164, 106, 0.35);
-}
-
-.slider-hints {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+.message-input::placeholder {
   color: var(--wh-faint);
-  font-size: 0.75rem;
 }
 
-.budget-display {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-  color: var(--wh-ink);
-}
-
-.budget-currency,
-.budget-suffix {
-  color: var(--wh-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.budget-amount {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  font-weight: 600;
+.char-count {
+  margin-right: auto;
+  color: var(--wh-faint);
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-.field-error {
-  margin: 0.75rem 0 0;
-  color: #b91c1c;
-  font-size: 0.84rem;
 }
 
 .quiet-btn {
@@ -1895,12 +1251,8 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
     padding: 0 1rem 3rem;
   }
 
-  .chat-header {
-    padding-top: 0.875rem;
-  }
-
   .transcript {
-    padding-top: 1.5rem;
+    padding-top: 1rem;
   }
 
   .question {
@@ -1918,46 +1270,14 @@ function rewindTo(step: ConversationStep, clearErrors = true) {
     border-radius: 16px;
   }
 
-  .choice-options {
-    grid-template-columns: 1fr;
-  }
-
-  .taste-sections .choice-options {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .taste-sections .choice-option {
-    align-items: flex-start;
-    padding: 0.55rem 0.75rem;
-    text-align: left;
-  }
-
-  .range {
-    height: 2.75rem;
-  }
-
-  .range::-webkit-slider-thumb {
-    width: 26px;
-    height: 26px;
-    margin-top: -12px;
-  }
-
-  .range::-moz-range-thumb {
-    width: 26px;
-    height: 26px;
-  }
-
   .reply-actions .primary-btn {
     flex: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .progress-line span,
   .modify-link,
   .reply,
-  .choice-option,
-  .range::-webkit-slider-thumb,
   .primary-btn,
   .primary-btn :deep(.p-button-icon) {
     transition: none;

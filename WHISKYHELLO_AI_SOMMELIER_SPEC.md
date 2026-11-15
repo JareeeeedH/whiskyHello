@@ -2,253 +2,92 @@
 
 > 所屬範圍：Phase 2｜AI Whisky Sommelier（見 `WHISKYHELLO_SPEC.md` 第 11 節）
 >
-> 本文件範圍：Step 1｜User Input、Step 2｜Whisky Recommendation
->
 > 文件狀態：草案（Draft）
 
 ---
 
 ## 1. 目的
 
-- Step 1：讓使用者提供「這一次想喝什麼」的需求，並在前端整理成 Input；不呼叫 API
-- Step 2：使用者在最後一題按「幫我推薦」後，推薦兩款威士忌：第一款由 LLM 推薦，第二款由 LLM 從評論家筆記的候選中挑選（見第 4 節）
+使用者用一段話描述想喝的威士忌，Sommelier 從評論家筆記（Static Dataset）推薦 3 款，各附依據筆記的中文說明，並連到站內酒款頁。
+
+- LLM 由 Backend 呼叫，Frontend 不直接呼叫 LLM
+- 不儲存使用者輸入與推薦結果
 
 ---
 
-## 2. 欄位定義
+## 2. 流程
 
-### 2.1 風味（Taste）
+```text
+message
+ → ① LLM 判斷意圖＋改寫：intent（recommend / other）與英文品飲筆記口吻的 searchQuery
+    └ other → 回固定訊息，結束（不搜尋、不扣次數）
+ → ② embedding → $vectorSearch 前 30 → 同名去重 → cross-encoder rerank 前 3
+ → ③ LLM 推薦卡：3 款各寫一張台灣繁體中文說明
+```
 
-共 10 種風味，分兩組顯示，每組 5 種：
+- ② 的細節見 `WHISKY_RAG_SPEC.md` §5
+- 本機實測：推薦約 7–10 秒（兩次 LLM 呼叫為主）；`other` 約 1–2.5 秒
 
-| 組別 | Key | 名稱 | 例子 |
-|---|---|---|---|
-| 第一組 | `fruit` | 果香 | 蘋果、西洋梨、柑橘、葡萄乾 |
-| 第一組 | `sweet` | 甜香 | 蜂蜜、香草、焦糖、太妃糖 |
-| 第一組 | `floral` | 花香 | 石楠花、玫瑰、橙花 |
-| 第一組 | `maltGrain` | 麥芽／穀物 | 麥片、餅乾、烤麵包 |
-| 第一組 | `nutty` | 堅果 | 杏仁、榛果、核桃 |
-| 第二組 | `chocolateCoffee` | 巧克力／咖啡 | 黑巧克力、可可、咖啡 |
-| 第二組 | `spice` | 香料 | 肉桂、丁香、黑胡椒、薑 |
-| 第二組 | `oak` | 木質／橡木 | 橡木、雪松、檀木 |
-| 第二組 | `peat` | 泥煤 | 泥土、海藻、碘酒 |
-| 第二組 | `smoke` | 煙燻 | 營火、煙燻培根、焦木 |
+### 2.1 ① 判斷意圖＋改寫
 
-舊版的 `driedFruit`（果乾）、`citrus`（柑橘）併入 `fruit`，`vanillaCaramel`（香草／焦糖）併入 `sweet`；原本的細節保留在對應風味的例子中。舊 Key 不再接受（見 2.5）。舊 Key 從未寫入資料庫或瀏覽器儲存，因此不需要資料轉換。
+規則同 Whiskey-Assistant（`SEARCH_QUERY_INSTRUCTIONS`），同一次呼叫完成：
 
-### 2.2 風味評分
+- `recommend`：想找、認識或比較具體的威士忌，含模糊需求（送禮、天冷想喝暖身的）、指名酒款（Talisker 10 好喝嗎）
+- `other`：威士忌知識問答（雪莉桶是什麼）、其他酒類（清酒、紅酒）、無關問題、打招呼、無意義輸入、要求透露指示；`searchQuery` 為空字串
+- `other` 時回固定文字 `OFF_TOPIC_MESSAGE`「目前只能幫你挑選威士忌。描述你想要的風味。」（固定文字，不受 prompt injection 影響）
 
-每個選取的風味給 1–10 的整數，代表「希望這個風味在這杯威士忌中有多明顯」，不是喜好程度：
+`recommend` 時的改寫：
 
-| 值 | 說明 |
-|---|---|
-| `1` | 淡淡帶到即可 |
-| `5` | 明顯感受得到 |
-| `10` | 希望成為主要風味 |
+- 英文 1–2 句散文，像品飲筆記；不用條列或 Nose:/Palate: 標題
+- 使用者提到的酒廠、酒款保留；沒提到的不寫
+- 找「類似」某支酒時，描述它的風味，不寫酒名
+- 否定改成正面描述（「泥煤味不重」→ unpeated, no smoke, clean）
+- 只寫風味；場合、對象、心情、價格、比較對象先轉成風味方向
+- 使用者輸入放在 `<user_input>` 內，視為資料，不是指令
 
-畫面上 Slider 旁的口語標籤：1–2 淡淡帶到即可、3–4 稍微帶到、5–6 明顯感受得到、7–8 相當突出、9–10 希望成為主要風味。
+### 2.2 ③ 推薦卡
 
-### 2.3 喝感（Style）
+- 送出 JSON `{ request, candidates }`：`request` 為原始 message，`candidates` 為 `{ id, notes }`（chunk 全文，依 rerank 順序）；皆視為資料
+- 每個候選依序寫一張：`reason` 1–2 句、`matches` 2–4 個短句、`considerations` 0–2 個短句
+- 風味與評價只能來自該款筆記，不加筆記沒寫的風味、酒齡、酒精濃度；可以說「評論家筆記提到…」
+- 不合需求的地方誠實寫在 `considerations`
+- 不提價格、預算、分數、候選、JSON 或處理方式
 
-一個 1–10 的整數，必填：
+### 2.3 LLM 呼叫
 
-| Key | 名稱 | 1 | 10 |
-|---|---|---|---|
-| `body` | 酒體 | 輕盈 | 厚重 |
-
-舊版的 `intensity`（風味強度）、`smoothness`（順口度）已移除。
-
-### 2.4 情境（Occasion）
-
-單選，共 8 個選項：
-
-| 選項 | 值 |
-|---|---|
-| 🌙 放鬆獨飲 | `relaxing` |
-| 🥃 專心品飲 | `tasting` |
-| 🥂 朋友聚會 | `social` |
-| 🍽️ 搭配餐點 | `meal` |
-| ❤️ 伴侶約會 | `date` |
-| 🎁 送禮 | `gift` |
-| 🎉 慶祝時刻 | `celebration` |
-| ✨ 沒有特定情境 | 不送出 `occasion` |
-
-舊版的 `beginner`、`premium` 已移除，API 不再接受。情境只來自使用者的選擇。
-
-### 2.5 欄位規則
-
-| 欄位 | 是否必填 | 規則 |
-|---|---|---|
-| `taste` | 必填 | 物件；只能使用 2.1 的 10 個 Key；必須有 3–5 個 Key；每個值為 1–10 的整數 |
-| `style` | 必填 | 物件；`body` 為 1–10 的整數 |
-| `occasion` | 選填 | 只能是 2.4 的 7 個值之一；「沒有特定情境」時省略 |
-| `budget.min`、`budget.max` | 選填 | 數字，>= 0；可只填其中一個 |
-
-- 沒有選取的風味不出現在 `taste` 中，代表「未指定」，不是低分也不是中間值；任何一端都不會自動補值
-- `taste` 中的每個 Key 都必須有合法評分；缺分、`null`、小數、字串、超出 1–10 皆不接受
-- 不在 2.1 的 Key（包含 `driedFruit`、`citrus`、`vanillaCaramel` 等舊 Key）一律回 400，不會被默默移除
-- Backend 獨立驗證以上規則，不依賴 Frontend
-
-### 2.6 對話式 UI（AI Sommelier 問答）
-
-`/sommelier` 以對話方式逐題詢問，一次只顯示目前的問題，共 5 題。
-
-| 題目 | 對應欄位 | UI 行為 |
-|---|---|---|
-| 選擇風味（不另顯示題目，開場問候後直接出現卡片） | `taste` | 10 種風味卡片（名稱、2.1 的前兩個例子）一次顯示，依 2.1 分成上下兩區、各 5 種（桌機每區一排，手機兩欄）；至少選 3 種才能「下一步」，直接進入評分 |
-| 「你希望這些風味在這杯威士忌中各有多明顯？」（不另加提示，Slider 的口語標籤與兩端說明已說明分數意義） | `taste[key]` | 每個已選風味一個 Slider（1–10，預設 1），同時顯示，旁邊顯示口語標籤 |
-| 「你喜歡什麼樣的酒體？」 | `style.body` | 單一 Slider（1–10，預設 1） |
-| 「這次是在什麼情境下喝呢？」<br>提示「選一個最接近的就好。」 | `occasion` | 2.4 的 8 個選項卡片（圖示＋名稱），單選；選了才能「繼續」 |
-| 「這次大概想把預算控制在哪裡？」 | `budget.max` | 單一 Slider（1,000–8,000，間隔 100，預設 2,500）；推薦時視為目標價，約 ±10%（見 4.3）；前端一律顯示為「NT$ 2,000 左右」；最後一題，按鈕為「幫我推薦」 |
-
-選擇風味的規則：
-
-- 上下兩區合計 3–5 種，不限定每區數量，某一區可以不選
-- 即時顯示「已選 N / 5」，未滿 3 種時提示還差幾種；選滿 5 種後其他選項停用，但已選的可以取消
-- 從評分以後的回答「修改」回到選擇，已選的風味和評分都會保留
-- 新選取的風味評分從 1 開始；取消選取會移除該風味的評分，重新選取時再從 1 開始
-- 評分題只顯示已選風味的 Slider，未選的風味不會出現
-
-頁面以聊天形式呈現：Sommelier 訊息在左（連續訊息共用一個 `S` 頭像），使用者訊息在右；作答 UI 位於對話最下方，作為回覆輸入區。尚未問到的題目不顯示。
-
-每題的節奏：
-
-> 使用者回答（作答 UI 淡出，轉為右側訊息，例如「果香 · 花香」、「果香 7 · 花香 5 · 泥煤 2」、「預算 NT$ 2,000 左右」）→ 約 0.5 秒後進入 Thinking State（基本 0.9–1.7 秒，依下一句長度增加最多 0.5 秒，並有 ±0.15 秒變化）→ Sommelier 回應（偶爾 1 句，整段對話最多 3 次且不連續）→ 下一題 → 回覆輸入區出現
-
-- Thinking State 與 Sommelier 回應為固定文案（deterministic templates），依題目與回答內容選用，不呼叫 LLM、不新增任何 API 請求
-- Sommelier 回應只複述已提供的資訊，不推薦酒款、不推測使用者沒提供的內容
-- 已回答的內容可以「修改」，回到該題並保留所有回答；重新作答後，之後的對話重新進行（已顯示的推薦一併清除）
-- 預算回答後不另加 Sommelier 回應，直接收尾
-- 最後一題（預算）按「幫我推薦」後，Frontend 驗證並整理出 3.1 的 Input，經 Thinking State 後，Sommelier 依 Input 產生收尾訊息（評分 >= 7 的風味「為主」、<= 3 的「淡淡帶到」、酒體、預算、情境），接著直接呼叫 Step 2 API（4.5），中間不再停下來
-- 等待推薦時 Thinking State 以單行輪播 3–5 句挑選步驟（固定文案，只依 Input 產生，不提預算）：淡淡帶到的風味、主風味（附問卷上的風味例子）、情境、較明顯的酒體，還有空間時以「最後確認兩支風格不重複…」收尾；每類有 2–3 種說法隨機選用。例如「先把泥煤壓低，泥土、海藻那類味道淡淡帶到就好…」→「鎖定果香明亮的方向，要喝得到蘋果、西洋梨…」→「再挑約會時好入口的…」→「最後確認兩支風格不重複…」。每句約 2.2 秒，全部播完才揭曉；API 較慢時停在最後一句，再過 6 秒仍未回應改顯示「這兩支有點難選，再給我幾秒…」
-- 「重試」時沿用一般 Thinking State（超過 4 秒改顯示「還在幫你比對，再等我一下…」）
-- `status: "ok"`：顯示兩張推薦卡（4.6），之後只提供「再次探索」：清空對話與所有回答，從開場問候重新開始
-- `status: "unable"`：Sommelier 說明這次找不到合適的酒款（附上 LLM 的簡短原因），提供「修改需求」
-- API 失敗時，Sommelier 以訊息說明錯誤，並提供「重試」與「修改需求」
+- OpenAI Responses API，模型 `OPENAI_MODEL`，`store: false`
+- Structured Outputs：`json_schema`、`strict: true`
+- 逾時 40 秒，不自動重試
 
 ---
 
-## 3. Data Shape
+## 3. API
 
-### 3.1 Input
+`POST /api/v1/sommelier/recommendations`
 
-Step 1 整理出的 Input，也是 Step 2 API（`POST /api/v1/sommelier/recommendations`）的 Request Body：
+Request：
 
 ```ts
 type SommelierInput = {
-  taste: Partial<Record<TasteKey, number>>   // 3–5 個 Key，各 1–10
-  style: {
-    body: number                             // 1–10
-  }
-  occasion?: string                          // 2.4；沒有特定情境時省略
-  budget?: {
-    min?: number
-    max?: number                             // 對話式 UI 只送 max
-  }
+  message: string   // 去除前後空白後 1–500 字
 }
 ```
 
-範例：
-
-```json
-{
-  "taste": { "fruit": 9, "floral": 6, "maltGrain": 7, "peat": 2 },
-  "style": { "body": 8 },
-  "occasion": "date",
-  "budget": { "max": 2000 }
-}
-```
-
-不合法的 Input 回 400，例如：風味少於 3 或多於 5 種、使用未定義或舊的 Key、選取的風味沒有合法評分、評分超出 1–10、不支援的 `occasion`（包含舊的 `beginner`、`premium`）。`taste` 以外未定義的欄位會被忽略，例如舊版的 `dislikes`、`freeText`，以及 `style` 裡舊的 `intensity`、`smoothness`。
-
-### 3.2 Output
-
-Step 1 的輸出為驗證並整理後的使用者需求，結構與 Input 相同：
-
-- `taste` 只包含使用者選取的風味，依 2.1 的順序排列
-- 未填的選填欄位不出現在輸出中
-
-Frontend 與 Backend 各自依 2.5 驗證；Backend 不信任 Frontend 的驗證結果。
-
----
-
-## 4. Step 2｜Whisky Recommendation
-
-### 4.1 目的
-
-依 Step 1 的 Input 推薦兩款威士忌，各附個人化的推薦理由：
-
-- `best_match`：LLM 自由推薦的真實酒款，不限本站資料
-- `alternative`：LLM 從評論家筆記（Static Dataset）的候選中挑一款，連結站內酒款頁（見 4.7）
-
-- LLM 由 Backend 呼叫（依 `WHISKYHELLO_SPEC.md` 第 11 節資料流），Frontend 不直接呼叫 LLM
-- 整份 Input 一次送給 LLM
-- 不儲存 Input 與推薦結果
-
-### 4.2 LLM 呼叫
-
-- OpenAI Responses API，模型為 `OPENAI_MODEL`，`store: false`
-- Structured Outputs：`json_schema`、`strict: true`
-- 同一次請求啟用 `web_search`（`search_content_types: ["image", "text"]`、`image_settings.max_results: 6`），並 `include: ["web_search_call.results"]` 取得圖片搜尋結果；只用來找酒瓶照片，不另外呼叫 OpenAI
-- 送出 JSON 字串 `{ preferences, candidates }`：`preferences` 為 Input，`candidates` 為 4.7 的候選；皆視為資料，不是指令
-- 逾時 40 秒，不自動重試（失敗時由使用者按「重試」）
-
-### 4.3 LLM 對欄位的理解
-
-| 欄位 | 意義 |
-|---|---|
-| `taste` | 每個已選風味希望多明顯：1 只要淡淡帶到、5 明顯感受得到、10 希望成為主要風味。未出現的風味是「未指定」，不是不喜歡。每個 Key 附上與 2.1 相同的例子 |
-| `style.body` | 1 輕盈 → 10 厚重；口中的重量與質地，不是酒精濃度 |
-| `occasion` | 2.4 的情境，每個值附說明 |
-| `budget` | 每瓶價格，新台幣，只限 `best_match`。`max` 視為目標價，挑台灣常見售價約在 ±10% 內的酒款（例如 2,000 → 約 1,800–2,200；8,000 → 約 7,200–8,800）。預算高時選酒廠常規系列中較高年份或較高階的酒款（例如 18 年），不退回入門款；價位內找不到完全符合風味的酒款時，選價位內風味最接近的，並在 `considerations` 說明風味上的落差 |
-
-- 評分是使用者的目標，不是任何酒款的實測分數
-- 偏好之間的衝突合理取捨，並在 `considerations` 說明
-- 不推測使用者沒提供的內容
-
-### 4.4 推薦規則
-
-- `best_match` 是整體最符合的一款；`alternative` 依 4.7
-- 不預設推最有名的酒：有其他常規酒款更貼近使用者的風味與喝感時優先選它，熱門酒款真的最適合時照推；`best_match` 要明顯呈現評分 >= 7 的風味，做不到時在 `considerations` 說明
-- 只推薦有把握確實存在、普遍流通的常規酒款；避免不確定的限量版、獨立裝瓶或停產酒款；不能確認版本就換一款，不猜測
-- `whiskyName` 使用官方英文全名，以品牌或酒廠開頭，加上有把握的年份或版本，例如 `Glenmorangie The Original 12 Years Old`，不可只寫 `The Original 12 Years Old`
-- 不捏造酒款、酒齡、酒精濃度或品飲特徵；推薦理由要具體對應使用者偏好，不用空泛讚美
-- 依 4.3 的預算範圍挑選，但不寫價格，也不聲稱符合預算；`considerations` 不提價格或預算
-- 不給配對分數或百分比
-- 面向使用者的文字以侍酒師口吻撰寫，不提欄位、JSON 或系統如何處理資料；偏好衝突以風味取捨說明
-- `reason`、`matches`、`considerations` 使用台灣繁體中文：
-  - `reason`：1–2 句，說明為什麼適合這位使用者
-  - `matches`：2–4 個短句，列出符合的偏好
-  - `considerations`：0–2 個短句，列出與偏好之間的取捨；沒有時為空陣列
-- 酒瓶照片（只限 `best_match`）：先決定酒款，再以完整 `whiskyName` 搜尋；照片不影響推薦哪一款。挑品牌、名稱、年份或版本都吻合且看得清楚瓶身的圖片，優先官方網站或可信賴的商品頁；某款的結果中沒有合適圖片時，換關鍵字（例如品牌官方的產品名稱，或酒名加 "bottle"）再搜尋一次。`imageUrl` 原樣使用該圖片結果的 `image_url`，`imageSourceUrl` 為其 `source_website_url`；不可把網頁網址當圖片、不可自行拼接或猜測網址；兩次搜尋都找不到合適的圖片時兩者皆為 `null`
-- 無法有把握地推薦 `best_match` 時，整個回 `status: "unable"`，以一句繁體中文在 `message` 說明原因；不虛構酒款
-
-### 4.5 API
-
-`POST /api/v1/sommelier/recommendations`，Request Body 為 3.1 的 Input，依 2.5 驗證（不合法回 400，不呼叫 LLM）。
+其他欄位會被忽略。
 
 成功（200）：
 
 ```ts
 type RecommendationResult =
-  | {
-      status: 'ok'
-      recommendations: WhiskyRecommendation[]   // best_match，有 alternative 時接在後面
-    }
-  | {
-      status: 'unable'
-      message?: string                       // LLM 的簡短原因；沒有時省略
-    }
+  | { status: 'ok'; recommendations: WhiskyRecommendation[] }   // 1–3 款，依 rerank 順序
+  | { status: 'off_topic'; message: string }                     // 不是找酒；固定提示
 
 type WhiskyRecommendation = {
-  type: 'best_match' | 'alternative'
-  whiskyName: string
+  whiskyId: string        // 站內酒款 id，連到 /whiskies/:id
+  whiskyName: string      // 取自資料庫酒名，不用 LLM 寫的
   reason: string
   matches: string[]
   considerations: string[]
-  imageUrl: string | null         // 圖片搜尋結果的 image_url；沒有可信圖片時為 null
-  imageSourceUrl: string | null   // 圖片來源頁，供查證來源與授權
-  whiskyId?: string               // 只有 alternative：站內酒款 id
 }
 ```
 
@@ -259,23 +98,11 @@ type WhiskyRecommendation = {
   "status": "ok",
   "recommendations": [
     {
-      "type": "best_match",
-      "whiskyName": "Glenmorangie The Original 10 Year Old",
-      "reason": "果香與花香明亮，麥芽甜感柔和，口感圓潤，很適合約會時輕鬆享用。",
-      "matches": ["果香明顯", "帶有花香", "麥芽香氣"],
-      "considerations": ["酒體偏中等，不算厚重"],
-      "imageUrl": "https://cdn.example.com/glenmorangie-the-original-10.png",
-      "imageSourceUrl": "https://www.example.com/glenmorangie-the-original-10"
-    },
-    {
-      "type": "alternative",
-      "whiskyName": "Aberlour 12 yo (40%, OB, +/-2019)",
-      "reason": "評論家筆記提到明顯的雪莉果乾與甜香，酒體飽滿。",
-      "matches": ["果香豐富", "酒體飽滿"],
-      "considerations": [],
-      "imageUrl": null,
-      "imageSourceUrl": null,
-      "whiskyId": "12345"
+      "whiskyId": "10577",
+      "whiskyName": "Caol Ila 1997/2015 'Cobbler's Hearth' (46%, Wemyss Malts, hogshead)",
+      "reason": "筆記直接描寫海風與鹹味，煙燻只是低調的灰燼氣息，符合想要清爽海味、避免重煙燻的方向。",
+      "matches": ["海風與海岸氣息", "明顯鹹鮮感", "煙燻輕柔"],
+      "considerations": []
     }
   ]
 }
@@ -283,73 +110,70 @@ type WhiskyRecommendation = {
 
 Backend 驗證 LLM 回傳：
 
-- `status: "ok"` 時 `best_match` 必須有非空的 `whiskyName` 與 `reason`，否則 502；`matches`、`considerations` 去除空白項目
-- `alternative` 的 `whiskyId` 必須是候選之一、`reason` 非空，否則只回 `best_match`（不算失敗）；`whiskyName` 取自候選酒名
-- `imageUrl` 必須與這次 `web_search_call.results` 中某個 `image_result` 的 HTTPS `image_url` 完全相同，否則兩個圖片欄位改為 `null`；`imageSourceUrl` 取自同一筆結果的 `source_website_url`（不是 HTTPS 時為 `null`）。圖片問題不會讓推薦失敗
-- `status: "unable"` 時忽略酒款欄位
+- `intent` 不是 recommend / other，或 recommend 但 `searchQuery` 空白 → 502
+- 推薦卡的 `whiskyId` 必須是候選之一且不重複、`reason` 非空、`matches`、`considerations` 為陣列，否則丟掉該張；`matches`、`considerations` 去除空白項目
+- 一張可用的都沒有 → 502
 
-使用次數（正式環境；開發環境放寬，方便測試）：
+使用次數（正式環境；開發環境放寬）：
 
 - 未登入：每個 IP 每天 2 次；已登入：每個帳號每天 20 次（帶了 token 但無效時回 401）
 - 全站每天合計 300 次
-- 「一天」以台灣時間 00:00 歸零；只有回 200（含 `unable`）才扣次數，驗證失敗、OpenAI 失敗或逾時不扣
+- 「一天」以台灣時間 00:00 歸零；只有回 200 且 `status: "ok"` 才扣次數（`off_topic` 不扣，由 Controller 設 `res.locals.countsTowardQuota`）
 - 次數存在伺服器記憶體，重啟後歸零
 - 另有每個 IP 每 15 分鐘 30 次的短時間限制
-- 未登入者用完次數時，前端直接導向登入頁（登入後回首頁）；已登入者或全站額滿時顯示訊息
 
 錯誤（Body 為 `{ "message": string }`，不含 OpenAI 的錯誤細節；次數用完時另含 `code`）：
 
 | 狀況 | 狀態碼 |
 |---|---|
-| Input 不合法 | 400 |
+| message 不合法 | 400 |
 | token 無效或過期 | 401 |
 | 請求過於頻繁 | 429 |
 | 未登入者今日次數用完 | 429，`code: "SOMMELIER_GUEST_LIMIT"` |
 | 已登入者今日次數用完 | 429，`code: "SOMMELIER_MEMBER_LIMIT"` |
 | 全站今日額滿 | 429，`code: "SOMMELIER_SITE_LIMIT"` |
 | 未設定 OpenAI | 503 |
+| 資料庫未連線、搜尋失敗或沒有候選 | 503 |
 | OpenAI 逾時 | 504 |
 | OpenAI 失敗、拒答、回傳不完整、不是 JSON 或未通過上述驗證 | 502 |
 
-### 4.6 推薦卡
+- rerank 失敗時改用向量前 3 名，不算失敗
 
-以酒單風格呈現，寬度與整個對話區相同，和對話中的卡片區隔。結果像侍酒師依序呈上，全程約 3 秒：標題淡入、旁邊的金線向右畫出；首選卡（約 0.3 秒起）依序出現照片、標籤、酒名、由左畫出的金色短線、推薦理由、逐一出現的偏好項目與「可以留意」，深色底的金色光暈慢慢亮起；第二張（約 1.8 秒起）以較快的節奏重複。減少動態效果時直接顯示全部內容：
+---
 
-- 首選為深色卡、酒名較大；第二張為米白卡
-- 左側為酒瓶照片、右側為推薦資訊。手機版照片較窄並靠左浮動：編號、酒名與理由排在照片右側，超過照片高度的內容繞到照片下方使用全寬。照片 `loading="lazy"`、`referrerpolicy="no-referrer"`，`alt` 為「酒款名稱 酒瓶照片」
-- 照片框為 3:5 直式：比框寬的照片（多為酒瓶置中的方形商品照）填滿高度、只裁掉左右留白；比框窄的照片以 `contain` 完整呈現
-- 目前不顯示圖片來源，`imageSourceUrl` 保留在資料中供查證；`imageUrl` 為 `null` 或圖片載入失敗時，顯示酒瓶線條圖與「暫無酒瓶照片」
-- 標籤：「NO.01 · 最適合你」（`best_match`）、「NO.02 · 值得探索」（`alternative`）
-- `alternative` 沒有照片（顯示線條圖），酒名連到站內 `/whiskies/:id`
-- 只有 `best_match` 時只顯示一張
-- 酒款名稱、金色短線、推薦理由
-- 「符合你的偏好」：`matches`，以「·」分隔成一行
-- 「可以留意」：`considerations`，沒有時不顯示
-- 不顯示價格、分數與預算提醒
+## 4. Frontend（`/sommelier`）
 
-### 4.7 第二款：評論家筆記（RAG）
-
-流程（呼叫 LLM 之前）：
+對話式頁面（`SommelierView.vue`），文案在 `utils/sommelierConversation.ts`，皆為固定文字，不呼叫 LLM。
 
 ```text
-Input → 組成英文句子 → embedding → Atlas Vector Search（$vectorSearch） → 前 5 名當 candidates
+侍酒師到場（約 2 秒）→ 問候＋「說說你這次想找什麼樣的威士忌？」
+ → 輸入框（使用者送出）→ 使用者訊息 → 挑選中輪播 → 3 張推薦卡
 ```
 
-- 句子：`utils/flavourSentence.ts`。風味 1–3 `a hint of`、4–7 `noticeable`、8–10 `dominant`；酒體 1–3 light、4–7 medium、8–10 full；不放情境與預算（筆記不會提到，且會沖淡風味）。例：`Light-bodied whisky with a hint of floral notes and noticeable malty, grainy notes.`
-- 每個候選送給 LLM 的內容：`id` 與 `notes`（chunk 全文，第一行為酒名）；不送相似度分數
-- Prompt 規則：挑最符合偏好的一款並回傳其 `id`，優先明顯呈現評分 >= 7 的風味；不可與 `best_match` 是同一支酒；理由依據筆記內容（可以說「評論家筆記提到…」），不可稱為「候選」；都不合適時為 `null`
-- 不考慮預算與購買通路；可以是老酒、限量或獨立裝瓶
-- 向量未載入或 embedding 失敗時，`candidates` 為空，只回 `best_match`
+- 輸入框：多行，提示文字「今天想喝點什麼？風味、心情、喝過喜歡的酒都可以跟我說」，最多 500 字，顯示字數；Enter 送出、Shift+Enter 換行（輸入法選字時的 Enter 不送出）
+- 挑選中輪播 4 句，對應 Backend 實際步驟：整理成品飲筆記說法 → 從評論家筆記找最接近的 → 細讀挑出三支 → 寫推薦理由；每句約 2.2 秒，播完才揭曉；API 較慢時停在最後一句，再過 6 秒改顯示「這幾支有點難選，再給我幾秒…」
+- 推薦卡（`SommelierRecommendations.vue`）：
+  - 3 張同樣式（米白），只標「NO.01／02／03」；依序展開，每張間隔 0.6 秒
+  - 寬度 ≥ 900px：推薦區放寬到最多 64rem（頭像與標題一起），卡片並排、等高；較窄時上下排列
+  - 卡片上方：照片在左，右邊是酒名（括號前，連到 `/whiskies/:id`，hover 才有底線）與裝瓶資訊小字
+  - 照片用站內酒款圖片，沒有時顯示酒廠名
+  - 「符合你的描述」（`matches`）以小標籤顯示；「可以留意」（`considerations`）每行前加 △，沒有時不顯示
+- 多輪對話：推薦卡留在對話中，下方出現空白輸入框可繼續問；每輪的推薦卡各自保存
+- 「修改」只出現在最新一則訊息：撤回該輪，原訊息放回輸入框，之前的對話保留
+- `off_topic`：輪播立即結束，侍酒師以一般訊息顯示固定提示，輸入框清空後重新出現
+- 失敗：顯示錯誤，提供「修改描述」、「重試」；未登入者次數用完直接導向登入頁
 
 ---
 
 ## 5. 尚未決定
 
-以下項目需另行確認，本文件不定義：
-
-- `budget.min` 是否必須 <= `budget.max`
-- 使用者需求與推薦結果是否需要儲存
+- 預算、價格：向量搜尋無法處理（晚點處理）
+- 語意模糊、資訊缺口的處理（先猜並說明、誠實告知做不到、篩選條件、帶上前一輪問題）：後續優化，見 `WHISKY_RAG_SPEC.md` §7.6
+- 記錄查詢內容（後續處理）：
+  - 目的：用真實問題改進品質、補充驗收題庫
+  - 可記：原始 message、intent、改寫後 searchQuery、候選 id 與 rerank 分數、推薦結果 id、各步驟耗時、錯誤類型
+  - 不記：帳號、IP、token；message 可能含個資，需評估是否遮蔽
+  - 儲存：MongoDB 獨立 collection，設 TTL 自動刪除（如 90 天）
+  - 需同步更新隱私權政策；目前不儲存（§1）
 - 推薦是否改用獨立的模型設定
 - 是否提供「換一組推薦」
-- 酒瓶照片的使用授權：照片直接引用第三方網站，取得網址不代表取得商業使用授權
-- 自然語言輸入：使用者以一句話描述需求（參考 Desktop 專案 Whiskey-Assistant 的意圖判斷與查詢改寫）；RAG 重建（`WHISKY_RAG_SPEC.md` §0）完成後討論

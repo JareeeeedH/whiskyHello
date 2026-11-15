@@ -11,6 +11,8 @@ export async function createRecommendations(
     const result = await sommelierService.recommendWhiskies(
       req.body as RecommendationRequestBody,
     )
+    // Only real recommendations use up the daily quota (see sommelierQuota).
+    res.locals.countsTowardQuota = result.status === 'ok'
     res.status(200).json(result)
   } catch (error) {
     next(error)

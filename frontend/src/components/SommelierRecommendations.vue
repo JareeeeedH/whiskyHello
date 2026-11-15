@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, useId } from 'vue'
 import { getWhiskyById } from '../services/whiskyService'
-import type { RecommendationType, WhiskyRecommendation } from '../types/sommelier'
+import type { WhiskyRecommendation } from '../types/sommelier'
 
 defineProps<{
   recommendations: WhiskyRecommendation[]
 }>()
 
-const TYPE_LABELS: Record<RecommendationType, string> = {
-  best_match: '最適合你',
-  alternative: '值得探索',
+/** Every round of the conversation has its own cards, so each heading needs its own id. */
+const titleId = useId()
+
+const COUNT_WORDS = ['', '一', '兩', '三']
+
+/** Cards unfold one after another, each at the same pace. */
+function cardTiming(index: number): Record<string, string> {
+  return { '--start': `${0.3 + index * 0.6}s` }
 }
 
 /** Must match the `.photo-frame` aspect-ratio. */
@@ -45,19 +50,25 @@ function distilleryName(name: string): string {
   return kept.length ? kept.join(' ') : name
 }
 
+/**
+ * Critic-note names carry the bottling details in brackets:
+ * "Big Peat (55.7%, Douglas Laing, 2014)" → title "Big Peat", details "55.7%, Douglas Laing, 2014".
+ */
+function splitName(name: string): { title: string; details: string } {
+  const open = name.indexOf('(')
+  if (open <= 0) {
+    return { title: name, details: '' }
+  }
+  return { title: name.slice(0, open).trim(), details: name.slice(open + 1).replace(/\)\s*$/, '').trim() }
+}
+
 function formatIndex(index: number): string {
   return `NO.${String(index + 1).padStart(2, '0')}`
 }
 
-/** The web-search photo, or for the critic-note pick the site's own bottle photo. */
+/** The site's own bottle photo for this whisky, when it has one. */
 function sourcePhotoUrl(item: WhiskyRecommendation): string | null {
-  if (item.imageUrl) {
-    return item.imageUrl
-  }
-  if (item.whiskyId) {
-    return getWhiskyById(item.whiskyId)?.imageUrl ?? null
-  }
-  return null
+  return getWhiskyById(item.whiskyId)?.imageUrl ?? null
 }
 
 function photoUrl(item: WhiskyRecommendation): string | null {
@@ -73,72 +84,73 @@ function onPhotoLoad(event: Event, url: string) {
 }
 </script>
 
+
 <template>
-  <section class="recommendations" aria-labelledby="recommendations-title">
-    <h2 id="recommendations-title" class="recommendations-title">
-      {{ recommendations.length > 1 ? '侍酒師為你挑的兩支' : '侍酒師為你挑的一支' }}
+  <section class="recommendations" :aria-labelledby="titleId">
+    <h2 :id="titleId" class="recommendations-title">
+      侍酒師為你挑的{{ COUNT_WORDS[recommendations.length] ?? recommendations.length }}支
     </h2>
 
     <ol class="cards">
       <li
         v-for="(item, index) in recommendations"
-        :key="item.type"
+        :key="item.whiskyId"
         class="card"
-        :class="item.type === 'best_match' ? 'is-best' : 'is-alt'"
+        :style="cardTiming(index)"
       >
-        <figure class="card-photo">
-          <div
-            v-if="photoUrl(item)"
-            class="photo-frame"
-            :class="{ 'is-wide': wideImages.has(photoUrl(item)!) }"
-          >
-            <img
-              :src="photoUrl(item)!"
-              :alt="`${item.whiskyName} 酒瓶照片`"
-              loading="lazy"
-              decoding="async"
-              referrerpolicy="no-referrer"
-              @load="onPhotoLoad($event, photoUrl(item)!)"
-              @error="failedImages.add(photoUrl(item)!)"
-            />
-          </div>
-          <div v-else class="photo-frame is-empty">
-            <span class="empty-rule" aria-hidden="true" />
-            <span class="empty-name" lang="en">{{ distilleryName(item.whiskyName) }}</span>
-            <span class="empty-rule" aria-hidden="true" />
-            <span class="empty-note">暫無酒瓶照片</span>
-          </div>
-        </figure>
+        <p class="card-eyebrow">{{ formatIndex(index) }}</p>
 
-        <div class="card-body">
-          <p class="card-eyebrow">
-            <span>{{ formatIndex(index) }}</span>
-            <span aria-hidden="true">·</span>
-            <span>{{ TYPE_LABELS[item.type] }}</span>
-          </p>
-          <h3 class="card-name" lang="en">
-            <RouterLink v-if="item.whiskyId" :to="`/whiskies/${item.whiskyId}`" class="card-link">
-              {{ item.whiskyName }}
-            </RouterLink>
-            <template v-else>{{ item.whiskyName }}</template>
-          </h3>
-          <span class="card-rule" aria-hidden="true" />
-          <p class="card-reason">{{ item.reason }}</p>
+        <div class="card-head">
+          <figure class="card-photo">
+            <div
+              v-if="photoUrl(item)"
+              class="photo-frame"
+              :class="{ 'is-wide': wideImages.has(photoUrl(item)!) }"
+            >
+              <img
+                :src="photoUrl(item)!"
+                :alt="`${item.whiskyName} 酒瓶照片`"
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
+                @load="onPhotoLoad($event, photoUrl(item)!)"
+                @error="failedImages.add(photoUrl(item)!)"
+              />
+            </div>
+            <div v-else class="photo-frame is-empty">
+              <span class="empty-name" lang="en">{{ distilleryName(item.whiskyName) }}</span>
+            </div>
+          </figure>
 
-          <div v-if="item.matches.length" class="card-section is-matches">
-            <h4>符合你的偏好</h4>
-            <ul class="card-matches">
-              <li v-for="(match, i) in item.matches" :key="match" :style="{ '--i': i }">{{ match }}</li>
-            </ul>
-          </div>
-
-          <div v-if="item.considerations.length" class="card-section is-notes">
-            <h4>可以留意</h4>
-            <ul class="card-notes">
-              <li v-for="note in item.considerations" :key="note">{{ note }}</li>
-            </ul>
+          <div class="card-titles">
+            <h3 class="card-name" lang="en">
+              <RouterLink :to="`/whiskies/${item.whiskyId}`" class="card-link">
+                {{ splitName(item.whiskyName).title }}
+              </RouterLink>
+            </h3>
+            <p v-if="splitName(item.whiskyName).details" class="card-details" lang="en">
+              {{ splitName(item.whiskyName).details }}
+            </p>
           </div>
         </div>
+
+        <span class="card-rule" aria-hidden="true" />
+        <p class="card-reason">{{ item.reason }}</p>
+
+        <div v-if="item.matches.length" class="card-section is-matches">
+          <h4>符合你的描述</h4>
+          <ul class="card-matches">
+            <li v-for="(match, i) in item.matches" :key="match" :style="{ '--i': i }">{{ match }}</li>
+          </ul>
+        </div>
+
+        <div v-if="item.considerations.length" class="card-section is-notes">
+          <h4>可以留意</h4>
+          <ul class="card-notes">
+            <li v-for="note in item.considerations" :key="note">{{ note }}</li>
+          </ul>
+        </div>
+
       </li>
     </ol>
   </section>
@@ -146,12 +158,12 @@ function onPhotoLoad(event: Event, url: string) {
 
 <style scoped>
 /*
- * The reveal: the title, then the best match (from 0.3s) unfolds piece by piece,
- * then the alternative (from 1.8s) repeats it at a quicker pace; about 3s in all.
- * Each card sets --start and --pace; every step is delayed by start + pace × offset.
+ * The reveal: the title, then each card unfolds piece by piece, 0.6s after the one before.
+ * cardTiming() sets each card's --start; every step is delayed by start + pace × offset.
  */
 .recommendations {
   --ease-reveal: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --accent: #8f5a22;
 }
 
 @keyframes reveal-rise {
@@ -203,68 +215,45 @@ function onPhotoLoad(event: Event, url: string) {
   list-style: none;
 }
 
+/* A column of blocks; side-by-side cards stretch to the same height. */
 .card {
   --start: 0s;
-  --pace: 1;
-  position: relative;
-  display: grid;
-  grid-template-columns: 9.5rem minmax(0, 1fr);
-  gap: 1.6rem;
-  align-items: start;
-  padding: 1.6rem 1.75rem 1.5rem;
+  --pace: 0.7;
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem 1.5rem 1.25rem;
+  border: 1px solid #e8dcc6;
   border-radius: 18px;
+  background: #f7f0e4;
+  color: var(--wh-ink);
   animation: reveal-rise 600ms var(--ease-reveal) var(--start) both;
 }
 
-.card.is-best {
-  --start: 0.3s;
+.card-eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.3s) both;
 }
 
-.card.is-alt {
-  --start: 1.8s;
-  --pace: 0.55;
-}
-
-/* Positioned so they paint above the best match's glow layer. */
-.card-body {
-  position: relative;
-  min-width: 0;
+/* The bottle sits beside its name, so the photo fills a row instead of leaving empty space. */
+.card-head {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
 }
 
 .card-photo {
-  position: relative;
   margin: 0;
-  animation: reveal-rise 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.3s) both;
+  animation: reveal-rise 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.4s) both;
 }
 
-.card-eyebrow {
-  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.4s) both;
-}
-
-.card-name {
+.card-titles {
+  min-width: 0;
   animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.5s) both;
-}
-
-.card-rule {
-  transform-origin: left;
-  animation: reveal-draw 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.7s) both;
-}
-
-.card-reason {
-  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.9s) both;
-}
-
-.card-section.is-matches h4 {
-  animation: reveal-fade 400ms ease calc(var(--start) + var(--pace) * 1.1s) both;
-}
-
-.card-matches li {
-  animation: reveal-rise 400ms var(--ease-reveal)
-    calc(var(--start) + var(--pace) * (1.15s + var(--i, 0) * 0.1s)) both;
-}
-
-.card-section.is-notes {
-  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 1.5s) both;
 }
 
 /* A slim, bottle-shaped frame (aspect ratio mirrored in PHOTO_FRAME_ASPECT). */
@@ -272,7 +261,8 @@ function onPhotoLoad(event: Event, url: string) {
   display: grid;
   place-items: center;
   aspect-ratio: 3 / 5;
-  border-radius: 12px;
+  border-radius: 10px;
+  background: #efe5d3;
   overflow: hidden;
 }
 
@@ -292,143 +282,64 @@ function onPhotoLoad(event: Event, url: string) {
   object-fit: cover;
 }
 
-.is-best .photo-frame {
-  background: #f3ebdd;
-}
-
-.is-alt .photo-frame {
-  border: 1px solid #ebdfc9;
-  background: #fffaf2;
-}
-
 .photo-frame.is-empty {
-  align-content: center;
-  gap: 0.6rem;
+  color: #b39566;
   text-align: center;
 }
 
-.is-best .photo-frame.is-empty {
-  border: 1px solid rgba(220, 184, 120, 0.22);
-  background: rgba(241, 233, 220, 0.05);
-  color: var(--wh-gold-bright);
-}
-
-.is-alt .photo-frame.is-empty {
-  color: #b39566;
-}
-
-.empty-rule {
-  display: block;
-  width: 1.5rem;
-  height: 1px;
-  margin: 0 auto;
-  background: var(--wh-gold);
-  opacity: 0.7;
-}
-
 .empty-name {
-  padding: 0 0.75rem;
+  padding: 0 0.3rem;
   font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: var(--fw-display);
-  line-height: 1.3;
-  letter-spacing: 0.02em;
+  font-size: 0.72rem;
+  line-height: 1.25;
   overflow-wrap: anywhere;
-}
-
-.empty-note {
-  margin-top: 0.4rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  opacity: 0.6;
-}
-
-.card.is-best {
-  border: 1px solid rgba(220, 184, 120, 0.28);
-  background: var(--wh-night);
-  box-shadow: 0 16px 36px rgba(17, 13, 17, 0.22);
-  color: var(--wh-cream);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* The warm glow comes up slowly, like a light turned on over the bottle. */
-.card.is-best::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(120% 90% at 100% 0%, rgba(220, 184, 120, 0.16), transparent 60%);
-  pointer-events: none;
-  animation: reveal-fade 1400ms ease calc(var(--start) + 0.3s) both;
-}
-
-.card.is-alt {
-  border: 1px solid #e8dcc6;
-  background: #f7f0e4;
-  color: var(--wh-ink);
-}
-
-.card-eyebrow {
-  display: flex;
-  gap: 0.5rem;
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-}
-
-.is-best .card-eyebrow {
-  color: var(--wh-gold-bright);
-}
-
-.is-alt .card-eyebrow {
-  color: #8f5a22;
 }
 
 .card-name {
-  margin: 0.7rem 0 0;
+  margin: 0;
   font-family: var(--font-display);
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
-}
-
-.is-best .card-name {
-  font-size: 1.6rem;
-}
-
-.is-alt .card-name {
-  font-size: 1.3rem;
 }
 
 .card-link {
   color: inherit;
+  text-decoration: none;
+}
+
+.card-link:hover {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
+}
+
+.card-details {
+  margin: 0.35rem 0 0;
+  color: var(--wh-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
 }
 
 .card-rule {
   display: block;
   width: 2.5rem;
   height: 1px;
-  margin: 0.95rem 0;
+  margin: 1.1rem 0 0.9rem;
   background: var(--wh-gold);
+  transform-origin: left;
+  animation: reveal-draw 500ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.7s) both;
 }
 
 .card-reason {
   margin: 0;
+  color: var(--wh-ink-soft);
   font-size: 0.95rem;
   line-height: 1.8;
-}
-
-.is-best .card-reason {
-  color: rgba(241, 233, 220, 0.88);
-}
-
-.is-alt .card-reason {
-  color: var(--wh-ink-soft);
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 0.9s) both;
 }
 
 .card-section {
@@ -436,84 +347,94 @@ function onPhotoLoad(event: Event, url: string) {
 }
 
 .card-section h4 {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.45rem;
+  color: var(--wh-muted);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
 }
 
-.is-best .card-section h4 {
-  color: var(--wh-mauve);
+.card-section.is-matches h4 {
+  animation: reveal-fade 400ms ease calc(var(--start) + var(--pace) * 1.1s) both;
 }
 
-.is-alt .card-section h4 {
-  color: var(--wh-muted);
-}
-
+/* Tags wrap cleanly and read at a glance. */
 .card-matches {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0;
+  gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.92rem;
-  line-height: 1.6;
 }
 
-.card-matches li + li::before {
-  content: '·';
-  margin: 0 0.6rem;
+.card-matches li {
+  padding: 0.22rem 0.65rem;
+  border: 1px solid rgba(143, 90, 34, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 250, 242, 0.7);
+  color: var(--accent);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  animation: reveal-rise 400ms var(--ease-reveal)
+    calc(var(--start) + var(--pace) * (1.15s + var(--i, 0) * 0.1s)) both;
 }
 
-.is-best .card-matches {
-  color: var(--wh-gold-bright);
-}
-
-.is-alt .card-matches {
-  color: #8f5a22;
+.card-section.is-notes {
+  animation: reveal-rise 450ms var(--ease-reveal) calc(var(--start) + var(--pace) * 1.5s) both;
 }
 
 .card-notes {
+  display: grid;
+  gap: 0.15rem;
   margin: 0;
   padding: 0;
+  color: var(--wh-muted);
   list-style: none;
   font-size: 0.86rem;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
-.is-best .card-notes {
-  color: var(--wh-mauve);
+.card-notes li {
+  display: flex;
+  gap: 0.45rem;
 }
 
-.is-alt .card-notes {
-  color: var(--wh-muted);
+.card-notes li::before {
+  content: '△';
+  flex: none;
+  color: #c2a676;
+  font-size: 0.7rem;
+  line-height: 1.6rem;
+}
+
+.card-link:focus-visible {
+  outline: 2px solid var(--wh-amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Wide screens: the cards stand side by side, one column each, the same height. */
+@media (min-width: 900px) {
+  .cards {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    align-items: stretch;
+  }
 }
 
 @media (max-width: 640px) {
-  /* The bottle sits beside the name; the reason flows on underneath it, like a magazine layout. */
   .card {
-    display: flow-root;
-    padding: 1.2rem 1.1rem 1.15rem;
+    padding: 1.2rem 1.1rem 1.1rem;
   }
 
-  .card-photo {
-    float: left;
-    width: 5.75rem;
-    margin: 0 1rem 0.6rem 0;
+  .card-head {
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.85rem;
   }
 
-  /* A new block formatting context, so the rule sits beside the photo instead of under it. */
-  .card-rule {
-    display: flow-root;
-  }
-
-  .is-best .card-name {
-    font-size: 1.4rem;
-  }
-
-  .is-alt .card-name {
-    font-size: 1.2rem;
+  .card-name {
+    font-size: 1.15rem;
   }
 }
 
@@ -521,10 +442,9 @@ function onPhotoLoad(event: Event, url: string) {
   .recommendations-title,
   .recommendations-title::after,
   .card,
-  .card.is-best::before,
-  .card-photo,
   .card-eyebrow,
-  .card-name,
+  .card-photo,
+  .card-titles,
   .card-rule,
   .card-reason,
   .card-section.is-matches h4,

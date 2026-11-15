@@ -1,21 +1,21 @@
 import mongoose from 'mongoose'
-import { STYLE_KEYS, TASTE_KEYS } from '../types/sommelier'
-import type {
-  RecommendationResult,
-  RecommendationType,
-  SommelierInput,
-  StyleProfile,
-  TasteProfile,
-  WhiskyRecommendation,
-} from '../types/sommelier'
+import type { RecommendationResult, SommelierInput, WhiskyRecommendation } from '../types/sommelier'
 import { AppError } from '../utils/AppError'
-import { buildEmbeddingSentence } from '../utils/flavourSentence'
+import { dedupeByBaseName } from '../utils/dedupeWhiskies'
 import { searchByFlavour, type SearchResult } from './flavourSearchService'
 import {
   RECOMMENDATION_MALFORMED_MESSAGE,
+  RECOMMENDATION_UNAVAILABLE_MESSAGE,
+  requestSearchQuery,
   requestWhiskyRecommendations,
-  type WebImageResult,
 } from './openaiWhiskyRecommender'
+import { rerankCandidates } from './rerankService'
+
+/** Bottles taken from vector search; the reranker's picks often sit at 15th–30th place. */
+const SEARCH_COUNT = 30
+
+/** Bottles recommended to the user. */
+const RECOMMENDATION_COUNT = 3
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -25,160 +25,144 @@ function malformed(): AppError {
   return new AppError(502, RECOMMENDATION_MALFORMED_MESSAGE)
 }
 
-/**
- * Copies the provided ratings in canonical key order, so the LLM never sees
- * extra keys. Keys without a rating stay absent (not provided).
- */
-function copyRatings<K extends string>(
-  keys: readonly K[],
-  ratings: Partial<Record<K, number>>,
-): Partial<Record<K, number>> {
-  return Object.fromEntries(
-    keys.filter((key) => ratings[key] !== undefined).map((key) => [key, ratings[key]]),
-  ) as Partial<Record<K, number>>
-}
-
-/** The validated input as sent to the LLM: known keys only, empty optional fields left out. */
-export function toLLMInput(input: SommelierInput): SommelierInput {
-  const budget = input.budget && (input.budget.min !== undefined || input.budget.max !== undefined)
-    ? input.budget
-    : undefined
-  return {
-    taste: copyRatings(TASTE_KEYS, input.taste) as TasteProfile,
-    style: copyRatings(STYLE_KEYS, input.style) as StyleProfile,
-    ...(input.occasion ? { occasion: input.occasion } : {}),
-    ...(budget ? { budget } : {}),
-  }
-}
-
 function toText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function toTextList(value: unknown): string[] {
+/** Lists of short phrases: non-strings and blanks are dropped; anything but an array gives null. */
+function toTextList(value: unknown): string[] | null {
   if (!Array.isArray(value)) {
-    throw malformed()
+    return null
   }
   return value.map(toText).filter(Boolean)
 }
 
-const NO_IMAGE = { imageUrl: null, imageSourceUrl: null }
+/**
+ * Fixed reply when the message is not asking for a whisky: fixed text, so it stays on
+ * message and cannot be steered by prompt injection.
+ */
+export const OFF_TOPIC_MESSAGE = '目前只能幫你挑選威士忌。描述你想要的風味。'
+
+export type QueryAnalysis = { intent: 'other' } | { intent: 'recommend'; searchQuery: string }
 
 /**
- * Keeps a photo only when it is exactly one of the HTTPS image results the web search
- * returned, so a guessed, edited or page URL never reaches the UI. Its source page comes
- * from that same result. A missing photo is never an error.
- * A trailing "#..." is ignored: the LLM sometimes adds one, and browsers never send it.
+ * The intent and rewritten English query. Off-topic needs no query; a recommendation
+ * with a blank query cannot be searched, and anything else breaks the schema: both 502.
  */
-function toImage(
-  rawImageUrl: unknown,
-  imageResults: WebImageResult[],
-): Pick<WhiskyRecommendation, 'imageUrl' | 'imageSourceUrl'> {
-  const imageUrl = toText(rawImageUrl).split('#')[0]
-  const result = imageUrl ? imageResults.find((image) => image.imageUrl === imageUrl) : undefined
-  return result ? { imageUrl: result.imageUrl, imageSourceUrl: result.sourceWebsiteUrl } : NO_IMAGE
-}
-
-function toRecommendation(
-  raw: unknown,
-  type: RecommendationType,
-  imageResults: WebImageResult[],
-): WhiskyRecommendation {
-  if (!isPlainObject(raw)) {
+export function toQueryAnalysis(raw: unknown): QueryAnalysis {
+  if (isPlainObject(raw) && raw.intent === 'other') {
+    return { intent: 'other' }
+  }
+  const searchQuery = isPlainObject(raw) && raw.intent === 'recommend' ? toText(raw.searchQuery) : ''
+  if (!searchQuery) {
+    console.error('Sommelier query analysis unusable: no intent or blank search query')
     throw malformed()
   }
-  const whiskyName = toText(raw.whiskyName)
-  const reason = toText(raw.reason)
-  if (!whiskyName || !reason) {
-    throw malformed()
-  }
-  return {
-    type,
-    whiskyName,
-    reason,
-    matches: toTextList(raw.matches),
-    considerations: toTextList(raw.considerations),
-    ...toImage(raw.imageUrl, imageResults),
-  }
+  return { intent: 'recommend', searchQuery }
 }
 
 /**
- * The second pick: kept only when its whiskyId is one of the candidates and it has a reason.
- * Anything else gives null, so the user still gets the best match.
- */
-function toCriticPick(raw: unknown, candidates: SearchResult[]): WhiskyRecommendation | null {
-  if (!isPlainObject(raw)) {
-    return null
-  }
-  const whiskyId = toText(raw.whiskyId)
-  const candidate = candidates.find((item) => item.whiskyId === whiskyId)
-  const reason = toText(raw.reason)
-  if (!candidate || !reason || !Array.isArray(raw.matches) || !Array.isArray(raw.considerations)) {
-    return null
-  }
-  return {
-    type: 'alternative',
-    whiskyName: candidate.name,
-    reason,
-    matches: toTextList(raw.matches),
-    considerations: toTextList(raw.considerations),
-    ...NO_IMAGE,
-    whiskyId: candidate.whiskyId,
-  }
-}
-
-/**
- * Validates raw LLM output (§4.5); anything that does not fit is a 502, never a partial
- * result. Photos are optional and fall back to null instead.
+ * Validates the LLM's cards against the candidates. A card is kept only when its whiskyId
+ * is a candidate (once) and it has a reason; the name always comes from the candidate, never
+ * the LLM. Cards follow the rerank order. No usable card at all is a 502.
  */
 export function toRecommendationResult(
   raw: unknown,
-  imageResults: WebImageResult[] = [],
-  candidates: SearchResult[] = [],
-): RecommendationResult {
-  if (!isPlainObject(raw)) {
+  candidates: SearchResult[],
+): Extract<RecommendationResult, { status: 'ok' }> {
+  if (!isPlainObject(raw) || !Array.isArray(raw.recommendations)) {
+    console.error('Sommelier cards unusable: no recommendations array')
     throw malformed()
   }
 
-  if (raw.status === 'unable') {
-    const message = toText(raw.message)
-    return message ? { status: 'unable', message } : { status: 'unable' }
-  }
-  if (raw.status !== 'ok') {
-    throw malformed()
+  const cards = new Map<string, WhiskyRecommendation>()
+  for (const item of raw.recommendations) {
+    if (!isPlainObject(item)) {
+      continue
+    }
+    const whiskyId = toText(item.whiskyId)
+    const candidate = candidates.find((entry) => entry.whiskyId === whiskyId)
+    const reason = toText(item.reason)
+    const matches = toTextList(item.matches)
+    const considerations = toTextList(item.considerations)
+    if (!candidate || cards.has(whiskyId) || !reason || !matches || !considerations) {
+      continue
+    }
+    cards.set(whiskyId, { whiskyId, whiskyName: candidate.name, reason, matches, considerations })
   }
 
-  const bestMatch = toRecommendation(raw.bestMatch, 'best_match', imageResults)
-  const criticPick = toCriticPick(raw.criticPick, candidates)
-  return { status: 'ok', recommendations: criticPick ? [bestMatch, criticPick] : [bestMatch] }
+  const recommendations: WhiskyRecommendation[] = []
+  for (const candidate of candidates) {
+    const card = cards.get(candidate.whiskyId)
+    if (card) {
+      recommendations.push(card)
+    }
+  }
+  if (recommendations.length === 0) {
+    const ids = raw.recommendations.map((item) => (isPlainObject(item) ? String(item.whiskyId) : typeof item))
+    console.error(`Sommelier cards unusable: got [${ids.join(', ')}], candidates [${candidates.map((c) => c.whiskyId).join(', ')}]`)
+    throw malformed()
+  }
+  return { status: 'ok', recommendations }
 }
-
-/** Number of critic-note candidates the LLM chooses the second pick from. */
-const CANDIDATE_COUNT = 5
 
 /**
- * Finds the critic-note bottles closest to the user's preferences. Returns an empty list
- * when the search fails (no database, no index, OpenAI error), so the best match still works.
+ * Vector search for 30, one bottling per whisky, then the cross-encoder keeps the best 3.
+ * Without the reranker the vector order is still a fair guess. Without a database or
+ * search there is nothing to recommend, so that is a 503.
  */
-async function findCandidates(input: SommelierInput): Promise<SearchResult[]> {
+async function findCandidates(searchQuery: string): Promise<SearchResult[]> {
   // Without a database the search would wait 10 s and fail; skip it, and the embedding call too.
   if (mongoose.connection.readyState !== 1) {
-    return []
+    throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
   }
+
+  let found: SearchResult[]
   try {
-    return await searchByFlavour(buildEmbeddingSentence(input), CANDIDATE_COUNT)
+    found = dedupeByBaseName(await searchByFlavour(searchQuery, SEARCH_COUNT))
   } catch (error) {
-    console.error('Sommelier candidates unavailable:', error instanceof Error ? error.message : error)
-    return []
+    console.error('Sommelier search unavailable:', error instanceof Error ? error.message : error)
+    throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
+  }
+
+  try {
+    return await rerankCandidates(searchQuery, found, RECOMMENDATION_COUNT)
+  } catch (error) {
+    console.error('Sommelier rerank unavailable:', error instanceof Error ? error.message : error)
+    return found.slice(0, RECOMMENDATION_COUNT)
   }
 }
 
+let findCandidatesOverride: ((searchQuery: string) => Promise<SearchResult[]>) | null = null
+
+/** Test-only hook: supplies the candidates without a database, embedding or reranker. */
+export function setCandidateFinderForTests(
+  finder: ((searchQuery: string) => Promise<SearchResult[]>) | null,
+): void {
+  findCandidatesOverride = finder
+}
+
+/**
+ * message → intent + English search query (LLM) → vector search 30 → dedupe → rerank 3
+ * → one Traditional Chinese card per bottle (LLM), grounded in its notes.
+ * A message that is not asking for a whisky gets the fixed hint, with nothing searched.
+ */
 export async function recommendWhiskies(input: SommelierInput): Promise<RecommendationResult> {
-  const candidates = await findCandidates(input)
+  const analysis = toQueryAnalysis(await requestSearchQuery(input.message))
+  if (analysis.intent === 'other') {
+    return { status: 'off_topic', message: OFF_TOPIC_MESSAGE }
+  }
+  const { searchQuery } = analysis
+
+  const candidates = await (findCandidatesOverride ?? findCandidates)(searchQuery)
+  if (candidates.length === 0) {
+    throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
+  }
+
   const llmInput = {
-    preferences: toLLMInput(input),
+    request: input.message,
     candidates: candidates.map((item) => ({ id: item.whiskyId, notes: item.text })),
   }
-  const { output, imageResults } = await requestWhiskyRecommendations(JSON.stringify(llmInput))
-  return toRecommendationResult(output, imageResults, candidates)
+  const output = await requestWhiskyRecommendations(JSON.stringify(llmInput))
+  return toRecommendationResult(output, candidates)
 }

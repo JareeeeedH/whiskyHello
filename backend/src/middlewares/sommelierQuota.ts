@@ -84,7 +84,9 @@ export function dailyRecommendationQuota(options: DailyQuotaOptions) {
     add(SITE_KEY, 1)
     const reservedDay = day
     res.once('close', () => {
-      const succeeded = res.writableFinished && res.statusCode === 200
+      // A reply that recommends nothing (e.g. off-topic input) sets countsTowardQuota to false.
+      const counted = res.locals?.countsTowardQuota !== false
+      const succeeded = res.writableFinished && res.statusCode === 200 && counted
       if (!succeeded && day === reservedDay) {
         add(ownKey, -1)
         add(SITE_KEY, -1)

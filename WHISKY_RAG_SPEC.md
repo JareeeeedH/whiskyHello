@@ -20,8 +20,6 @@
 | 口味搜尋 API（Validation、Controller、Route、rate limit） | — | 未做 |
 | 口味搜尋前端頁面 | — | 未做 |
 
-本地練習庫（`scripts/rag/practiceBuild.mts`、`practiceSearch.mts`，輸出為 JSON、不進 git）只用於測試。
-
 ---
 
 ## 1. 目標與範圍
@@ -120,7 +118,7 @@ npm run rag:chunks   raw JSON → 切段落 → 清理 → chunks.jsonl（不呼
 npm run rag:build    chunks.jsonl → embedding → whiskynotechunks（以 sourceHash 跳過未變更）
 ```
 
-- 輸出檔在 `.gitignore`；`rag:build` 會沿用本地練習庫已有的向量。
+- 輸出檔在 `.gitignore`。
 - 費用：5000 筆約 110 萬 tokens，約 $0.022 美元。
 
 ---

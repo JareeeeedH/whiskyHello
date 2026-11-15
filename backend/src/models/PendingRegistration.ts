@@ -1,4 +1,4 @@
-import { HydratedDocument, InferSchemaType, Model, Schema, model } from 'mongoose'
+import { InferSchemaType, Model, Schema, model } from 'mongoose'
 
 /**
  * Email/password sign-ups waiting for the 6-digit email code.
@@ -54,9 +54,6 @@ pendingRegistrationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 export type PendingRegistrationSchemaFields = InferSchemaType<
   typeof pendingRegistrationSchema
 >
-
-export type PendingRegistrationDocument =
-  HydratedDocument<PendingRegistrationSchemaFields>
 
 export type PendingRegistrationModel = Model<PendingRegistrationSchemaFields>
 

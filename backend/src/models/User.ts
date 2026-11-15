@@ -1,5 +1,4 @@
 import { HydratedDocument, InferSchemaType, Model, Schema, model } from 'mongoose'
-import type { UserAttrs } from '../types/user'
 
 const userSchema = new Schema(
   {
@@ -78,7 +77,3 @@ export type UserDocument = HydratedDocument<UserSchemaFields>
 export type UserModel = Model<UserSchemaFields>
 
 export const User = model<UserSchemaFields, UserModel>('User', userSchema)
-
-/** Helper alias aligning schema create input with domain attrs. */
-export type CreateUserInput = Pick<UserAttrs, 'name' | 'email'> &
-  Partial<Pick<UserAttrs, 'passwordHash' | 'googleId' | 'avatar' | 'bio' | 'role'>>

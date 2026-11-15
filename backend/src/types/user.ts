@@ -1,5 +1,3 @@
-import type { Types } from 'mongoose'
-
 export type UserRole = 'user' | 'admin'
 
 /** Fields persisted on a User document (passwordHash optional for OAuth users). */
@@ -33,13 +31,6 @@ export interface AdminUserListItem {
   avatar: string
   role: UserRole
   createdAt: Date
-}
-
-/** Lean / plain object representation of a stored User. */
-export interface UserRecord extends UserAttrs {
-  _id: Types.ObjectId
-  createdAt: Date
-  updatedAt: Date
 }
 
 /** Normalize missing/legacy role values to a safe default. */

@@ -1,4 +1,4 @@
-import { HydratedDocument, InferSchemaType, Model, Schema, model } from 'mongoose'
+import { InferSchemaType, Model, Schema, model } from 'mongoose'
 import { TRANSLATION_LANGUAGES } from '../types/translation'
 
 /**
@@ -36,8 +36,6 @@ const whiskyTranslationSchema = new Schema(
 whiskyTranslationSchema.index({ whiskyId: 1, language: 1, sourceHash: 1 }, { unique: true })
 
 export type WhiskyTranslationSchemaFields = InferSchemaType<typeof whiskyTranslationSchema>
-
-export type WhiskyTranslationDocument = HydratedDocument<WhiskyTranslationSchemaFields>
 
 export type WhiskyTranslationModel = Model<WhiskyTranslationSchemaFields>
 

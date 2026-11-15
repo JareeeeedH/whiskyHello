@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig, type Plugin } from 'vite'
 import { canonicalUrl } from './src/utils/pageMeta.ts'
+import { cleanWhiskyDataset } from './src/utils/whiskyClean.ts'
 import { normalizeWhiskyDataset } from './src/utils/whiskyNormalizer.ts'
 
 /** Public pages worth indexing; whisky and column pages are added from their data files. */
@@ -15,7 +16,9 @@ function sitemapPlugin(): Plugin {
       const dataset = JSON.parse(
         readFileSync(new URL('./src/data/raw/whiskyDataset.json', import.meta.url), 'utf8'),
       )
-      const whiskyPaths = normalizeWhiskyDataset(dataset).map((whisky) => `/whiskies/${whisky.id}`)
+      // Same cleaning as the pages, so excluded records (not found pages) stay out of the sitemap.
+      const { kept } = cleanWhiskyDataset(dataset)
+      const whiskyPaths = normalizeWhiskyDataset(kept).map((whisky) => `/whiskies/${whisky.id}`)
       const columns: { id: string }[] = JSON.parse(
         readFileSync(new URL('./src/data/columns.json', import.meta.url), 'utf8'),
       )

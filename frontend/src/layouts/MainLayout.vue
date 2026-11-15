@@ -8,6 +8,11 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+
+/** List and detail pages are sibling routes, so match by path prefix to keep the nav item lit. */
+function isSection(path: string): boolean {
+  return route.path === path || route.path.startsWith(path + '/')
+}
 const toast = useToast()
 const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.svg`
 const isMobileNavOpen = ref(false)
@@ -141,10 +146,11 @@ function onLogout() {
               :href="href"
               :class="{ 'is-active': isExactActive }"
               @click="navigate"
-            >Home</a>
+            >首頁</a>
           </RouterLink>
-          <RouterLink to="/whiskies" active-class="is-active">Whisky</RouterLink>
-          <RouterLink to="/sommelier" active-class="is-active">Sommelier.ai</RouterLink>
+          <RouterLink to="/whiskies" :class="{ 'is-active': isSection('/whiskies') }">酒款</RouterLink>
+          <RouterLink to="/columns" :class="{ 'is-active': isSection('/columns') }">專欄</RouterLink>
+          <RouterLink to="/sommelier" active-class="is-active">AI 侍酒師</RouterLink>
         </div>
 
         <div class="nav-account">
@@ -154,11 +160,11 @@ function onLogout() {
               to="/admin"
               active-class="is-active"
             >
-              Admin
+              管理
             </RouterLink>
-            <RouterLink to="/profile" active-class="is-active">Profile</RouterLink>
+            <RouterLink to="/profile" active-class="is-active">個人頁</RouterLink>
             <button type="button" class="nav-logout" @click="onLogout">
-              Logout
+              登出
             </button>
           </template>
           <RouterLink
@@ -166,7 +172,7 @@ function onLogout() {
             to="/login"
             active-class="is-active"
           >
-            Login
+            登入
           </RouterLink>
         </div>
       </nav>
@@ -202,7 +208,7 @@ function onLogout() {
           class="nav-drawer-panel"
           aria-label="Mobile"
         >
-          <p class="nav-drawer-label">Menu</p>
+          <p class="nav-drawer-label">選單</p>
           <RouterLink
             v-slot="{ href, navigate, isExactActive }"
             to="/"
@@ -214,16 +220,25 @@ function onLogout() {
               :class="{ 'is-active': isExactActive }"
               :tabindex="isMobileNavOpen ? undefined : -1"
               @click="(e) => { closeMobileNav(); navigate(e) }"
-            >Home</a>
+            >首頁</a>
           </RouterLink>
           <RouterLink
             to="/whiskies"
             class="nav-mobile-link"
-            active-class="is-active"
+            :class="{ 'is-active': isSection('/whiskies') }"
             :tabindex="isMobileNavOpen ? undefined : -1"
             @click="closeMobileNav"
           >
-            Whisky
+            酒款
+          </RouterLink>
+          <RouterLink
+            to="/columns"
+            class="nav-mobile-link"
+            :class="{ 'is-active': isSection('/columns') }"
+            :tabindex="isMobileNavOpen ? undefined : -1"
+            @click="closeMobileNav"
+          >
+            專欄
           </RouterLink>
           <RouterLink
             to="/sommelier"
@@ -232,7 +247,7 @@ function onLogout() {
             :tabindex="isMobileNavOpen ? undefined : -1"
             @click="closeMobileNav"
           >
-            Sommelier.ai
+            AI 侍酒師
           </RouterLink>
 
           <template v-if="authStore.isAuthenticated">
@@ -244,7 +259,7 @@ function onLogout() {
               :tabindex="isMobileNavOpen ? undefined : -1"
               @click="closeMobileNav"
             >
-              Admin
+              管理
             </RouterLink>
             <RouterLink
               to="/profile"
@@ -253,7 +268,7 @@ function onLogout() {
               :tabindex="isMobileNavOpen ? undefined : -1"
               @click="closeMobileNav"
             >
-              Profile
+              個人頁
             </RouterLink>
             <button
               type="button"
@@ -261,7 +276,7 @@ function onLogout() {
               :tabindex="isMobileNavOpen ? undefined : -1"
               @click="onLogout"
             >
-              Logout
+              登出
             </button>
           </template>
           <RouterLink
@@ -272,7 +287,7 @@ function onLogout() {
             :tabindex="isMobileNavOpen ? undefined : -1"
             @click="closeMobileNav"
           >
-            Login
+            登入
           </RouterLink>
         </nav>
       </div>

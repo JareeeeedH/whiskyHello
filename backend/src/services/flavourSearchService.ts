@@ -1,50 +1,46 @@
-import { WhiskyNoteChunk } from '../models/WhiskyNoteChunk'
-import { findTopMatches, type SearchItem, type SearchResult } from '../utils/vectorSearch'
-import { EMBEDDING_MODEL, embedText } from './openaiEmbedder'
+import { VECTOR_INDEX_NAME, WhiskyChunk } from '../models/WhiskyChunk'
+import { embedText } from './openaiEmbedder'
+
+/** One search result: the whisky and how close it is to the question (cosine, 0–1). */
+export interface SearchResult {
+  whiskyId: string
+  name: string
+  text: string
+  score: number
+}
 
 /**
- * The vector store kept in memory: every whisky chunk with its embedding.
- * Filled once by loadVectors() when the server starts; searches read only from here.
+ * How many nearby vectors Atlas looks at for every result it returns.
+ * More looks wider and finds closer matches, but is slower; 20 is Atlas's suggested start.
  */
-let vectors: SearchItem[] = []
+const CANDIDATES_PER_RESULT = 20
 
-/** Reads every chunk for the current embedding model from MongoDB into memory. */
-export async function loadVectors() {
-  const saved = await WhiskyNoteChunk.find(
-    { embeddingModel: EMBEDDING_MODEL },
-    { whiskyId: 1, name: 1, text: 1, embedding: 1 },
-  ).lean()
-
-  const loaded: SearchItem[] = []
-  for (const item of saved) {
-    // Copy the numbers into a new array. The array MongoDB hands back keeps every number
-    // as a separate object (about 200 MB for 5000 chunks); a fresh array packs them
-    // tightly (about 80 MB).
-    const embedding: number[] = []
-    for (let i = 0; i < item.embedding.length; i++) {
-      embedding.push(item.embedding[i])
-    }
-
-    loaded.push({
-      whiskyId: item.whiskyId,
-      name: item.name,
-      text: item.text,
-      embedding: embedding,
-    })
-  }
-
-  // Swap in the new list only when it is complete, so a search never sees half of it.
-  vectors = loaded
-  return vectors.length
-}
-
-/** How many chunks are in memory; 0 means search is not ready yet. */
-export function countLoadedVectors() {
-  return vectors.length
-}
-
-/** Turns the question into a vector and returns the `count` closest chunks. */
+/**
+ * Turns the question into a vector and asks MongoDB (Atlas Vector Search)
+ * for the `count` closest chunks, highest score first.
+ */
 export async function searchByFlavour(question: string, count: number): Promise<SearchResult[]> {
   const questionVector = await embedText(question)
-  return findTopMatches(questionVector, vectors, count)
+
+  return WhiskyChunk.aggregate<SearchResult>([
+    {
+      $vectorSearch: {
+        index: VECTOR_INDEX_NAME,
+        path: 'embedding',
+        queryVector: questionVector,
+        numCandidates: count * CANDIDATES_PER_RESULT,
+        limit: count,
+      },
+    },
+    {
+      // Leave the 1536 numbers in the database; send back only what callers use.
+      $project: {
+        _id: 0,
+        whiskyId: 1,
+        name: 1,
+        text: 1,
+        score: { $meta: 'vectorSearchScore' },
+      },
+    },
+  ])
 }

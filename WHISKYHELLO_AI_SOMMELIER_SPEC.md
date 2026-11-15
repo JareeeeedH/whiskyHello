@@ -332,7 +332,7 @@ Backend 驗證 LLM 回傳：
 流程（呼叫 LLM 之前）：
 
 ```text
-Input → 組成英文句子 → embedding → 記憶體向量比對 → 前 5 名當 candidates
+Input → 組成英文句子 → embedding → Atlas Vector Search（$vectorSearch） → 前 5 名當 candidates
 ```
 
 - 句子：`utils/flavourSentence.ts`。風味 1–3 `a hint of`、4–7 `noticeable`、8–10 `dominant`；酒體 1–3 light、4–7 medium、8–10 full；不放情境與預算（筆記不會提到，且會沖淡風味）。例：`Light-bodied whisky with a hint of floral notes and noticeable malty, grainy notes.`
@@ -352,3 +352,4 @@ Input → 組成英文句子 → embedding → 記憶體向量比對 → 前 5 �
 - 推薦是否改用獨立的模型設定
 - 是否提供「換一組推薦」
 - 酒瓶照片的使用授權：照片直接引用第三方網站，取得網址不代表取得商業使用授權
+- 自然語言輸入：使用者以一句話描述需求（參考 Desktop 專案 Whiskey-Assistant 的意圖判斷與查詢改寫）；RAG 重建（`WHISKY_RAG_SPEC.md` §0）完成後討論

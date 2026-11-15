@@ -3,7 +3,26 @@ import { Schema, model } from 'mongoose'
 /** Length of every embedding vector; text-embedding-3-small returns 1536 numbers by default. */
 export const EMBEDDING_DIMENSIONS = 1536
 
-const whiskyNoteChunkSchema = new Schema(
+/** The Atlas Vector Search index on `embedding`; `$vectorSearch` queries name it. */
+export const VECTOR_INDEX_NAME = 'whisky_chunk_vector'
+
+/** Index definition: which field holds the vector, its length, and how closeness is measured. */
+export const VECTOR_INDEX_DEFINITION = {
+  fields: [
+    {
+      type: 'vector',
+      path: 'embedding',
+      numDimensions: EMBEDDING_DIMENSIONS,
+      similarity: 'cosine',
+    },
+  ],
+}
+
+/**
+ * One whisky's tasting note chunk and its embedding, stored in the `whiskychunks` collection
+ * and searched with Atlas Vector Search. See WHISKY_RAG_SPEC.md §4.
+ */
+const whiskyChunkSchema = new Schema(
   {
     whiskyId: {
       type: String,
@@ -14,6 +33,12 @@ const whiskyNoteChunkSchema = new Schema(
       type: String,
       required: [true, 'Whisky name is required'],
       trim: true,
+    },
+    /** The critic's score; absent when SCORE cannot be read as a number. Kept for filtering. */
+    points: {
+      type: Number,
+      min: 0,
+      max: 100,
     },
     /** The exact text that was embedded: the name, then Nose, Mouth, Finish and Comments. */
     text: {
@@ -47,6 +72,6 @@ const whiskyNoteChunkSchema = new Schema(
 )
 
 // One chunk per whisky per embedding model.
-whiskyNoteChunkSchema.index({ whiskyId: 1, embeddingModel: 1 }, { unique: true })
+whiskyChunkSchema.index({ whiskyId: 1, embeddingModel: 1 }, { unique: true })
 
-export const WhiskyNoteChunk = model('WhiskyNoteChunk', whiskyNoteChunkSchema)
+export const WhiskyChunk = model('WhiskyChunk', whiskyChunkSchema, 'whiskychunks')

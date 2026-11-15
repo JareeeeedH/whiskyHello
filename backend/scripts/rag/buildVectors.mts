@@ -1,20 +1,20 @@
 /**
- * Build the vector store in MongoDB: embed the first HOW_MANY chunks and save them
- * to the whiskynotechunks collection.
+ * Build the vector store in MongoDB: embed every chunk and save it to the whiskychunks collection.
  *
- *   npx tsx scripts/rag/buildVectors.mts
+ *   npm run rag:build
  *
- * Reads output/chunks.jsonl (made by `npm run rag:chunks`).
+ * Reads output/chunks.jsonl (made by `npm run rag:chunks`). Unchanged chunks (same sourceHash)
+ * are skipped, and whiskies no longer in the file are deleted. Ends by creating the Atlas
+ * Vector Search index if it is missing and waiting until it can answer searches.
+ * See WHISKY_RAG_SPEC.md §6.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import mongoose from 'mongoose'
 import { connectDatabase } from '../../src/config/db.ts'
-import { WhiskyNoteChunk } from '../../src/models/WhiskyNoteChunk.ts'
+import { VECTOR_INDEX_DEFINITION, VECTOR_INDEX_NAME, WhiskyChunk } from '../../src/models/WhiskyChunk.ts'
 import { EMBEDDING_MODEL, embedTexts } from '../../src/services/openaiEmbedder.ts'
 import type { ChunkLine } from './buildChunks.mts'
-
-const HOW_MANY = 5000
 
 /** OpenAI caps one request; 100 chunks (about 25,000 tokens) stays well under it. */
 const BATCH_SIZE = 100
@@ -23,10 +23,10 @@ const CHUNKS_PATH = join(import.meta.dirname, 'output/chunks.jsonl')
 // 1. Read the whole file and split it into lines (one chunk per line).
 const allLines = readFileSync(CHUNKS_PATH, 'utf8').trim().split('\n')
 
-// 2. Keep the first HOW_MANY lines, each turned into an object.
+// 2. Turn every line into an object.
 const chunks: ChunkLine[] = []
-for (let i = 0; i < HOW_MANY; i++) {
-  chunks.push(JSON.parse(allLines[i]))
+for (const line of allLines) {
+  chunks.push(JSON.parse(line))
 }
 
 // 3. Print a few things to check.
@@ -41,10 +41,21 @@ console.log('Last:  ' + last.whiskyId + '  ' + last.name)
 await connectDatabase()
 
 // Wait until Mongoose has built the indexes from the model (whiskyId + embeddingModel, unique).
-await WhiskyNoteChunk.init()
+await WhiskyChunk.init()
 
-// 5. Ask the database what it already has for this model: whiskyId → sourceHash.
-const saved = await WhiskyNoteChunk.find(
+// 5. Delete whiskies that are no longer in the file (for example, removed by cleaning).
+const currentIds: string[] = []
+for (const chunk of chunks) {
+  currentIds.push(chunk.whiskyId)
+}
+const removed = await WhiskyChunk.deleteMany({
+  embeddingModel: EMBEDDING_MODEL,
+  whiskyId: { $nin: currentIds },
+})
+console.log('Removed (no longer in file): ' + removed.deletedCount)
+
+// 6. Ask the database what it already has for this model: whiskyId → sourceHash.
+const saved = await WhiskyChunk.find(
   { embeddingModel: EMBEDDING_MODEL },
   { whiskyId: 1, sourceHash: 1 },
 ).lean()
@@ -54,7 +65,7 @@ for (const item of saved) {
   savedHashes.set(item.whiskyId, item.sourceHash)
 }
 
-// 6. A chunk needs building when it is not saved yet, or its text changed (different hash).
+// 7. A chunk needs building when it is not saved yet, or its text changed (different hash).
 const missing: ChunkLine[] = []
 let changed = 0
 for (const chunk of chunks) {
@@ -69,7 +80,7 @@ for (const chunk of chunks) {
 console.log('Already in database: ' + saved.length)
 console.log('To build now:        ' + missing.length + '  (of which changed: ' + changed + ')')
 
-// 7. Save the missing chunks 100 at a time, right away after each batch,
+// 8. Save the missing chunks 100 at a time, right away after each batch,
 //    so a failure halfway loses at most one batch and a rerun carries on from there.
 let embedded = 0
 for (let start = 0; start < missing.length; start = start + BATCH_SIZE) {
@@ -87,31 +98,73 @@ for (let start = 0; start < missing.length; start = start + BATCH_SIZE) {
   const writes = []
   for (let i = 0; i < batch.length; i++) {
     const chunk = batch[i]
+
+    // Some whiskies have no readable score: remove any old one instead of saving an empty value.
+    let update
+    if (chunk.points === undefined) {
+      update = {
+        $set: { name: chunk.name, text: chunk.text, sourceHash: chunk.sourceHash, embedding: vectors[i] },
+        $unset: { points: '' as const },
+      }
+    } else {
+      update = {
+        $set: {
+          name: chunk.name,
+          points: chunk.points,
+          text: chunk.text,
+          sourceHash: chunk.sourceHash,
+          embedding: vectors[i],
+        },
+      }
+    }
+
     writes.push({
       updateOne: {
         filter: { whiskyId: chunk.whiskyId, embeddingModel: EMBEDDING_MODEL },
-        update: {
-          $set: {
-            name: chunk.name,
-            text: chunk.text,
-            sourceHash: chunk.sourceHash,
-            embedding: vectors[i],
-          },
-        },
+        update: update,
         upsert: true,
       },
     })
   }
-  await WhiskyNoteChunk.bulkWrite(writes)
+  await WhiskyChunk.bulkWrite(writes)
 
   console.log('Batch done: ' + (start + batch.length) + ' / ' + missing.length)
 }
 
 console.log('Embedded by OpenAI:   ' + embedded)
 
-const total = await WhiskyNoteChunk.countDocuments({ embeddingModel: EMBEDDING_MODEL })
+const total = await WhiskyChunk.countDocuments({ embeddingModel: EMBEDDING_MODEL })
 console.log('Now in database: ' + total)
 
-// 8. Disconnect, or the script never ends.
+// 9. Make sure the Atlas Vector Search index exists; $vectorSearch fails without it.
+const existing = await WhiskyChunk.collection.listSearchIndexes(VECTOR_INDEX_NAME).toArray()
+if (existing.length === 0) {
+  await WhiskyChunk.collection.createSearchIndex({
+    name: VECTOR_INDEX_NAME,
+    type: 'vectorSearch',
+    definition: VECTOR_INDEX_DEFINITION,
+  })
+  console.log('Vector index created: ' + VECTOR_INDEX_NAME)
+} else {
+  console.log('Vector index already exists: ' + VECTOR_INDEX_NAME)
+}
+
+// 10. Wait until Atlas has built the index in the background and it can answer searches.
+let queryable = false
+while (!queryable) {
+  // Atlas returns `status` and `queryable`; the driver's type only lists `name`.
+  const indexes = (await WhiskyChunk.collection.listSearchIndexes(VECTOR_INDEX_NAME).toArray()) as {
+    status?: string
+    queryable?: boolean
+  }[]
+  const index = indexes[0]
+  queryable = index?.queryable === true
+  console.log('Vector index status: ' + (index?.status ?? 'unknown'))
+  if (!queryable) {
+    await new Promise((resolve) => setTimeout(resolve, 10000))
+  }
+}
+
+// 11. Disconnect, or the script never ends.
 await mongoose.disconnect()
 console.log('Disconnected')

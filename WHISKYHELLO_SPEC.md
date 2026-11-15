@@ -38,7 +38,7 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
    - 根據口味、酒體、預算、當下情境推薦兩款，並解釋推薦原因
    - 詳細規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md`
 
-7. **AI 口味搜尋（RAG）**（建庫完成，已用於 Sommelier 第二款；口味搜尋 API 與前端未做）
+7. **AI 口味搜尋（RAG）**（重建中：清洗後資料、Atlas Vector Search；口味搜尋 API 與前端未做）
    - 在 Whisky 頁以自然語言描述風味，從評論家品飲筆記找出最接近的酒款
    - MVP 只做檢索（語意搜尋），不由 LLM 生成回答
    - 詳細規格見第 11 節與 `WHISKY_RAG_SPEC.md`
@@ -243,7 +243,7 @@ Frontend
   - 同品牌 10% 以上為非威士忌：279 筆
 - 結果：17,346 筆 → 保留 14,555 筆；被排除的酒款頁顯示找不到頁面
 - 已知不處理：Kavalan 1 筆 rum 桶被誤刪；括號外寫烈酒名的少數漏網；1 篇筆記（id 12490）Colour 段併入引言
-- RAG 建庫目前仍讀原始資料，之後改用清洗結果
+- RAG 建庫同樣使用清洗結果
 
 ### Standardized Whisky Model
 
@@ -280,7 +280,7 @@ Whisky
 - User（Phase 1）
 - Review（Phase 1）
 - PendingRegistration（Phase 1，Email 註冊驗證的暫存資料，見第 9 節）
-- WhiskyNoteChunk（Phase 2，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
+- WhiskyChunk（Phase 2，collection `whiskychunks`，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
 - WhiskyTranslation（Phase 2，翻譯快取，Schema 見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md` 第 5 節）
 
 ### User Schema
@@ -549,20 +549,19 @@ Phase 2 才新增 AI 相關 API 與 Service，不在 Phase 1 實作。
 
 ### 11.1 AI 口味搜尋（RAG）
 
-狀態：建庫完成（MongoDB 5000 筆），已用於 Sommelier 第二款；口味搜尋 API 與前端未做。完整規格見 `WHISKY_RAG_SPEC.md`。
+完整規格與進度見 `WHISKY_RAG_SPEC.md`。
 
-- 用途：Whisky 頁的口味搜尋；Sommelier 第二款從前 5 名候選中由 LLM 挑選（第一款仍由 LLM 自由推薦，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）。
+- 用途：Sommelier 第二款從前 5 名候選中由 LLM 挑選（第一款仍由 LLM 自由推薦，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` 4.7）；之後用於口味搜尋。
+- 資料：清洗後的 Static Dataset，全部 14,553 塊。
 - 切塊：一瓶酒一塊，內容為酒名、Nose、Mouth、Finish、Comments。
-- Embedding：後端以 OpenAI `text-embedding-3-small`（1536 維）自行產生。
-- 範圍：先做前 5000 筆。
-- 儲存：MongoDB Atlas 新 collection `whiskynotechunks`，向量存成 `[Number]`；與翻譯快取分開。
-- 搜尋：不用 Atlas Vector Search；後端啟動時把向量讀進記憶體，自己算 cosine。中文問題不翻譯，直接 embedding。
-- 建庫：`backend/scripts/` 的離線腳本，不在後端編譯範圍內。
+- Embedding：後端以 OpenAI `text-embedding-3-small`（1536 維）產生。
+- 儲存：MongoDB Atlas collection `whiskychunks`，向量存成 `[Number]`；與翻譯快取分開。
+- 搜尋：Atlas Vector Search（`$vectorSearch`，cosine），後端不存向量。
+- 建庫：`backend/scripts/rag/` 的離線腳本，不在後端編譯範圍內。
 
 ```text
-【建庫】Static Dataset → 切段落 → 清理 → chunk → OpenAI embedding → MongoDB Atlas
-【啟動】Backend 連上 MongoDB → 向量讀進記憶體
-【搜尋】Frontend → Backend API → OpenAI embedding → 記憶體 cosine → 酒款與命中摘句
+【建庫】Static Dataset → 清洗 → 切段落 → chunk → OpenAI embedding → whiskychunks → 向量索引
+【搜尋】Backend → OpenAI embedding → $vectorSearch → 酒款與命中摘句
 ```
 
 ---
@@ -630,7 +629,7 @@ Whisky = Static Dataset
 News = Static File（news.ts）
 Column = Static File（columns.json）
 User、Review、PendingRegistration = MongoDB
-WhiskyNoteChunk（RAG 向量）、WhiskyTranslation（翻譯快取）= MongoDB
+WhiskyChunk（RAG 向量）、WhiskyTranslation（翻譯快取）= MongoDB
 ```
 
 ### Deployment
@@ -675,7 +674,7 @@ Phase 1 ✅  專案骨架、Whisky Data Layer、會員、Review、News
 Phase 2
   ✅ AI Whisky Sommelier
   ✅ AI 評論家筆記翻譯
-  ✅ RAG 建庫，用於 Sommelier 第二款
+  🔄 RAG 重建（清洗後全部酒款、Atlas Vector Search），用於 Sommelier 第二款
   ⬜ 口味搜尋 API 與前端
   🔄 專欄（試行：12 篇、首頁區塊、列表頁、文章頁）
 ```

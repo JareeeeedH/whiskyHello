@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
 import { resolveOpenAIConfig } from '../config/env'
-import { EMBEDDING_DIMENSIONS } from '../models/WhiskyNoteChunk'
+import { EMBEDDING_DIMENSIONS } from '../models/WhiskyChunk'
 
 export const EMBEDDING_MODEL = 'text-embedding-3-small'
 

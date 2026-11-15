@@ -1,8 +1,10 @@
 /**
- * Stage one of the RAG build: Static Dataset → chunks.jsonl, with no paid API calls.
+ * Stage one of the RAG build: Static Dataset → cleaning → chunks.jsonl, with no paid API calls.
  *
  *   npm run rag:chunks
  *
+ * Cleans the raw dataset with the same rules as the whisky pages (frontend whiskyClean.ts),
+ * so rums, cognacs and sentence-only names never reach the vector store.
  * Writes one JSON object per line to scripts/rag/output/chunks.jsonl (git-ignored) and
  * prints a report, so the chunks can be checked by hand before any embedding is paid for.
  * See WHISKY_RAG_SPEC.md §6.
@@ -10,6 +12,7 @@
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
+import { cleanWhiskyDataset } from '../../../frontend/src/utils/whiskyClean.ts'
 import { buildChunk, type RawWhiskyRecord, type SkipReason, type WhiskyChunk } from './chunk.mts'
 
 const DATASET_PATH = join(import.meta.dirname, '../../../frontend/src/data/raw/whiskyDataset.json')
@@ -29,7 +32,9 @@ function percentile(sorted: number[], fraction: number): number {
 }
 
 function main(): void {
-  const records = JSON.parse(readFileSync(DATASET_PATH, 'utf8')) as RawWhiskyRecord[]
+  const rawRecords = JSON.parse(readFileSync(DATASET_PATH, 'utf8')) as Record<string, unknown>[]
+  const { kept, excluded } = cleanWhiskyDataset(rawRecords)
+  const records = kept as RawWhiskyRecord[]
 
   const lines: ChunkLine[] = []
   const skipped: { whiskyId?: string; reason: SkipReason }[] = []
@@ -52,7 +57,9 @@ function main(): void {
   }
   const repeatedNames = [...nameCounts.values()].filter((count) => count > 1).length
 
-  console.log(`Records read:      ${records.length}`)
+  console.log(`Records read:      ${rawRecords.length}`)
+  console.log(`Excluded by clean: ${excluded.length}`)
+  console.log(`Records kept:      ${records.length}`)
   console.log(`Chunks written:    ${lines.length} → ${relative(process.cwd(), OUTPUT_PATH)}`)
   console.log(`Skipped:           ${skipped.length}`)
   for (const item of skipped) {

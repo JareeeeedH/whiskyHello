@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import { STYLE_KEYS, TASTE_KEYS } from '../types/sommelier'
 import type {
   RecommendationResult,
@@ -9,8 +10,7 @@ import type {
 } from '../types/sommelier'
 import { AppError } from '../utils/AppError'
 import { buildEmbeddingSentence } from '../utils/flavourSentence'
-import type { SearchResult } from '../utils/vectorSearch'
-import { countLoadedVectors, searchByFlavour } from './flavourSearchService'
+import { searchByFlavour, type SearchResult } from './flavourSearchService'
 import {
   RECOMMENDATION_MALFORMED_MESSAGE,
   requestWhiskyRecommendations,
@@ -158,10 +158,11 @@ const CANDIDATE_COUNT = 5
 
 /**
  * Finds the critic-note bottles closest to the user's preferences. Returns an empty list
- * when the vectors are not loaded or the search fails, so the best match still works.
+ * when the search fails (no database, no index, OpenAI error), so the best match still works.
  */
 async function findCandidates(input: SommelierInput): Promise<SearchResult[]> {
-  if (countLoadedVectors() === 0) {
+  // Without a database the search would wait 10 s and fail; skip it, and the embedding call too.
+  if (mongoose.connection.readyState !== 1) {
     return []
   }
   try {

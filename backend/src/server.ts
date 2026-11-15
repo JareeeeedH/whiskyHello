@@ -1,28 +1,10 @@
 import app from './app'
 import { connectDatabase } from './config/db'
 import { env } from './config/env'
-import { loadVectors } from './services/flavourSearchService'
-
-/**
- * Reads the flavour-search vectors into memory without holding up the server.
- * If it fails, only flavour search is unavailable; the rest of the site keeps working.
- */
-async function loadVectorsInBackground(): Promise<void> {
-  try {
-    const count = await loadVectors()
-    console.log(`Flavour search ready: ${count} vectors loaded.`)
-  } catch (error) {
-    console.error('Flavour search disabled: could not load vectors.')
-    console.error(error instanceof Error ? error.message : error)
-  }
-}
 
 async function start(): Promise<void> {
-  let databaseConnected = false
-
   try {
     await connectDatabase()
-    databaseConnected = true
   } catch (error) {
     console.error('MongoDB connection failed.')
 
@@ -47,13 +29,6 @@ async function start(): Promise<void> {
     console.error('Failed to start server:', error.message)
     process.exit(1)
   })
-
-  if (databaseConnected) {
-    // No await: the site is already open; vectors load in the background.
-    void loadVectorsInBackground()
-  } else {
-    console.warn('Flavour search disabled: no database connection.')
-  }
 }
 
 void start()

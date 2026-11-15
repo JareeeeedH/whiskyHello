@@ -8,8 +8,10 @@ export async function createRecommendations(
   next: NextFunction,
 ): Promise<void> {
   try {
+    // The query log records only whether the user was logged in, never who they are.
     const result = await sommelierService.recommendWhiskies(
       req.body as RecommendationRequestBody,
+      { loggedIn: Boolean(req.user) },
     )
     // Only real recommendations use up the daily quota (see sommelierQuota).
     res.locals.countsTowardQuota = result.status === 'ok'

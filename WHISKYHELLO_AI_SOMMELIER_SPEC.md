@@ -11,7 +11,7 @@
 使用者用一段話描述想喝的威士忌，Sommelier 從評論家筆記（Static Dataset）推薦 3 款，各附依據筆記的中文說明，並連到站內酒款頁。
 
 - LLM 由 Backend 呼叫，Frontend 不直接呼叫 LLM
-- 不儲存使用者輸入與推薦結果
+- 每次請求寫一筆查詢紀錄，不記身分（§5）
 
 ---
 
@@ -165,15 +165,34 @@ Backend 驗證 LLM 回傳：
 
 ---
 
-## 5. 尚未決定
+## 5. 查詢紀錄
+
+每次呼叫推薦 API，後端在回應後於背景寫一筆紀錄（collection `sommelierlogs`，`models/SommelierLog.ts`）；寫入失敗只記 server log，不影響回應；資料庫未連線時不記。
+
+| 欄位 | 說明 |
+|---|---|
+| `message` | 使用者輸入（驗證後） |
+| `loggedIn` | 是否登入；不記帳號、IP、token |
+| `status` | `ok`、`off_topic`、`error` |
+| `intent`、`searchQuery` | 意圖與改寫後英文 |
+| `candidateIds` | 向量前 30（去重後） |
+| `picks` | rerank 前 3 的 id 與分數；rerank 失敗時 `rerankFallback: true` |
+| `recommendationIds` | 推薦卡上的酒款 |
+| `errorStatus`、`errorMessage` | 失敗時回給前端的狀態碼與訊息（不含 OpenAI 細節） |
+| `durations` | 改寫、搜尋、rerank、推薦卡、總耗時（ms） |
+| `createdAt` | 建立時間 |
+
+- 永久保留；約 2 KB／筆（1 萬筆約 20 MB），需留意 Atlas 512 MB 上限
+- 查看：`GET /api/v1/admin/sommelier-logs?page=&limit=`（Admin，最新在前，`limit` 1–100、預設 20），回傳 `{ logs, page, limit, total }`
+- 隱私權政策已說明會保存詢問內容
+- 本機開發與正式站共用同一資料庫，開發測試也會留下紀錄
+
+---
+
+## 6. 尚未決定
 
 - 預算、價格：向量搜尋無法處理（晚點處理）
 - 語意模糊、資訊缺口的處理（先猜並說明、誠實告知做不到、篩選條件、帶上前一輪問題）：後續優化，見 `WHISKY_RAG_SPEC.md` §7.6
-- 記錄查詢內容（後續處理）：
-  - 目的：用真實問題改進品質、補充驗收題庫
-  - 可記：原始 message、intent、改寫後 searchQuery、候選 id 與 rerank 分數、推薦結果 id、各步驟耗時、錯誤類型
-  - 不記：帳號、IP、token；message 可能含個資，需評估是否遮蔽
-  - 儲存：MongoDB 獨立 collection，設 TTL 自動刪除（如 90 天）
-  - 需同步更新隱私權政策；目前不儲存（§1）
+- 查詢紀錄的後台頁面
 - 推薦是否改用獨立的模型設定
 - 是否提供「換一組推薦」

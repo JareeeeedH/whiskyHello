@@ -64,6 +64,16 @@ export async function rerankCandidates<T extends { text: string }>(
   candidates: T[],
   count: number,
 ): Promise<T[]> {
+  const scored = await rerankWithScores(question, candidates, count)
+  return scored.map((entry) => entry.item)
+}
+
+/** Same as rerankCandidates, keeping each item's cross-encoder score (for the query log). */
+export async function rerankWithScores<T extends { text: string }>(
+  question: string,
+  candidates: T[],
+  count: number,
+): Promise<{ item: T; score: number }[]> {
   const reranker = await getReranker()
 
   const scored: { item: T; score: number }[] = []
@@ -72,5 +82,5 @@ export async function rerankCandidates<T extends { text: string }>(
   }
 
   scored.sort((a, b) => b.score - a.score)
-  return scored.slice(0, count).map((entry) => entry.item)
+  return scored.slice(0, count)
 }

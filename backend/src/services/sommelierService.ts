@@ -9,7 +9,8 @@ import {
   requestSearchQuery,
   requestWhiskyRecommendations,
 } from './openaiWhiskyRecommender'
-import { rerankCandidates } from './rerankService'
+import { rerankWithScores } from './rerankService'
+import { saveSommelierLog } from './sommelierLogService'
 
 /** Bottles taken from vector search; the reranker's picks often sit at 15th–30th place. */
 const SEARCH_COUNT = 30
@@ -106,30 +107,55 @@ export function toRecommendationResult(
   return { status: 'ok', recommendations }
 }
 
+/** What one request did, filled in step by step and saved to the query log at the end. */
+interface RequestTrace {
+  intent?: 'recommend' | 'other'
+  searchQuery?: string
+  candidateIds?: string[]
+  picks?: { whiskyId: string; score: number }[]
+  rerankFallback?: boolean
+  recommendationIds?: string[]
+  durations: { rewriteMs?: number; searchMs?: number; rerankMs?: number; cardsMs?: number }
+}
+
+/** Milliseconds since `started`. */
+function since(started: number): number {
+  return Date.now() - started
+}
+
 /**
  * Vector search for 30, one bottling per whisky, then the cross-encoder keeps the best 3.
  * Without the reranker the vector order is still a fair guess. Without a database or
  * search there is nothing to recommend, so that is a 503.
  */
-async function findCandidates(searchQuery: string): Promise<SearchResult[]> {
+async function findCandidates(searchQuery: string, trace: RequestTrace): Promise<SearchResult[]> {
   // Without a database the search would wait 10 s and fail; skip it, and the embedding call too.
   if (mongoose.connection.readyState !== 1) {
     throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
   }
 
   let found: SearchResult[]
+  let started = Date.now()
   try {
     found = dedupeByBaseName(await searchByFlavour(searchQuery, SEARCH_COUNT))
   } catch (error) {
     console.error('Sommelier search unavailable:', error instanceof Error ? error.message : error)
     throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
   }
+  trace.durations.searchMs = since(started)
+  trace.candidateIds = found.map((item) => item.whiskyId)
 
+  started = Date.now()
   try {
-    return await rerankCandidates(searchQuery, found, RECOMMENDATION_COUNT)
+    const scored = await rerankWithScores(searchQuery, found, RECOMMENDATION_COUNT)
+    trace.picks = scored.map((entry) => ({ whiskyId: entry.item.whiskyId, score: entry.score }))
+    return scored.map((entry) => entry.item)
   } catch (error) {
     console.error('Sommelier rerank unavailable:', error instanceof Error ? error.message : error)
+    trace.rerankFallback = true
     return found.slice(0, RECOMMENDATION_COUNT)
+  } finally {
+    trace.durations.rerankMs = since(started)
   }
 }
 
@@ -147,14 +173,20 @@ export function setCandidateFinderForTests(
  * → one Traditional Chinese card per bottle (LLM), grounded in its notes.
  * A message that is not asking for a whisky gets the fixed hint, with nothing searched.
  */
-export async function recommendWhiskies(input: SommelierInput): Promise<RecommendationResult> {
+async function runRecommendation(input: SommelierInput, trace: RequestTrace): Promise<RecommendationResult> {
+  let started = Date.now()
   const analysis = toQueryAnalysis(await requestSearchQuery(input.message))
+  trace.durations.rewriteMs = since(started)
+  trace.intent = analysis.intent
   if (analysis.intent === 'other') {
     return { status: 'off_topic', message: OFF_TOPIC_MESSAGE }
   }
   const { searchQuery } = analysis
+  trace.searchQuery = searchQuery
 
-  const candidates = await (findCandidatesOverride ?? findCandidates)(searchQuery)
+  const candidates = findCandidatesOverride
+    ? await findCandidatesOverride(searchQuery)
+    : await findCandidates(searchQuery, trace)
   if (candidates.length === 0) {
     throw new AppError(503, RECOMMENDATION_UNAVAILABLE_MESSAGE)
   }
@@ -163,6 +195,41 @@ export async function recommendWhiskies(input: SommelierInput): Promise<Recommen
     request: input.message,
     candidates: candidates.map((item) => ({ id: item.whiskyId, notes: item.text })),
   }
+  started = Date.now()
   const output = await requestWhiskyRecommendations(JSON.stringify(llmInput))
-  return toRecommendationResult(output, candidates)
+  trace.durations.cardsMs = since(started)
+  const result = toRecommendationResult(output, candidates)
+  trace.recommendationIds = result.recommendations.map((item) => item.whiskyId)
+  return result
+}
+
+/** Runs the recommendation and saves what happened to the query log, success or failure. */
+export async function recommendWhiskies(
+  input: SommelierInput,
+  context: { loggedIn: boolean } = { loggedIn: false },
+): Promise<RecommendationResult> {
+  const started = Date.now()
+  const trace: RequestTrace = { durations: {} }
+  try {
+    const result = await runRecommendation(input, trace)
+    saveSommelierLog({
+      message: input.message,
+      loggedIn: context.loggedIn,
+      status: result.status,
+      ...trace,
+      durations: { ...trace.durations, totalMs: since(started) },
+    })
+    return result
+  } catch (error) {
+    saveSommelierLog({
+      message: input.message,
+      loggedIn: context.loggedIn,
+      status: 'error',
+      ...trace,
+      errorStatus: error instanceof AppError ? error.statusCode : 500,
+      errorMessage: error instanceof AppError ? error.message : 'Unexpected error',
+      durations: { ...trace.durations, totalMs: since(started) },
+    })
+    throw error
+  }
 }

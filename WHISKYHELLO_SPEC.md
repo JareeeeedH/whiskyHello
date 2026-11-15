@@ -282,6 +282,7 @@ Whisky
 - Review（Phase 1）
 - PendingRegistration（Phase 1，Email 註冊驗證的暫存資料，見第 9 節）
 - WhiskyChunk（Phase 2，collection `whiskychunks`，Schema 見 `WHISKY_RAG_SPEC.md` 第 4 節）
+- SommelierLog（Phase 2，collection `sommelierlogs`，侍酒師查詢紀錄，見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` §5）
 - WhiskyTranslation（Phase 2，翻譯快取，Schema 見 `WHISKYHELLO_AI_TRANSLATION_SPEC.md` 第 5 節）
 
 ### User Schema
@@ -439,10 +440,12 @@ GET    /api/v1/me/reviews
 ```http
 GET    /api/v1/admin/users
 GET    /api/v1/admin/reviews
+GET    /api/v1/admin/sommelier-logs
 ```
 
 - `GET /api/v1/admin/users`：唯讀使用者列表（名稱、Email、頭像、角色、加入日期），不回傳密碼或 Google ID
 - `GET /api/v1/admin/reviews`：唯讀全站 Review 列表，依建立時間由新到舊
+- `GET /api/v1/admin/sommelier-logs`：侍酒師查詢紀錄，分頁（見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md` §5）
 
 ### Sommelier
 
@@ -632,7 +635,7 @@ Whisky = Static Dataset
 News = Static File（news.ts）
 Column = Static File（columns.json）
 User、Review、PendingRegistration = MongoDB
-WhiskyChunk（RAG 向量）、WhiskyTranslation（翻譯快取）= MongoDB
+WhiskyChunk（RAG 向量）、WhiskyTranslation（翻譯快取）、SommelierLog（侍酒師查詢紀錄）= MongoDB
 ```
 
 ### Deployment

@@ -18,7 +18,12 @@ export function validate(schema: ObjectSchema, property: RequestPart = 'body') {
       return
     }
 
-    req[property] = value
+    if (property === 'query') {
+      // Express 5 makes req.query a getter; redefine it so handlers read the validated value.
+      Object.defineProperty(req, 'query', { value, writable: true, configurable: true, enumerable: true })
+    } else {
+      req[property] = value
+    }
     next()
   }
 }

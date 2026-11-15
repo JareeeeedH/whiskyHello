@@ -217,7 +217,9 @@ IMAGE_PATH
 原始資料需先經過 Data Processing / Normalization，再供前端使用。
 
 ```text
-Raw Static Dataset
+Raw Static Dataset（不修改）
+      ↓
+Cleaning（build 時，scripts/split-whisky-data.ts → utils/whiskyClean.ts）
       ↓
 Data Processing / Normalization
       ↓
@@ -227,6 +229,21 @@ Whisky Service
       ↓
 Frontend
 ```
+
+### Cleaning
+
+規則移植自 Whiskey-Assistant（`backend/scripts/clean_data.py`），結果與其逐筆一致。輸出在 `src/data/generated/`（不進 git）。
+
+- `NAME`：還原 HTML 字元、合併空白、去頭尾空白
+- `NOTE`：還原 HTML 字元、去頭尾空白；保留換行（段落解析需要）
+- `SCORE`、`IMAGE_PATH`：不動
+- 排除（另存 `whiskyExcluded.json`，含原因）：
+  - 酒名無括號（一句話）：16 筆
+  - 非威士忌烈酒（括號內或品牌為烈酒類別、蘭姆酒產地）：2,496 筆
+  - 同品牌 10% 以上為非威士忌：279 筆
+- 結果：17,346 筆 → 保留 14,555 筆；被排除的酒款頁顯示找不到頁面
+- 已知不處理：Kavalan 1 筆 rum 桶被誤刪；括號外寫烈酒名的少數漏網；1 篇筆記（id 12490）Colour 段併入引言
+- RAG 建庫目前仍讀原始資料，之後改用清洗結果
 
 ### Standardized Whisky Model
 

@@ -6,3 +6,4 @@ This directory holds the **preserved raw** WhiskyFun static dataset.
 - Do **not** edit record contents or renumber `id` values
 - `id` is the stable key for future `Review.whiskyId`
 - Frontend code must consume data via `whiskyService`, not by importing this file in Vue components
+- Pages read the cleaned output of `scripts/split-whisky-data.ts` (`src/data/generated/`), not this file directly; see WHISKYHELLO_SPEC.md §7 Cleaning

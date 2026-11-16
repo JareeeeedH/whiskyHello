@@ -33,7 +33,7 @@ WhiskyHello 是一個以威士忌探索、評論與個人化體驗為核心的�
 
 ### Phase 2｜AI
 
-6. **AI Whisky Sommelier**（已上線；自然語言版待部署）
+6. **AI Whisky Sommelier**（已上線；2026-11-16 改為自然語言版）
    - 今日喝什麼
    - 使用者用一段話描述想喝的，從評論家筆記推薦 3 款並解釋原因
    - 詳細規格見 `WHISKYHELLO_AI_SOMMELIER_SPEC.md`
@@ -681,9 +681,9 @@ Phase 2
   ✅ AI Whisky Sommelier
   ✅ AI 評論家筆記翻譯
   ✅ RAG 向量庫（清洗後全部酒款、Atlas Vector Search、rerank）
-  🔄 Sommelier 自然語言版（完成，待部署）
+  ✅ Sommelier 自然語言版（2026-11-16 上線）
   ⬜ 口味搜尋 API 與前端
-  🔄 專欄（試行：12 篇、首頁區塊、列表頁、文章頁）
+  🔄 專欄（試行：21 篇、首頁區塊、列表頁、文章頁）
 ```
 
 ---

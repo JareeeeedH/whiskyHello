@@ -584,11 +584,124 @@
     ]
   },
   {
+    "id": "cask-strength-whisky",
+    "title": "原酒威士忌是什麼？桶裝強度怎麼喝、加多少水",
+    "type": "guide",
+    "description": "原酒、桶裝強度、Cask Strength 是什麼？說明加水的方法和用什麼水、怎麼看酒標，並比較亞伯樂原酒和蘇格登14年原酒。",
+    "publishedAt": "2026-11-17T00:00:00.000Z",
+    "readingMinutes": 3,
+    "cover": {
+      "imageUrl": "https://smw-casper.transforms.svdcdn.com/production/product-roundels/SMWS-Greville-Street-116-1.jpg?w=1200&h=630&q=82&auto=format&fit=clip&dm=1777992028&s=f37b0c4034ef53bed835e988808a8a62",
+      "sourceUrl": "https://smwsa.com/blog/cask-curriculum-whisky-water",
+      "credit": "SMWS"
+    },
+    "body": [
+      {
+        "type": "paragraph",
+        "text": "「原酒」、「桶裝強度」和 Cask Strength 說的是同一件事：裝瓶前沒有加水稀釋的威士忌，酒精度大約在 55%–65%。常見的一般酒款則是 40% 裝瓶。喝法不難。先純飲一小口，再一次加幾滴常溫水，邊加邊聞，酒精感不再蓋過風味就停。下面兩款原酒裡，第一次喝先選蘇格登14年原酒。"
+      },
+      {
+        "type": "heading",
+        "text": "原酒、桶裝強度、Cask Strength：差在裝瓶前有沒有加水"
+      },
+      {
+        "type": "paragraph",
+        "text": "三個名稱都是指裝瓶時不加水。所以它們的酒精度和風味濃度，都比多數已經稀釋過的單一麥芽高。40% 裝瓶的酒幾乎沒有加水的空間，一加就淡。原酒則把加水這一步留給喝的人。在裝瓶線上降低酒精度，不少風味分子會揮發掉；在杯裡自己加水，這些分子還留著，聞起來比較香，含在口中也比較舒服。原酒也常常不經冷凝過濾，A'bunadh 和蘇格登14年原酒都是這樣。不過冷凝過濾是另一項工藝，和原酒的定義無關。"
+      },
+      {
+        "type": "heading",
+        "text": "加多少水？從「眨眼測試」開始，一次幾滴"
+      },
+      {
+        "type": "paragraph",
+        "text": "先純飲。如果酒精讓你忍不住眨眼，這杯對你就是太烈，加點水會好一些。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第一次加 3–5 滴，之後每次只加幾滴。每加一次就搖杯、聞香，再喝一口。滴管、吸管或吧叉匙都可以用。給一個參考量：一支 57.5% 的 12 年斯貝賽，每 30ml 加 5–6 滴水。沒有要加到哪個固定的酒精度。目標是酒精感還在，但不會蓋過風味。喝起來開始變稀、變淡之前就停。水可以再加，加了就拿不出來。"
+      },
+      {
+        "type": "paragraph",
+        "text": "為什麼幾滴水就會變香？2017 年林奈大學在《Scientific Reports》發表一項電腦模擬研究。研究指出，酒精濃度高的時候，乙醇分子會聚在一起，把愈創木酚等香氣分子困住。加水會把它們打散，香氣就釋放出來，風味不會被水沖淡。杯子用鬱金香型的（例如 Glencairn），比寬口杯更能集中香氣。當然，純飲也完全沒問題。加水只是用來探索風味的方法。"
+      },
+      {
+        "type": "heading",
+        "text": "用什麼水？常溫、無氣泡，品飲時不加冰"
+      },
+      {
+        "type": "paragraph",
+        "text": "用常溫的無氣泡水就好。冰水和氣泡水都不適合，因為低溫會壓住香氣。冰塊會同時降溫和稀釋，香氣也會變弱。隨興調一杯 highball 時可以加冰。但認真品飲原酒時，不要加冰塊。"
+      },
+      {
+        "type": "heading",
+        "text": "兩款原酒的風格，第一次喝選哪一支"
+      },
+      {
+        "type": "paragraph",
+        "text": "蘇格登14年原酒的酒精度是 57.6%，用五種桶分三次熟成。第一次在歐洲橡木雪莉桶和美國橡木波本桶，第二次在 PX 與 Moscatel 雪莉桶，最後在歐洲橡木 Puncheon 桶融合。官方寫的主要風味是燻蘋果和柳橙；酒體由輕慢慢變厚，尾韻帶松木香。評酒人 Ma Matt 覺得它入口滑順，酒精感比 57.6% 讓人預期的弱很多；加水後花香和香草變多。它容易入口，加水又有明顯變化，所以適合當第一支原酒。"
+      },
+      {
+        "type": "paragraph",
+        "text": "亞伯樂 A'bunadh 用初次填裝的 Oloroso 雪莉桶熟成，沒有標酒齡，酒精度約 60%。Whiskeyful 的 Joe Whitfield 給它 8.5/10。他寫到李子果醬、黑巧克力和無花果乾，質地像糖漿，加幾滴水後柳橙皮的香氣更多。這是濃郁的雪莉桶風格，已經喜歡雪莉桶的人比較容易接受。"
+      },
+      {
+        "type": "heading",
+        "text": "看懂酒標：批次、酒精度、桶型"
+      },
+      {
+        "type": "paragraph",
+        "text": "同一款原酒，每一批都不一樣。A'bunadh 第53批是 59.7%，第60批 60.8%，第70批 60.1%。酒標上的批次編號，就是用來分辨這些差異的。風味也會跟著批次改變。The Dramble 給第53批 86/100，但覺得這一批的香氣比其他批次收斂，有些地方木頭味太重。"
+      },
+      {
+        "type": "paragraph",
+        "text": "買之前看四項：酒精度、桶型、批次或版本年份，還有是否不經冷凝過濾。蘇格登14年原酒是 2018 年推出的全球限量款，現在不一定買得到。"
+      },
+      {
+        "type": "paragraph",
+        "text": "原酒值得買，因為濃淡可以自己調整。第一支先選蘇格登14年原酒。喝懂加水帶來的變化之後，再去比較 A'bunadh 的不同批次。"
+      }
+    ],
+    "sources": [
+      {
+        "title": "BoozeMakers：How Much Water to Put in Whiskey and Why Add It at All",
+        "url": "https://www.boozemakers.com/articles/how-much-water-to-put-in-whiskey-and-why-add-it-at-all"
+      },
+      {
+        "title": "SMWS（蘇格蘭麥芽威士忌協會）：Cask Curriculum: Whisky & Water",
+        "url": "https://smwsa.com/blog/cask-curriculum-whisky-water"
+      },
+      {
+        "title": "Whiskeyful：Aberlour A'bunadh Batch 70 評論",
+        "url": "https://whiskeyful.com/reviews/aberlour-abunadh-batch-70"
+      },
+      {
+        "title": "Yilan美食生活玩家：蘇格登酒廠匠藝系列 14年單一麥芽威士忌原酒 首發上市",
+        "url": "https://yilan.com.tw/article/cjaycontent3/492"
+      },
+      {
+        "title": "Malts.com（帝亞吉歐官方）：蘇格登酒廠匠藝系列14年威士忌原酒",
+        "url": "https://www.malts.com/zh-tw/products/the-singleton-of-glen-ord-14-year-old-cask-strength"
+      },
+      {
+        "title": "1shot.tw：[新品開箱] 蘇格登14年單一麥芽威士忌原酒",
+        "url": "https://www.1shot.tw/12797/新品開箱-the-singleton蘇格登14年單一麥芽威士忌原酒"
+      },
+      {
+        "title": "Whiskeyful：Aberlour A'bunadh Batch 60 評論",
+        "url": "https://whiskeyful.com/reviews/aberlour-abunadh-batch-60"
+      },
+      {
+        "title": "The Dramble：Aberlour A'Bunadh Batch 53 品飲",
+        "url": "https://www.thedramble.com/tastings/aberlour/aberlour-abunadh-batch-53/"
+      }
+    ]
+  },
+  {
     "id": "hot-toddy-whisky",
     "title": "威士忌熱飲做法：Hot Toddy基本配方與冬季變化",
     "type": "howto",
     "description": "Hot Toddy 怎麼做？威士忌、蜂蜜、檸檬加熱水的基本配方，熱水溫度、基酒怎麼選，以及紅茶、香料蘋果汁的冬季變化和多人份做法。",
-    "publishedAt": "2026-11-17T00:00:00.000Z",
+    "publishedAt": "2026-11-16T00:00:00.000Z",
     "readingMinutes": 3,
     "cover": {
       "imageUrl": "https://vinepair.com/wp-content/uploads/2023/12/we-asked-bartenders-what-makes-a-perfect-hot-toddy-social.jpg",
@@ -729,124 +842,11 @@
     ]
   },
   {
-    "id": "cask-strength-whisky",
-    "title": "原酒威士忌是什麼？桶裝強度怎麼喝、加多少水",
-    "type": "guide",
-    "description": "原酒、桶裝強度、Cask Strength 是什麼？說明加水的方法和用什麼水、怎麼看酒標，並比較亞伯樂原酒和蘇格登14年原酒。",
-    "publishedAt": "2026-11-17T00:00:00.000Z",
-    "readingMinutes": 3,
-    "cover": {
-      "imageUrl": "https://smw-casper.transforms.svdcdn.com/production/product-roundels/SMWS-Greville-Street-116-1.jpg?w=1200&h=630&q=82&auto=format&fit=clip&dm=1777992028&s=f37b0c4034ef53bed835e988808a8a62",
-      "sourceUrl": "https://smwsa.com/blog/cask-curriculum-whisky-water",
-      "credit": "SMWS"
-    },
-    "body": [
-      {
-        "type": "paragraph",
-        "text": "「原酒」、「桶裝強度」和 Cask Strength 說的是同一件事：裝瓶前沒有加水稀釋的威士忌，酒精度大約在 55%–65%。常見的一般酒款則是 40% 裝瓶。喝法不難。先純飲一小口，再一次加幾滴常溫水，邊加邊聞，酒精感不再蓋過風味就停。下面兩款原酒裡，第一次喝先選蘇格登14年原酒。"
-      },
-      {
-        "type": "heading",
-        "text": "原酒、桶裝強度、Cask Strength：差在裝瓶前有沒有加水"
-      },
-      {
-        "type": "paragraph",
-        "text": "三個名稱都是指裝瓶時不加水。所以它們的酒精度和風味濃度，都比多數已經稀釋過的單一麥芽高。40% 裝瓶的酒幾乎沒有加水的空間，一加就淡。原酒則把加水這一步留給喝的人。在裝瓶線上降低酒精度，不少風味分子會揮發掉；在杯裡自己加水，這些分子還留著，聞起來比較香，含在口中也比較舒服。原酒也常常不經冷凝過濾，A'bunadh 和蘇格登14年原酒都是這樣。不過冷凝過濾是另一項工藝，和原酒的定義無關。"
-      },
-      {
-        "type": "heading",
-        "text": "加多少水？從「眨眼測試」開始，一次幾滴"
-      },
-      {
-        "type": "paragraph",
-        "text": "先純飲。如果酒精讓你忍不住眨眼，這杯對你就是太烈，加點水會好一些。"
-      },
-      {
-        "type": "paragraph",
-        "text": "第一次加 3–5 滴，之後每次只加幾滴。每加一次就搖杯、聞香，再喝一口。滴管、吸管或吧叉匙都可以用。給一個參考量：一支 57.5% 的 12 年斯貝賽，每 30ml 加 5–6 滴水。沒有要加到哪個固定的酒精度。目標是酒精感還在，但不會蓋過風味。喝起來開始變稀、變淡之前就停。水可以再加，加了就拿不出來。"
-      },
-      {
-        "type": "paragraph",
-        "text": "為什麼幾滴水就會變香？2017 年林奈大學在《Scientific Reports》發表一項電腦模擬研究。研究指出，酒精濃度高的時候，乙醇分子會聚在一起，把愈創木酚等香氣分子困住。加水會把它們打散，香氣就釋放出來，風味不會被水沖淡。杯子用鬱金香型的（例如 Glencairn），比寬口杯更能集中香氣。當然，純飲也完全沒問題。加水只是用來探索風味的方法。"
-      },
-      {
-        "type": "heading",
-        "text": "用什麼水？常溫、無氣泡，品飲時不加冰"
-      },
-      {
-        "type": "paragraph",
-        "text": "用常溫的無氣泡水就好。冰水和氣泡水都不適合，因為低溫會壓住香氣。冰塊會同時降溫和稀釋，香氣也會變弱。隨興調一杯 highball 時可以加冰。但認真品飲原酒時，不要加冰塊。"
-      },
-      {
-        "type": "heading",
-        "text": "兩款原酒的風格，第一次喝選哪一支"
-      },
-      {
-        "type": "paragraph",
-        "text": "蘇格登14年原酒的酒精度是 57.6%，用五種桶分三次熟成。第一次在歐洲橡木雪莉桶和美國橡木波本桶，第二次在 PX 與 Moscatel 雪莉桶，最後在歐洲橡木 Puncheon 桶融合。官方寫的主要風味是燻蘋果和柳橙；酒體由輕慢慢變厚，尾韻帶松木香。評酒人 Ma Matt 覺得它入口滑順，酒精感比 57.6% 讓人預期的弱很多；加水後花香和香草變多。它容易入口，加水又有明顯變化，所以適合當第一支原酒。"
-      },
-      {
-        "type": "paragraph",
-        "text": "亞伯樂 A'bunadh 用初次填裝的 Oloroso 雪莉桶熟成，沒有標酒齡，酒精度約 60%。Whiskeyful 的 Joe Whitfield 給它 8.5/10。他寫到李子果醬、黑巧克力和無花果乾，質地像糖漿，加幾滴水後柳橙皮的香氣更多。這是濃郁的雪莉桶風格，已經喜歡雪莉桶的人比較容易接受。"
-      },
-      {
-        "type": "heading",
-        "text": "看懂酒標：批次、酒精度、桶型"
-      },
-      {
-        "type": "paragraph",
-        "text": "同一款原酒，每一批都不一樣。A'bunadh 第53批是 59.7%，第60批 60.8%，第70批 60.1%。酒標上的批次編號，就是用來分辨這些差異的。風味也會跟著批次改變。The Dramble 給第53批 86/100，但覺得這一批的香氣比其他批次收斂，有些地方木頭味太重。"
-      },
-      {
-        "type": "paragraph",
-        "text": "買之前看四項：酒精度、桶型、批次或版本年份，還有是否不經冷凝過濾。蘇格登14年原酒是 2018 年推出的全球限量款，現在不一定買得到。"
-      },
-      {
-        "type": "paragraph",
-        "text": "原酒值得買，因為濃淡可以自己調整。第一支先選蘇格登14年原酒。喝懂加水帶來的變化之後，再去比較 A'bunadh 的不同批次。"
-      }
-    ],
-    "sources": [
-      {
-        "title": "BoozeMakers：How Much Water to Put in Whiskey and Why Add It at All",
-        "url": "https://www.boozemakers.com/articles/how-much-water-to-put-in-whiskey-and-why-add-it-at-all"
-      },
-      {
-        "title": "SMWS（蘇格蘭麥芽威士忌協會）：Cask Curriculum: Whisky & Water",
-        "url": "https://smwsa.com/blog/cask-curriculum-whisky-water"
-      },
-      {
-        "title": "Whiskeyful：Aberlour A'bunadh Batch 70 評論",
-        "url": "https://whiskeyful.com/reviews/aberlour-abunadh-batch-70"
-      },
-      {
-        "title": "Yilan美食生活玩家：蘇格登酒廠匠藝系列 14年單一麥芽威士忌原酒 首發上市",
-        "url": "https://yilan.com.tw/article/cjaycontent3/492"
-      },
-      {
-        "title": "Malts.com（帝亞吉歐官方）：蘇格登酒廠匠藝系列14年威士忌原酒",
-        "url": "https://www.malts.com/zh-tw/products/the-singleton-of-glen-ord-14-year-old-cask-strength"
-      },
-      {
-        "title": "1shot.tw：[新品開箱] 蘇格登14年單一麥芽威士忌原酒",
-        "url": "https://www.1shot.tw/12797/新品開箱-the-singleton蘇格登14年單一麥芽威士忌原酒"
-      },
-      {
-        "title": "Whiskeyful：Aberlour A'bunadh Batch 60 評論",
-        "url": "https://whiskeyful.com/reviews/aberlour-abunadh-batch-60"
-      },
-      {
-        "title": "The Dramble：Aberlour A'Bunadh Batch 53 品飲",
-        "url": "https://www.thedramble.com/tastings/aberlour/aberlour-abunadh-batch-53/"
-      }
-    ]
-  },
-  {
     "id": "yoichi-vs-miyagikyo-10",
     "title": "余市10年還是宮城峽10年？NIKKA回歸款煙燻與花果怎麼選",
     "type": "comparison",
     "description": "余市10年和宮城峽10年同價、同酒精度，風味卻相反。比較燃煤直火與蒸氣蒸餾帶來的煙燻和花果、新舊版差別、台灣精裝木盒版，以及竹鶴本真第一版。",
-    "publishedAt": "2026-11-17T00:00:00.000Z",
+    "publishedAt": "2026-11-16T00:00:00.000Z",
     "readingMinutes": 3,
     "cover": {
       "imageUrl": "https://images.ctee.com.tw/newsphoto/2026-09-15/1024/20260915701414.jpg",
@@ -1003,7 +1003,7 @@
     "title": "泥煤威士忌推薦：新手由輕到重的艾雷島五階路線",
     "type": "recommendation",
     "description": "第一瓶泥煤威士忌怎麼選？說明 PPM 怎麼看，再把波摩12年、卡爾里拉 Moch、拉弗格10年、雅柏10年、樂加維林16年排成由輕到重的入門路線。",
-    "publishedAt": "2026-11-17T00:00:00.000Z",
+    "publishedAt": "2026-11-16T00:00:00.000Z",
     "readingMinutes": 4,
     "cover": {
       "imageUrl": "https://mscwordpresscontent.s3.amazonaws.com/wa/wp-content/uploads/2017/06/WA_PeatFire_1600x900_a.jpg",
@@ -1172,7 +1172,7 @@
     "title": "麥卡倫12年雪莉桶雙桶差別：多花800元值得嗎",
     "type": "comparison",
     "description": "麥卡倫12年雪莉桶和雙桶差在哪？比較兩款的桶型、風味、台灣價差與評論家分數，以及第一瓶該先買哪一款。",
-    "publishedAt": "2026-11-17T00:00:00.000Z",
+    "publishedAt": "2026-11-16T00:00:00.000Z",
     "readingMinutes": 3,
     "cover": {
       "imageUrl": "https://image-cdn.learnin.tw/bnextmedia/image/album/2020-09/img-1600154063-41661.jpg?w=1600",
